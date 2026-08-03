@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>客戶車險管理系統</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="車險管理">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-header">
+  <div class="brand">保單建檔<small>VEHICLE INSURANCE INTAKE</small></div>
+  <div class="tag mono" id="stepTag">STEP 01 / 10</div>
+</div>
+
+<div class="top-nav">
+  <a href="../index.html">← 理賠文件首頁</a>
+  <a href="#" id="navForm" class="active">新增建檔</a>
+  <a href="#" id="navList">已建檔案列表</a>
+</div>
+
+<div class="rail" id="rail"></div>
+
+<!-- FORM WIZARD -->
+<div id="wizardWrap">
+  <form class="card" id="wizardCard" onsubmit="return false;"></form>
+</div>
+
+<!-- RECORDS LIST -->
+<div class="table-wrap" id="listWrap" style="display:none;">
+  <div class="card" style="max-width:none;">
+    <div class="step-title">已建檔案</div>
+    <div id="recordsTableHolder">載入中...</div>
+  </div>
+</div>
+
+<!-- RECORD DETAIL -->
+<div class="table-wrap" id="detailWrap" style="display:none;">
+  <div class="card" style="max-width:none;">
+    <div class="nav-row" style="border:none; margin:0 0 16px; padding:0; justify-content:flex-start; gap:16px;">
+      <button type="button" class="btn btn-ghost" id="btnBackToList">← 返回列表</button>
+    </div>
+    <div class="step-title">詳細資料</div>
+    <div id="detailHolder"></div>
+  </div>
+</div>
+
+<script src="zipcodes.js"></script>
+<script src="db.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
