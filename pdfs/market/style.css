@@ -1,0 +1,175 @@
+:root {
+  --navy-deep: #0e1730;
+  --navy: #16213e;
+  --navy-light: #1f2c4f;
+  --gold: #f2c14e;
+  --gold-deep: #e0a92b;
+  --white: #f5f6fa;
+  --up-red: #e03e3e;
+  --down-green: #2ea043;
+  --border-soft: rgba(242, 193, 78, 0.35);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Noto Sans TC', "Microsoft JhengHei", sans-serif;
+  background: radial-gradient(circle at 20% 0%, var(--navy-light), var(--navy-deep) 60%);
+  color: var(--white);
+  min-height: 100vh;
+}
+
+.page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+
+/* ---------- Header ---------- */
+.masthead {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.title {
+  font-size: 2.6rem;
+  font-weight: 900;
+  letter-spacing: 6px;
+  margin: 0;
+  background: linear-gradient(180deg, #fff2c4, var(--gold) 55%, var(--gold-deep));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 2px 12px rgba(242, 193, 78, 0.25);
+}
+
+.subtitle {
+  font-size: 1.9rem;
+  font-weight: 900;
+  margin: 4px 0 0;
+  color: var(--white);
+  letter-spacing: 1px;
+}
+
+/* ---------- Sections ---------- */
+.section {
+  margin-bottom: 30px;
+}
+
+.section-title {
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--gold);
+  margin: 0 0 16px;
+}
+
+.update-note {
+  text-align: center;
+  font-size: 0.72rem;
+  color: rgba(245, 246, 250, 0.45);
+  margin: 10px 0 0;
+}
+
+/* ---------- Cards (rates + indices) ---------- */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.card {
+  background: linear-gradient(160deg, #ffe8a3, var(--gold) 55%, var(--gold-deep));
+  color: #1a1a1a;
+  border-radius: 14px;
+  padding: 14px 6px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.card:hover { transform: translateY(-2px); }
+
+.card-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.card-value {
+  font-weight: 900;
+  font-size: 1.15rem;
+}
+
+.card-value.price { font-size: 1.05rem; }
+
+.card-change,
+.card-pct {
+  font-weight: 800;
+  font-size: 0.82rem;
+  color: var(--up-red); /* 預設，會依漲跌以 JS 覆蓋 */
+}
+
+.card.is-down .card-change,
+.card.is-down .card-pct {
+  color: var(--down-green);
+}
+
+.card.is-up .card-change,
+.card.is-up .card-pct {
+  color: var(--up-red);
+}
+
+/* ---------- News list ---------- */
+.news-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.news-item a {
+  display: block;
+  color: var(--white);
+  text-decoration: none;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.news-item a:hover {
+  background: rgba(242, 193, 78, 0.12);
+  border-color: var(--gold);
+}
+
+.news-item.skeleton {
+  text-align: center;
+  color: rgba(245, 246, 250, 0.5);
+  padding: 14px;
+}
+
+/* ---------- Footer ---------- */
+.footer {
+  text-align: center;
+  margin-top: 36px;
+  color: rgba(245, 246, 250, 0.6);
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 420px) {
+  .title { font-size: 2.1rem; letter-spacing: 3px; }
+  .subtitle { font-size: 1.5rem; }
+  .card-label { font-size: 0.8rem; }
+  .card-value { font-size: 0.95rem; }
+}
