@@ -3,9 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>理賠文件下載中心</title>
+<title>東石系統</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1B2A4A">
+<!-- iOS「加入主畫面」專用設定：Android/桌面看 manifest.json，iOS Safari 只認得下面這幾行 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="理賠文件">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -85,6 +90,7 @@
 
   nav.tabs{
     display:flex;
+    flex-wrap:wrap;
     background:var(--navy-deep);
     border-radius:999px;
     padding:4px;
@@ -303,13 +309,16 @@
   <div class="brand">
     <div class="brand-mark">賠</div>
     <div>
-      <h1>理賠文件下載中心</h1>
+      <h1>東石系統</h1>
       <span>CLAIMS &amp; POLICY DOCUMENT CENTER</span>
     </div>
   </div>
   <nav class="tabs">
     <button id="tab-claim" class="active" onclick="showPage('claim')">理賠</button>
     <button id="tab-endorse" onclick="showPage('endorse')">契變</button>
+    <button id="tab-policy" onclick="location.href='policies/index.html'">車險管理</button>
+    <button id="tab-clients" onclick="location.href='clients/index.html'">客戶資料</button>
+    <button id="tab-market" onclick="location.href='market/index.html'">財經日報</button>
   </nav>
 </header>
 
@@ -318,7 +327,7 @@
   <section id="page-claim">
     <div class="page-title">
       <h2>理賠申請文件</h2>
-      <span class="count">共 20 家壽險公司 +1 家產險公司</span>
+      <span class="count">共 20 家壽險公司</span>
     </div>
     <p class="page-sub">點選公司名稱下方的按鈕，即可下載該公司最新版理賠申請書 PDF 檔案。</p>
     <div class="grid" id="claim-grid"></div>
@@ -340,7 +349,7 @@
 <footer>僅供內部業務使用．請下載後確認為最新版本文件</footer>
 
 <script>
-  // 共 20 家壽險公司 +1 家產險公司
+  // 20 家壽險公司資料
   // filename 對應 pdfs 資料夾中的檔案，請將實際 PDF 檔案放入 pdfs/ 資料夾並改成對應檔名
   const companies = [
     { name:"國泰人壽(含國寶、幸福)", file:"cathay.pdf" },
@@ -365,7 +374,6 @@
     { name:"法國巴黎人壽", file:"cardi.pdf" },
     { name:"富邦產物車險", file:"fuboncar.pdf" },
     { name:"富邦產物個險/旅平險", file:"fubonper.pdf"}
-    
   ];
 
   const grid = document.getElementById('claim-grid');
