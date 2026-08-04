@@ -1,6 +1,6 @@
 {
-  "name": "理賠文件下載中心",
-  "short_name": "理賠文件",
+  "name": "東石系統",
+  "short_name": "東石系統",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#F6F3EC",
