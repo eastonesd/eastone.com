@@ -25,32 +25,49 @@ body {
 }
 
 .topbar {
-  background: var(--accent);
-  color: #fff;
-  padding: 18px 28px;
+  max-width: 900px;
+  margin: 22px auto 18px;
+  padding: 0 20px;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
 }
-.topbar h1 { font-family: 'Noto Serif TC', serif; font-size: 1.25rem; margin: 0; letter-spacing: .04em; }
+.topbar h1 {
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 700;
+  font-size: 22px;
+  margin: 0;
+  letter-spacing: .04em;
+  color: var(--accent-deep);
+}
+.topbar h1 small {
+  display: block;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: .24em;
+  color: #9A927D;
+  margin-top: 3px;
+}
 
-.tabs { display: flex; gap: 6px; }
+.tabs { display: flex; gap: 16px; }
 .tab-btn {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,.25);
-  color: #fff;
-  padding: 8px 16px;
-  border-radius: 999px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--accent-deep);
+  padding: 4px 0;
   cursor: pointer;
-  font-size: .9rem;
-  transition: background .15s;
+  font-size: .85rem;
+  font-weight: 700;
+  transition: border-color .15s, color .15s;
 }
-.tab-btn:hover { background: rgba(255,255,255,.12); }
-.tab-btn.active { background: var(--accent); border-color: var(--accent); }
+.tab-btn:hover { color: var(--gold); }
+.tab-btn.active { border-color: var(--gold); color: var(--accent-deep); }
 
-main { max-width: 900px; margin: 28px auto; padding: 0 20px 60px; }
+main { max-width: 900px; margin: 0 auto; padding: 0 20px 60px; }
 
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
