@@ -6,14 +6,31 @@
 <title>客戶個資管理系統</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="客戶管理">
+<link rel="stylesheet" href="../shared/site-header.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<div class="ghdr-wrap">
+  <div class="ghdr-brand">
+    <div class="ghdr-mark">ES</div>
+    <div>
+      <div class="ghdr-title">東石系統</div>
+      <div class="ghdr-sub">EASTONE SYSTEM</div>
+    </div>
+  </div>
+  <nav class="ghdr-nav">
+    <button onclick="location.href='../index.html'">理賠</button>
+    <button onclick="location.href='../index.html#endorse'">契變</button>
+    <button onclick="location.href='../policies/index.html'">車險管理</button>
+    <button class="active" onclick="location.href='index.html'">客戶資料</button>
+    <button onclick="location.href='../market/index.html'">財經日報</button>
+  </nav>
+</div>
+
 <header class="topbar">
   <h1>客戶個資管理系統</h1>
   <nav class="tabs">
-    <a href="../index.html" class="tab-btn" style="text-decoration:none; display:inline-flex; align-items:center;">← 理賠文件首頁</a>
     <button class="tab-btn active" data-tab="wizard">＋ 新增客戶</button>
     <button class="tab-btn" data-tab="filelist">📁 檔案區</button>
     <button class="tab-btn" data-tab="codes">⚙ 保單代號維護</button>

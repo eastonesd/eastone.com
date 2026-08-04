@@ -6,9 +6,27 @@
 <title>客戶車險管理系統</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="車險管理">
+<link rel="stylesheet" href="../shared/site-header.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<div class="ghdr-wrap">
+  <div class="ghdr-brand">
+    <div class="ghdr-mark">ES</div>
+    <div>
+      <div class="ghdr-title">東石系統</div>
+      <div class="ghdr-sub">EASTONE SYSTEM</div>
+    </div>
+  </div>
+  <nav class="ghdr-nav">
+    <button onclick="location.href='../index.html'">理賠</button>
+    <button onclick="location.href='../index.html#endorse'">契變</button>
+    <button class="active" onclick="location.href='index.html'">車險管理</button>
+    <button onclick="location.href='../clients/index.html'">客戶資料</button>
+    <button onclick="location.href='../market/index.html'">財經日報</button>
+  </nav>
+</div>
 
 <div class="app-header">
   <div class="brand">保單建檔<small>VEHICLE INSURANCE INTAKE</small></div>
@@ -16,7 +34,6 @@
 </div>
 
 <div class="top-nav">
-  <a href="../index.html">← 理賠文件首頁</a>
   <a href="#" id="navForm" class="active">新增建檔</a>
   <a href="#" id="navList">已建檔案列表</a>
 </div>

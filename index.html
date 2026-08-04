@@ -9,7 +9,7 @@
 <!-- iOS「加入主畫面」專用設定：Android/桌面看 manifest.json，iOS Safari 只認得下面這幾行 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="理賠文件">
+<meta name="apple-mobile-web-app-title" content="東石系統">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -440,6 +440,9 @@
     document.getElementById('tab-claim').classList.toggle('active', which === 'claim');
     document.getElementById('tab-endorse').classList.toggle('active', which === 'endorse');
   }
+
+  // 從子頁面（車險管理／客戶資料）點「契變」連回來時，網址會帶 #endorse，直接開啟契變分頁
+  if (location.hash === '#endorse') showPage('endorse');
 </script>
 </body>
 </html>

@@ -1,13 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;600;700;900&family=Space+Mono:wght@400;700&display=swap');
 
 :root{
-  --ink:#1E2A38;
-  --navy:#243A5E;
-  --navy-deep:#182741;
+  --ink:#2A2A26;
+  --navy:#1B2A4A;
+  --navy-deep:#121D33;
   --paper:#F6F3EC;
   --paper-card:#FFFDF8;
-  --line:#D8D2C4;
-  --brass:#B8862E;
+  --line:#D8D0BC;
+  --brass:#B8892B;
   --brass-light:#E4C77E;
   --ok:#2F6B4F;
   --danger:#A2402D;
@@ -43,7 +43,8 @@ body{
   padding: 0 4px;
 }
 .app-header .brand{
-  font-weight:900;
+  font-weight:700;
+  font-family:'Noto Serif TC', serif;
   font-size:22px;
   color:var(--navy-deep);
   letter-spacing:.5px;
@@ -120,6 +121,7 @@ body{
 .step-title{
   font-size:21px;
   font-weight:700;
+  font-family:'Noto Serif TC', serif;
   color:var(--navy-deep);
   margin:0 0 22px;
 }

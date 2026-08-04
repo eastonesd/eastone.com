@@ -1,12 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap');
+
 :root {
-  --ink: #1b2430;
-  --ink-soft: #4a5568;
-  --paper: #f5f6f8;
-  --card: #ffffff;
-  --line: #e2e5ea;
-  --accent: #2f5d62;
-  --accent-soft: #e6efee;
-  --danger: #b1493f;
+  --ink: #2A2A26;
+  --ink-soft: #6B6656;
+  --paper: #F6F3EC;
+  --card: #FFFDF8;
+  --line: #D8D0BC;
+  --accent: #1B2A4A;
+  --accent-deep: #121D33;
+  --accent-soft: #EDE8DC;
+  --gold: #B8892B;
+  --danger: #A2402D;
   --radius: 10px;
   font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
 }
@@ -21,7 +25,7 @@ body {
 }
 
 .topbar {
-  background: var(--ink);
+  background: var(--accent);
   color: #fff;
   padding: 18px 28px;
   display: flex;
@@ -30,7 +34,7 @@ body {
   flex-wrap: wrap;
   gap: 12px;
 }
-.topbar h1 { font-size: 1.25rem; margin: 0; letter-spacing: .04em; }
+.topbar h1 { font-family: 'Noto Serif TC', serif; font-size: 1.25rem; margin: 0; letter-spacing: .04em; }
 
 .tabs { display: flex; gap: 6px; }
 .tab-btn {
@@ -169,7 +173,7 @@ th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
   font-weight: 600;
 }
 .btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: #244b4f; }
+.btn-primary:hover { background: var(--accent-deep, #121D33); }
 .btn-secondary { background: var(--paper); color: var(--ink-soft); border: 1px solid var(--line); }
 .btn-secondary:hover { background: #ebeef1; }
 .btn-secondary:disabled { opacity: .4; cursor: not-allowed; }
