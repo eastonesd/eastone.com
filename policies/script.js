@@ -23,7 +23,10 @@ const state = {
   phoneSuffix: '',
   emailLocal: '', emailDomain: 'gmail.com', emailDomainCustom: '',
   zipcode: '', city: '', district: '', addressDetail: '',
+  editingId: null,
 };
+
+let doneScreenActive = false;
 
 const VEHICLE_TYPES = ['汽車', '普重', '大重'];
 
@@ -247,8 +250,10 @@ function stepVoluntaryItems() {
         const isCustom = cur.checked && cur.amount && !item.presets.includes(cur.amount);
         return `
         <div class="check-row ${cur.checked ? 'checked' : ''}" id="row_${item.id}">
+          <label class="label">  
           <input type="checkbox" class="v-chk" data-id="${item.id}" ${cur.checked ? 'checked' : ''}>
-          <label class="label">${item.name}</label>
+          <p>${item.name}</p>
+          </label>
           ${!item.noAmount ? `
           <div class="detail">
             <div class="amount-row">
@@ -620,7 +625,9 @@ function buildPayload() {
 function renderRail(steps) {
   const rail = document.getElementById('rail');
   rail.innerHTML = steps.map((s, i) => `<div class="seg ${i < currentIndex ? 'done' : (i === currentIndex ? 'active' : '')}"></div>`).join('');
-  document.getElementById('stepTag').textContent = `STEP ${String(currentIndex + 1).padStart(2, '0')} / ${String(steps.length).padStart(2, '0')}`;
+  const tag = document.getElementById('stepTag');
+  tag.classList.remove('clickable');
+  tag.textContent = `STEP ${String(currentIndex + 1).padStart(2, '0')} / ${String(steps.length).padStart(2, '0')}`;
 }
 
 function renderStep() {
@@ -718,6 +725,7 @@ async function showList() {
   document.getElementById('rail').style.display = 'none';
   document.getElementById('navList').classList.add('active');
   document.getElementById('navForm').classList.remove('active');
+  document.getElementById('navForm').addEventListener('click', resetWizard);
   const holder = document.getElementById('recordsTableHolder');
   holder.textContent = '載入中...';
   const rows = await dbGetAll();
