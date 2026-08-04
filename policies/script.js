@@ -23,10 +23,7 @@ const state = {
   phoneSuffix: '',
   emailLocal: '', emailDomain: 'gmail.com', emailDomainCustom: '',
   zipcode: '', city: '', district: '', addressDetail: '',
-  editingId: null,
 };
-
-let doneScreenActive = false;
 
 const VEHICLE_TYPES = ['汽車', '普重', '大重'];
 
@@ -36,7 +33,7 @@ const VOLUNTARY_ITEMS = [
   { id: 'body_c', name: '車體損失險 丙式', presets: ['50萬', '80萬', '100萬', '150萬', '200萬'] },
   { id: 'theft', name: '竊盜損失險', presets: ['50萬', '80萬', '100萬', '150萬'] },
   { id: 'liab_injury', name: '第三人責任險（傷害）', presets: ['每人100萬/每一事故200萬', '每人200萬/每一事故400萬', '每人300萬/每一事故600萬'] },
-  { id: 'liab_property', name: '第三人責任險（財損）', presets: ['50萬', '100萬', '150萬', '200萬'] },
+  { id: 'liab_property', name: '第三人責任險（財損）', presets: ['30萬', '50萬', '100萬', '200萬'] },
   { id: 'excess_liab', name: '超額責任險', presets: ['500萬', '1000萬', '2000萬'] },
   { id: 'passenger', name: '乘客傷害險', presets: ['每人100萬/每一事故200萬', '每人200萬/每一事故400萬'] },
   { id: 'driver', name: '駕駛人傷害險', presets: ['100萬', '200萬', '300萬'] },
@@ -250,10 +247,8 @@ function stepVoluntaryItems() {
         const isCustom = cur.checked && cur.amount && !item.presets.includes(cur.amount);
         return `
         <div class="check-row ${cur.checked ? 'checked' : ''}" id="row_${item.id}">
-          <label class="label">  
           <input type="checkbox" class="v-chk" data-id="${item.id}" ${cur.checked ? 'checked' : ''}>
-          <p>${item.name}</p>
-          </label>
+          <label class="label">${item.name}</label>
           ${!item.noAmount ? `
           <div class="detail">
             <div class="amount-row">
@@ -625,17 +620,17 @@ function buildPayload() {
 function renderRail(steps) {
   const rail = document.getElementById('rail');
   rail.innerHTML = steps.map((s, i) => `<div class="seg ${i < currentIndex ? 'done' : (i === currentIndex ? 'active' : '')}"></div>`).join('');
-  const tag = document.getElementById('stepTag');
-  tag.classList.remove('clickable');
-  tag.textContent = `STEP ${String(currentIndex + 1).padStart(2, '0')} / ${String(steps.length).padStart(2, '0')}`;
+  document.getElementById('stepTag').textContent = `STEP ${String(currentIndex + 1).padStart(2, '0')} / ${String(steps.length).padStart(2, '0')}`;
 }
 
 function renderStep() {
   const steps = getSteps();
   if (currentIndex >= steps.length) currentIndex = steps.length - 1;
   const step = steps[currentIndex];
+  doneScreenActive = false;
   renderRail(steps);
 
+  const finalLabel = state.editingId ? '更新資料' : '完成建檔';
   const card = document.getElementById('wizardCard');
   card.innerHTML = `
     <div class="step-eyebrow">${step.eyebrow}</div>
@@ -644,7 +639,7 @@ function renderStep() {
     <div id="stepBody"></div>
     <div class="nav-row">
       <button type="button" class="btn btn-ghost" id="btnPrev" ${currentIndex === 0 ? 'disabled' : ''}>上一步</button>
-      <button type="button" class="btn ${step.isFinal ? 'btn-finish' : 'btn-primary'}" id="btnNext">${step.isFinal ? '完成建檔' : '下一步'}</button>
+      <button type="button" class="btn ${step.isFinal ? 'btn-finish' : 'btn-primary'}" id="btnNext">${step.isFinal ? finalLabel : '下一步'}</button>
     </div>
   `;
   const body = card.querySelector('#stepBody');
@@ -658,14 +653,21 @@ function renderStep() {
   card.querySelector('#btnNext').addEventListener('click', async () => {
     if (!step.collect(card)) return;
     if (step.isFinal) {
+      const isEdit = !!state.editingId;
       const btn = card.querySelector('#btnNext');
-      btn.disabled = true; btn.textContent = '建檔中...';
+      const busyLabel = isEdit ? '更新中...' : '建檔中...';
+      const idleLabel = isEdit ? '更新資料' : '完成建檔';
+      btn.disabled = true; btn.textContent = busyLabel;
       try {
-        await dbAdd(buildPayload());
-        showDoneScreen();
+        if (isEdit) {
+          await dbUpdate(state.editingId, buildPayload());
+        } else {
+          await dbAdd(buildPayload());
+        }
+        showDoneScreen(isEdit);
       } catch (e) {
-        alert('建檔失敗：' + (e && e.message ? e.message : '未知錯誤'));
-        btn.disabled = false; btn.textContent = '完成建檔';
+        alert((isEdit ? '更新失敗：' : '建檔失敗：') + (e && e.message ? e.message : '未知錯誤'));
+        btn.disabled = false; btn.textContent = idleLabel;
       }
       return;
     }
@@ -674,14 +676,17 @@ function renderStep() {
   });
 }
 
-function showDoneScreen() {
+function showDoneScreen(isEdit) {
+  doneScreenActive = true;
   const card = document.getElementById('wizardCard');
+  const title = isEdit ? '更新完成' : '建檔完成';
+  const verb = isEdit ? '成功更新' : '成功建立';
   card.innerHTML = `
     <div style="text-align:center; padding:20px 0 6px;">
       <div class="done-icon">✓</div>
-      <div class="step-title" style="text-align:center;">建檔完成</div>
+      <div class="step-title" style="text-align:center;">${title}</div>
       <div class="stub" style="text-align:left; margin:0 auto 26px; max-width:420px;">
-        <b>${state.plate}</b>（${state.vehicleType}）已成功建立保單資料。<br>
+        <b>${state.plate}</b>（${state.vehicleType}）已${verb}保單資料。<br>
         被保人：<b>${state.insuredName}</b>
       </div>
       <button type="button" class="btn btn-primary" id="btnAnother">建立下一筆</button>
@@ -689,7 +694,9 @@ function showDoneScreen() {
     </div>
   `;
   document.getElementById('rail').innerHTML = '';
-  document.getElementById('stepTag').textContent = 'DONE';
+  const tag = document.getElementById('stepTag');
+  tag.textContent = 'DONE';
+  tag.classList.add('clickable');
   card.querySelector('#btnAnother').addEventListener('click', resetWizard);
   card.querySelector('#btnGoList').addEventListener('click', () => { showList(); });
 }
@@ -712,7 +719,9 @@ function resetWizard() {
     phoneSuffix: '',
     emailLocal: '', emailDomain: 'gmail.com', emailDomainCustom: '',
     zipcode: '', city: '', district: '', addressDetail: '',
+    editingId: null,
   });
+  doneScreenActive = false;
   currentIndex = 0;
   showForm();
 }
@@ -725,25 +734,31 @@ async function showList() {
   document.getElementById('rail').style.display = 'none';
   document.getElementById('navList').classList.add('active');
   document.getElementById('navForm').classList.remove('active');
-  document.getElementById('navForm').addEventListener('click', resetWizard);
   const holder = document.getElementById('recordsTableHolder');
   holder.textContent = '載入中...';
   const rows = await dbGetAll();
   if (!rows.length) { holder.innerHTML = '<p>目前尚無建檔資料。</p>'; return; }
   holder.innerHTML = `
     <table class="records">
-      <thead><tr><th>車牌</th><th>保戶名字</th><th></th></tr></thead>
+      <thead><tr><th>車牌</th><th>保戶名字</th><th></th><th></th></tr></thead>
       <tbody>
         ${rows.map(r => `
           <tr class="record-row" data-id="${r.id}" style="cursor:pointer;">
             <td>${r.plate_number}</td>
             <td>${r.insured_name || ''}</td>
+            <td><span class="edit-btn" data-id="${r.id}" style="color:var(--navy); cursor:pointer; font-size:12px; font-weight:700;">編輯資料</span></td>
             <td><span class="del-btn" data-id="${r.id}">刪除</span></td>
           </tr>`).join('')}
       </tbody>
     </table>`;
   holder.querySelectorAll('.record-row').forEach(row => {
     row.addEventListener('click', () => showDetail(row.dataset.id));
+  });
+  holder.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startEdit(btn.dataset.id);
+    });
   });
   holder.querySelectorAll('.del-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
@@ -753,6 +768,67 @@ async function showList() {
       showList();
     });
   });
+}
+
+// 反向操作：把一筆已存在的資料「灌回」state，讓精靈可以重複使用來編輯
+function loadStateFromRecord(r) {
+  const mfgParts = r.vehicle_manufacture_date ? r.vehicle_manufacture_date.split('-') : [null, '1'];
+
+  const voluntaryItems = {};
+  (r.voluntary_items || []).forEach(v => {
+    const def = VOLUNTARY_ITEMS.find(i => i.name === v.item);
+    if (def) voluntaryItems[def.id] = { checked: true, amount: v.amount || '' };
+  });
+
+  let emailLocal = '', emailDomain = 'gmail.com', emailDomainCustom = '';
+  if (r.insured_email && r.insured_email.includes('@')) {
+    const [local, domain] = r.insured_email.split('@');
+    emailLocal = local;
+    if (EMAIL_DOMAINS.includes(domain)) {
+      emailDomain = domain;
+    } else {
+      emailDomain = '其他';
+      emailDomainCustom = domain;
+    }
+  }
+
+  Object.assign(state, {
+    editingId: r.id,
+    plate: r.plate_number || '',
+    vehicleType: r.vehicle_type || '',
+    hasCompulsory: !!r.has_compulsory,
+    compulsoryPolicyNo: r.compulsory_policy_no || '',
+    hasVoluntary: !!r.has_voluntary,
+    voluntaryPolicyNo: r.voluntary_policy_no || '',
+    voluntaryItems,
+    insuredName: r.insured_name || '',
+    totalPremium: r.total_premium || '',
+    periodStart: isoToRoc(r.policy_start_date) || { y: null, m: 1, d: 1 },
+    periodEnd: isoToRoc(r.policy_end_date) || { y: null, m: 1, d: 1 },
+    license: isoToRoc(r.vehicle_license_date) || { y: null, m: 1, d: 1 },
+    mfg: { y: mfgParts[0] ? Number(mfgParts[0]) : null, m: mfgParts[1] ? Number(mfgParts[1]) : 1 },
+    displacement: r.displacement || '',
+    seatingCapacity: r.seating_capacity || 2,
+    engineNumber: r.engine_number || '',
+    brandModel: r.brand_model || '',
+    insuredIdNumber: r.insured_id_number || '',
+    birth: isoToRoc(r.insured_birthdate) || { y: null, m: 1, d: 1 },
+    phoneSuffix: (r.insured_phone || '').replace(/^09/, ''),
+    emailLocal, emailDomain, emailDomainCustom,
+    zipcode: r.insured_zipcode || '',
+    city: r.insured_city || '',
+    district: r.insured_district || '',
+    addressDetail: r.insured_address_detail || '',
+  });
+}
+
+async function startEdit(id) {
+  const rec = await dbGet(id);
+  if (!rec) { alert('找不到這筆資料'); return; }
+  loadStateFromRecord(rec);
+  doneScreenActive = false;
+  currentIndex = 0;
+  showForm();
 }
 
 function isoToRoc(iso) {
@@ -814,6 +890,8 @@ async function showDetail(id) {
   const rec = await dbGet(id);
   if (!rec) { holder.innerHTML = '<p>找不到這筆資料。</p>'; return; }
   holder.innerHTML = renderRecordDetail(rec);
+  const editBtn = document.getElementById('btnEditRecord');
+  if (editBtn) editBtn.onclick = () => startEdit(id);
 }
 
 document.getElementById('btnBackToList').addEventListener('click', showList);
@@ -828,8 +906,16 @@ function showForm() {
   renderStep();
 }
 
-document.getElementById('navForm').addEventListener('click', (e) => { e.preventDefault(); showForm(); });
+document.getElementById('navForm').addEventListener('click', (e) => {
+  e.preventDefault();
+  // 如果精靈目前停在「建檔完成／更新完成」畫面，點「新增建檔」要重新開始一份全新的，
+  // 不然會殘留剛剛編輯過的舊資料。
+  if (doneScreenActive) { resetWizard(); } else { showForm(); }
+});
 document.getElementById('navList').addEventListener('click', (e) => { e.preventDefault(); showList(); });
+document.getElementById('stepTag').addEventListener('click', () => {
+  if (doneScreenActive) resetWizard();
+});
 
 // init
 showForm();

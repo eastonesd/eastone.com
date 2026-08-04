@@ -57,6 +57,24 @@ async function dbGet(id) {
   return row || null;
 }
 
+async function dbUpdate(id, payload) {
+  const db = await openDB();
+  const existing = await dbGet(id);
+  if (!existing) throw new Error('找不到這筆資料');
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const rec = {
+      ...existing,
+      ...payload,
+      id: Number(id),
+      updated_at: new Date().toISOString().slice(0, 19),
+    };
+    const req = tx.objectStore(STORE).put(rec);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
 // 刪除一筆 — 對應原本 DELETE /api/policies/<id>
 async function dbDelete(id) {
   const db = await openDB();
