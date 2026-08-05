@@ -106,8 +106,8 @@ label {
   font-weight: 600;
 }
 input, select {
+  height: 40px;
   width: 100%;
-  margin-top: 6px;
   padding: 10px 12px;
   font-size: 1rem;
   border: 1px solid var(--line);
@@ -135,7 +135,7 @@ input:focus, select:focus {
   flex: 1;
 }
 .wheel-select::-webkit-scrollbar { width: 4px; }
-.wheel-track { padding: 60px 0; }
+.wheel-track { padding: 58px 0; }
 .wheel-item {
   height: 34px;
   line-height: 34px;
@@ -147,9 +147,20 @@ input:focus, select:focus {
   user-select: none;
 }
 .wheel-item.selected { color: var(--accent); font-weight: 700; font-size: 1.08rem; }
+
+.wheel-wrapper {
+  position: relative;   /* 新的定位基準，這層不捲動 */
+}
+.wheel-select {
+  position: relative;
+  height: 150px;
+  overflow-y: scroll;
+  /* ...其他不變... */
+}
 .wheel-highlight {
-  position: absolute;
-  top: 50%; left: 0; right: 0;
+  position: absolute;   /* 現在是相對 .wheel-wrapper 定位，不受 .wheel-select 捲動影響 */
+  top: 50%;
+  left: 0; right: 0;
   transform: translateY(-50%);
   height: 34px;
   border-top: 1px solid var(--accent-soft);
@@ -180,9 +191,12 @@ table { width: 100%; border-collapse: collapse; margin-top: 8px; }
 th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: .9rem; text-align: left; }
 th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
 .policy-table input, .policy-table select { margin-top: 0; padding: 6px 8px; font-size: .9rem; }
+.p-currency{min-width: 80px;}
 
 .btn-primary, .btn-secondary {
-  padding: 10px 20px;
+  padding: 1px 2px;
+  width: 50%;
+  height: 40px;
   border-radius: 8px;
   font-size: .95rem;
   cursor: pointer;
@@ -203,7 +217,7 @@ th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
 .file-list-table tbody tr:hover { background: var(--accent-soft); }
 
 .hint { color: var(--ink-soft); font-size: .88rem; margin-top: 0; }
-.code-add-row { display: flex; gap: 10px; margin-bottom: 18px; }
+.code-add-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
 
 .icon-btn {
   background: none; border: none; cursor: pointer; color: var(--danger); font-size: .95rem;

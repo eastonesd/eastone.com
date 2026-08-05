@@ -188,10 +188,10 @@ input:focus, select:focus{
   background:var(--navy); color:#fff; font-family:'Space Mono',monospace;
   font-weight:700; padding:0 14px; border-radius:7px 0 0 7px; font-size:15px;
 }
-.prefix-input input{ border-radius:0 7px 7px 0; border-left:none; }
+.prefix-input input{ border-radius:7px; }
 
 .email-row{ display:flex; align-items:center; gap:8px; }
-.email-row .at{ font-family:'Space Mono',monospace; font-weight:700; color:var(--navy); }
+.email-row .at{font-weight:700; color:var(--navy); }
 .email-row select{ flex:1.1; }
 .email-row input{ flex:1; }
 
@@ -242,6 +242,7 @@ input:focus, select:focus{
   width:100%; display:none;
 }
 .check-row.checked .detail{ display:block; }
+.check-row .label p{margin:0;}
 
 .amount-row{ display:flex; gap:10px; flex-wrap:wrap; }
 .amount-chip{

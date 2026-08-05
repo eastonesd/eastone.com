@@ -247,8 +247,9 @@ function stepVoluntaryItems() {
         const isCustom = cur.checked && cur.amount && !item.presets.includes(cur.amount);
         return `
         <div class="check-row ${cur.checked ? 'checked' : ''}" id="row_${item.id}">
+          <label class="label">
           <input type="checkbox" class="v-chk" data-id="${item.id}" ${cur.checked ? 'checked' : ''}>
-          <label class="label">${item.name}</label>
+          <p>${item.name}</P> </label>
           ${!item.noAmount ? `
           <div class="detail">
             <div class="amount-row">
@@ -441,7 +442,7 @@ function stepInsuredInfo() {
         <div class="field"><label>身分證字號</label><input type="text" id="f_id" value="${state.insuredIdNumber}" maxlength="10" placeholder="A123456789"></div>
         <div class="field"><label>出生日期（民國年／月／日）</label><div id="wheel_birth"></div></div>
         <div class="field"><label>聯絡電話</label>
-          <div class="prefix-input"><div class="prefix">09</div><input type="text" id="f_phone" inputmode="numeric" maxlength="8" value="${state.phoneSuffix}" placeholder="12345678"></div>
+          <div class="prefix-input"><input type="text" id="f_phone" inputmode="numeric" maxlength="10" value="${state.phoneSuffix}" placeholder="0912345678"></div>
         </div>
         <div class="field"><label>電子信箱</label>
           <div class="email-row">
@@ -487,7 +488,13 @@ function stepInsuredInfo() {
           districts.map(d => `<option value="${d}" ${d === preselect ? 'selected' : ''}>${d}</option>`).join('');
       }
       if (state.city) fillDistricts(state.city, state.district);
-
+       const idInput = root.querySelector('#f_id');
+        idInput.addEventListener('input', () => {
+          const start = idInput.selectionStart;
+          const end = idInput.selectionEnd;
+          idInput.value = idInput.value.toUpperCase();
+          idInput.setSelectionRange(start, end);
+      });
       zipInput.addEventListener('input', () => {
         zipInput.value = zipInput.value.replace(/\D/g, '');
         if (zipInput.value.length === 3) {
@@ -507,6 +514,7 @@ function stepInsuredInfo() {
         if (code) zipInput.value = code;
       });
     },
+    
     collect(root) {
       state.insuredIdNumber = root.querySelector('#f_id').value.trim().toUpperCase();
       state.phoneSuffix = root.querySelector('#f_phone').value.trim();
