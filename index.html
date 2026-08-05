@@ -254,7 +254,7 @@
   <section id="page-claim">
     <div class="page-title">
       <h2>理賠申請文件</h2>
-      <span class="count">共 20 家壽險公司 + 1 家產險公司</span>
+      <span class="count">共 20 家壽險公司</span>
     </div>
     <p class="page-sub">點選公司名稱下方的按鈕，即可下載該公司最新版理賠申請書 PDF 檔案。</p>
     <div class="grid" id="claim-grid"></div>
@@ -264,12 +264,10 @@
   <section id="page-endorse" class="hidden">
     <div class="page-title">
       <h2>契約變更文件</h2>
+      <span class="count">共 20 家壽險公司</span>
     </div>
-    <div class="empty-state">
-      <div class="glyph">契</div>
-      <h3>文件準備中</h3>
-      <p>契約變更（契變）申請文件尚未上架，<br>待各公司文件蒐集完成後將於此頁面提供下載。</p>
-    </div>
+    <p class="page-sub">點選公司名稱下方的按鈕，即可下載該公司最新版契約變更申請書 PDF 檔案。</p>
+    <div class="grid" id="endorse-grid"></div>
   </section>
 </main>
 
@@ -277,8 +275,8 @@
 
 <script>
   // 20 家壽險公司資料
-  // filename 對應 pdfs 資料夾中的檔案，請將實際 PDF 檔案放入 pdfs/ 資料夾並改成對應檔名
-  const companies = [
+  // filename 對應各自資料夾中的檔案，請將實際 PDF 檔案放入對應資料夾並改成對應檔名
+  const claimCompanies = [
     { name:"國泰人壽(含國寶、幸福)", file:"cathay.pdf" },
     { name:"富邦人壽(含ING安泰、喬治亞、花旗)", file:"fubon.pdf" },
     { name:"南山人壽(含朝陽、興農)", file:"nanshan.pdf" },
@@ -303,62 +301,95 @@
     { name:"富邦產物個險/旅平險", file:"fubonper.pdf"},
   ];
 
-  const grid = document.getElementById('claim-grid');
+  // 契變頁跟理賠頁同一批公司，檔案放在 pdfs-endorse/ 資料夾（跟理賠的 pdfs/ 分開，避免檔名互相覆蓋）
+  const endorseCompanies = [
+    { name:"國泰人壽(含國寶、幸福)", file:"國泰人壽契變書.pdf" },
+    { name:"富邦人壽(含ING安泰、喬治亞、花旗)", file:"富邦人壽契變書.pdf" },
+    { name:"南山人壽(含朝陽、興農)", file:"南山人壽契變書.pdf" },
+    { name:"新光人壽(含保德信、台新)", file:"新光台新契變書.pdf" },
+    { name:"台灣人壽(含中國信託、大都會)", file:"台灣人壽契變書.pdf" },
+    { name:"三商美邦人壽", file:"三商美邦人壽契變書.pdf" },
+    { name:"全球人壽(含國華、全美)", file:"全球人壽契變書.pdf" },
+    { name:"保誠人壽", file:"保誠人壽契變書.pdf" },
+    { name:"遠雄人壽(含蘇黎世、中興)", file:"遠雄人壽契變書.pdf" },
+    { name:"元大人壽(含紐約)", type:"link", link:"https://www.yuantalife.com.tw/our-services/form/catalog/" },
+    { name:"安聯人壽(含匯豐、統一)", type:"link", link:"https://www.allianz.com.tw/zh_TW/download-zone/policy-changing-forms.html" },
+    { name:"第一金人壽(含第一英傑華)", file:"第一金人壽契變書.pdf" },
+    { name:"合作金庫人壽", file:"合作金庫契變書.pdf" },
+    { name:"台銀人壽(含中央)", file:"台銀人壽契變書.pdf" },
+    { name:"宏泰人壽", file:"宏泰人壽契變書.pdf" },
+    { name:"中華郵政壽險", file:"中華郵政契變書.pdf" },
+    { name:"凱基人壽(含中國、保誠、慶豐、第一、瑞泰、華僑)", file:"凱基人壽契變書.pdf" },
+    { name:"友邦人壽(含美國)", file:"友邦人壽契變書.pdf" },
+    { name:"安達人壽(含康健、中泰)", file:"安達人壽契變書.pdf" },
+    { name:"法國巴黎人壽", type:"link", link:"https://life.cardif.com.tw/a311" },
+    { name:"富邦產物車險", file:"富產車險契變書.pdf" },
+  ];
 
-  companies.forEach((c, i) => {
-    const card = document.createElement('div');
-    card.className = 'card';
+  // 產生一組文件下載卡片網格。folder：PDF 所在資料夾／docLabel：按鈕文字用的文件類型名稱／docSuffix：下載檔名後綴
+  function renderGrid(companies, gridEl, { folder, docLabel, docSuffix }) {
+    companies.forEach((c, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
 
-    const idx = document.createElement('div');
-    idx.className = 'idx';
-    idx.textContent = String(i+1).padStart(2,'0');
+      const idx = document.createElement('div');
+      idx.className = 'idx';
+      idx.textContent = String(i+1).padStart(2,'0');
 
-    const h3 = document.createElement('h3');
-    h3.textContent = c.name;
+      const h3 = document.createElement('h3');
+      h3.textContent = c.name;
 
-    const isLink = c.type === 'link';
-    const btn = document.createElement('button');
-    btn.className = 'dl-btn';
-    btn.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      ${isLink ? '前往理賠文件' : '下載理賠文件'}
-      <span class="stamp">${isLink ? '已開啟' : '已下載'}</span>
-    `;
+      const isLink = c.type === 'link';
+      const btn = document.createElement('button');
+      btn.className = 'dl-btn';
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        ${isLink ? `前往${docLabel}文件` : `下載${docLabel}文件`}
+        <span class="stamp">${isLink ? '已開啟' : '已下載'}</span>
+      `;
 
-    const note = document.createElement('div');
-    note.className = 'status-note';
+      const note = document.createElement('div');
+      note.className = 'status-note';
 
-    btn.addEventListener('click', () => {
-      if (isLink) {
-        // 直接導向該連結（開新分頁）
-        window.open(c.link, '_blank');
-      } else {
-        // 觸發下載
-        const a = document.createElement('a');
-        a.href = 'pdfs/' + c.file;
-        a.download = c.name + '_理賠申請書.pdf';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }
+      btn.addEventListener('click', () => {
+        if (isLink) {
+          // 直接導向該連結（開新分頁）
+          window.open(c.link, '_blank');
+        } else {
+          // 觸發下載
+          const a = document.createElement('a');
+          a.href = folder + '/' + c.file;
+          a.download = c.name + docSuffix;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
 
-      // 蓋章動畫
-      btn.classList.remove('stamped');
-      void btn.offsetWidth; // reflow 以重新觸發動畫
-      btn.classList.add('stamped');
+        // 蓋章動畫
+        btn.classList.remove('stamped');
+        void btn.offsetWidth; // reflow 以重新觸發動畫
+        btn.classList.add('stamped');
 
-      note.textContent = isLink
-        ? '已於 ' + new Date().toLocaleTimeString('zh-TW', {hour12:false}) + ' 開啟連結'
-        : '已於 ' + new Date().toLocaleTimeString('zh-TW', {hour12:false}) + ' 下載';
+        note.textContent = isLink
+          ? '已於 ' + new Date().toLocaleTimeString('zh-TW', {hour12:false}) + ' 開啟連結'
+          : '已於 ' + new Date().toLocaleTimeString('zh-TW', {hour12:false}) + ' 下載';
+      });
+
+      card.appendChild(idx);
+      card.appendChild(h3);
+      card.appendChild(btn);
+      card.appendChild(note);
+      gridEl.appendChild(card);
     });
+  }
 
-    card.appendChild(idx);
-    card.appendChild(h3);
-    card.appendChild(btn);
-    card.appendChild(note);
-    grid.appendChild(card);
+  renderGrid(claimCompanies, document.getElementById('claim-grid'), {
+    folder: 'pdfs', docLabel: '理賠', docSuffix: '_理賠申請書.pdf',
+  });
+  renderGrid(endorseCompanies, document.getElementById('endorse-grid'), {
+    folder: 'pdfs-endorse', docLabel: '契變', docSuffix: '_契約變更申請書.pdf',
   });
 
   function showPage(which){
