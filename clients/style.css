@@ -106,7 +106,7 @@ label {
   font-weight: 600;
 }
 input, select {
-  height: 40px;
+  height: 50px;
   width: 100%;
   padding: 10px 12px;
   font-size: 1rem;
@@ -132,7 +132,6 @@ input:focus, select:focus {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
-  flex: 1;
 }
 .wheel-select::-webkit-scrollbar { width: 4px; }
 .wheel-track { padding: 58px 0; }
@@ -149,14 +148,10 @@ input:focus, select:focus {
 .wheel-item.selected { color: var(--accent); font-weight: 700; font-size: 1.08rem; }
 
 .wheel-wrapper {
-  position: relative;   /* 新的定位基準，這層不捲動 */
-}
-.wheel-select {
   position: relative;
-  height: 150px;
-  overflow-y: scroll;
-  /* ...其他不變... */
+  flex: 1;
 }
+
 .wheel-highlight {
   position: absolute;   /* 現在是相對 .wheel-wrapper 定位，不受 .wheel-select 捲動影響 */
   top: 50%;
