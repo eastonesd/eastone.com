@@ -255,3 +255,14 @@ th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
   .addr-row { grid-template-columns: 1fr; }
   .wheel-group { flex-direction: row; }
 }
+
+.edit-cell{
+  display: block;
+  width: 70%;
+  height: 30px;
+  background-color: #1B2A4A;
+  border-radius: 4px;
+  color: #fff;
+  align-items: center;
+  text-align: center;
+}

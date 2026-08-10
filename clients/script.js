@@ -5,6 +5,7 @@ let insuranceCodes = {};   // { "WL": "終身壽險", ... }
 let currentStep = 1;
 let selectedGender = "";
 let selectedBirthday = "";
+let editingClientId = null; // 非null時代表目前正在編輯這個客戶ID，送出時要用更新而不是新增
 const TOTAL_STEPS = 5;
 
 // ========================= 初始化 =========================
@@ -222,6 +223,15 @@ function getWheelSelectedText(wheelEl) {
   return items[idx] ? items[idx].textContent : "";
 }
 
+// 直接把滾輪捲到指定的項目索引（不做平滑捲動），編輯資料要預先帶入現有值時用
+function setWheel(wheelEl, index) {
+  if (index < 0) return;
+  const itemHeight = 34;
+  wheelEl.scrollTop = index * itemHeight;
+  const items = wheelEl.querySelectorAll(".wheel-item");
+  items.forEach((it, i) => it.classList.toggle("selected", i === index));
+}
+
 async function onBirthdayWheelChange() {
   const y = getWheelSelectedText(document.getElementById("wheel-year"));
   const m = getWheelSelectedText(document.getElementById("wheel-month")).replace("月", "");
@@ -376,17 +386,21 @@ function bindFormSubmit() {
 
     const res = await (async () => {
       try {
-        await clientAdd(payload);
+        if (editingClientId) {
+          await clientUpdate(editingClientId, payload);
+        } else {
+          await clientAdd(payload);
+        }
         return { ok: true };
       } catch (err) {
         return { ok: false, error: err.message };
       }
     })();
     if (!res.ok) {
-      showToast(res.error || "建檔失敗");
+      showToast(res.error || (editingClientId ? "更新失敗" : "建檔失敗"));
       return;
     }
-    showToast("建檔成功！");
+    showToast(editingClientId ? "更新成功！" : "建檔成功！");
     resetForm();
     document.querySelector('.tab-btn[data-tab="filelist"]').click();
   });
@@ -396,6 +410,11 @@ function resetForm() {
   document.getElementById("client-form").reset();
   selectedGender = "";
   selectedBirthday = "";
+  editingClientId = null;
+  const idInput = document.getElementById("f-id");
+  idInput.readOnly = false;
+  idInput.style.background = "";
+  document.getElementById("btn-submit").textContent = "建檔";
   document.getElementById("f-email-custom").hidden = true;
   document.getElementById("policy-tbody").innerHTML = "";
   addPolicyRow();
@@ -403,6 +422,82 @@ function resetForm() {
   document.getElementById("out-actual-age").textContent = "—";
   document.getElementById("out-insurance-age").textContent = "—";
   fillDistrictOptions("", null);
+  goToStep(1);
+}
+
+// ========================= 編輯既有客戶 =========================
+async function startEditClient(clientId) {
+  const c = await clientGet(clientId);
+  if (!c) {
+    showToast("查無此客戶");
+    return;
+  }
+
+  resetForm();
+  editingClientId = c.id;
+
+  const idInput = document.getElementById("f-id");
+  idInput.value = c.id;
+  idInput.readOnly = true; // 客戶ID是主鍵，編輯時不允許更改
+  idInput.style.background = "#EFEDE5";
+
+  document.getElementById("f-name").value = c.name || "";
+
+  // 性別滾輪
+  if (c.gender) {
+    const wheel = document.getElementById("wheel-gender");
+    const items = [...wheel.querySelectorAll(".wheel-item")];
+    const idx = items.findIndex((it) => it.textContent === c.gender);
+    if (idx >= 0) { setWheel(wheel, idx); selectedGender = c.gender; }
+  }
+
+  // 生日滾輪
+  if (c.birthday) {
+    const [y, m, d] = c.birthday.split("-").map(Number);
+    const thisYear = new Date().getFullYear();
+    setWheel(document.getElementById("wheel-year"), thisYear - y);
+    setWheel(document.getElementById("wheel-month"), m - 1);
+    setWheel(document.getElementById("wheel-day"), d - 1);
+    await onBirthdayWheelChange();
+  }
+
+  // 聯絡方式
+  document.getElementById("f-email-local").value = c.email_local || "";
+  const domainSelect = document.getElementById("f-email-domain");
+  const knownDomains = [...domainSelect.options].map((o) => o.value);
+  if (c.email_domain && !knownDomains.includes(c.email_domain)) {
+    domainSelect.value = "__custom__";
+    document.getElementById("f-email-custom").hidden = false;
+    document.getElementById("f-email-custom").value = c.email_domain;
+  } else {
+    domainSelect.value = c.email_domain || "gmail.com";
+  }
+  document.getElementById("f-phone").value = c.phone || "";
+
+  // 地址
+  document.getElementById("f-zip").value = c.zip_code || "";
+  document.getElementById("f-city").value = c.city || "";
+  fillDistrictOptions(c.city || "", c.district || "");
+  document.getElementById("f-address-detail").value = c.address_detail || "";
+
+  // 保單列表
+  document.getElementById("policy-tbody").innerHTML = "";
+  if (c.policies && c.policies.length) {
+    c.policies.forEach((p) => {
+      addPolicyRow();
+      const rows = document.querySelectorAll("#policy-tbody tr");
+      const row = rows[rows.length - 1];
+      row.querySelector(".p-policy-no").value = p.policy_no || "";
+      row.querySelector(".p-main-code").value = p.main_code || "";
+      row.querySelector(".p-main-name").value = p.main_name || "";
+      row.querySelector(".p-currency").value = p.currency || "TWD";
+    });
+  } else {
+    addPolicyRow();
+  }
+
+  document.getElementById("btn-submit").textContent = "更新客戶資料";
+  document.querySelector('.tab-btn[data-tab="wizard"]').click();
   goToStep(1);
 }
 
@@ -425,13 +520,21 @@ async function refreshFileList() {
   const tbody = document.getElementById("file-list-body");
   tbody.innerHTML = "";
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="3" style="color:#999;text-align:center;">尚無資料</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="color:#999;text-align:center;">尚無資料</td></tr>`;
     return;
   }
   filtered.forEach((c) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${c.id}</td><td>${c.name}</td><td>${c.gender || ""}</td>`;
-    tr.addEventListener("click", () => openDetail(c.id));
+    tr.innerHTML = `<td>${c.id}</td><td>${c.name}</td><td>${c.gender || ""}</td>
+      <td><div class="edit-cell"><span class="icon-btn edit-client-btn" data-id="${c.id}" style="color:#fff;">編輯</span></div></td>`;
+    tr.addEventListener("click", (e) => {
+      if (e.target.classList.contains("edit-client-btn")) return;
+      openDetail(c.id);
+    });
+    tr.querySelector(".edit-client-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      startEditClient(c.id);
+    });
     tbody.appendChild(tr);
   });
 }
@@ -500,9 +603,15 @@ async function openDetail(clientId) {
     <div class="detail-section-title">保單號碼總表</div>
     ${policiesHtml}
     <div class="wizard-nav" style="margin-top:20px;">
+      <button type="button" class="btn-primary" id="btn-edit-client">編輯資料</button>
       <button type="button" class="btn-secondary" id="btn-delete-client">刪除此客戶</button>
     </div>
   `;
+
+  document.getElementById("btn-edit-client").addEventListener("click", () => {
+    closeModal();
+    startEditClient(c.id);
+  });
 
   document.getElementById("btn-delete-client").addEventListener("click", async () => {
     if (!confirm(`確定要刪除客戶「${c.id} ${c.name}」嗎？此動作無法復原。`)) return;

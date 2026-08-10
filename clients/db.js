@@ -148,6 +148,54 @@ async function clientAdd(payload) {
   });
 }
 
+async function clientUpdate(id, payload) {
+  const key = (id || '').trim().toUpperCase();
+  const existing = await clientGet(key);
+  if (!existing) throw new Error('查無此客戶');
+
+  const name = (payload.name || '').trim();
+  if (!name) throw new Error('姓名為必填');
+
+  let zodiac = null, actual_age = null, insurance_age = null;
+  if (payload.birthday) {
+    const [y, m, d] = payload.birthday.split('-').map(Number);
+    zodiac = getZodiac(m, d);
+    actual_age = calcActualAge(y, m, d);
+    insurance_age = calcInsuranceAge(y, m, d);
+  }
+
+  const record = {
+    ...existing,
+    name,
+    gender: payload.gender || '',
+    birthday: payload.birthday || null,
+    zodiac, actual_age, insurance_age,
+    email_local: payload.email_local || '',
+    email_domain: payload.email_domain || '',
+    phone: payload.phone || '',
+    zip_code: payload.zip_code || '',
+    city: payload.city || '',
+    district: payload.district || '',
+    address_detail: payload.address_detail || '',
+    policies: (payload.policies || []).map((p) => ({
+      policy_no: p.policy_no || '',
+      main_code: (p.main_code || '').toUpperCase(),
+      main_name: p.main_name || '',
+      currency: p.currency || 'TWD',
+      total_premium: p.total_premium || 0,
+    })),
+    updated_at: new Date().toISOString().slice(0, 19),
+  };
+
+  const db = await openClientsDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('clients', 'readwrite');
+    tx.objectStore('clients').put(record);
+    tx.oncomplete = () => resolve(record);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 async function clientDelete(id) {
   const db = await openClientsDB();
   return new Promise((resolve, reject) => {
