@@ -48,6 +48,12 @@ const VOLUNTARY_ITEMS = [
   { id: '77C', name: '道路救援費用保險', presets: ['30公里/3萬', '50公里/5萬', '100公里/10萬'] },
   { id: '83F1', name: '享安心家庭綜合保險-家庭財物被竊', presets: ['5000/50%/5萬', '10000/50%/10萬', '10000/100%/15萬'] },
   { id: '83F2', name: '享安心家庭綜合保險-家庭日常生活責任', presets: ['50萬', '100萬', '150萬', '200萬'] },
+  { id: '0G', name: '機車火災事故險', presets: [], noAmount: true },
+  { id: '0J', name: '車體免追償', presets: [], noAmount: true },
+  { id: '0K', name: '交通費用附加險', presets: ['1000/天', '2000/天'] },
+  { id: '0L', name: '汽車限額車碰車對撞', presets: [], noAmount: true },
+  { id: '0X', name: '特定事故汽機車代車費用補償險', presets: [], noAmount: true },
+  { id: '18', name: '機車整車失竊損失險', presets: [], noAmount: true },
 ];
 
 const EMAIL_DOMAINS = ['gmail.com', 'yahoo.com.tw','kimo.com', 'outlook.com', 'hotmail.com', 'icloud.com', '其他'];
