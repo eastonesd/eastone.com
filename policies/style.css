@@ -203,6 +203,8 @@ input:focus, select:focus{
   margin-bottom:6px;
 }
 .option-card{
+  display: grid;
+  place-items: center;
   border:1.5px solid var(--line);
   background:#fff;
   border-radius:8px;
@@ -210,6 +212,7 @@ input:focus, select:focus{
   text-align:center;
   cursor:pointer;
   font-weight:600;
+  font-size:24px;
   color:var(--ink);
   transition:all .15s;
   user-select:none;
