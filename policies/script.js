@@ -407,7 +407,7 @@ function stepPersonalProducts() {
     eyebrow: '個人保險商品', title: '選擇投保商品與計畫',
     render() {
       return PERSONAL_ITEMS.map(item => {
-        const cur = state.personalItems[item.id] || { checked: false, plans: [] };
+        const cur = state.personalItems[item.id] || { checked: false, plans: [], policyNo: '' };
         const plans = cur.plans || [];
         const hasPresets = item.presets && item.presets.length > 0;
         const needsFreeInput = !hasPresets && item.note && item.note.includes('請輸入');
@@ -419,6 +419,9 @@ function stepPersonalProducts() {
           <label class="label">
           <input type="checkbox" class="p-chk" data-id="${item.id}" ${cur.checked ? 'checked' : ''}>
           <p>${item.name}</p></label>
+          <input type="text" class="p-policy-no" id="ppolicy_${item.id}" data-id="${item.id}" placeholder="保單號碼"
+                 value="${cur.policyNo || ''}"
+                 style="max-width:160px; margin-left:auto; padding:8px 10px; border:1.5px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit; ${cur.checked ? '' : 'display:none;'}">
           ${hasPresets ? `
           <div class="detail">
             <div class="amount-row">
@@ -435,27 +438,22 @@ function stepPersonalProducts() {
       }).join('');
     },
     afterRender(root) {
-      function updateLocks() {
-        const checkedCount = Object.values(state.personalItems).filter(v => v.checked).length;
-        root.querySelectorAll('.p-chk').forEach(chk => {
-          const row = root.querySelector(`#prow_${chk.dataset.id}`);
-          if (!chk.checked && checkedCount >= 2) {
-            chk.disabled = true;
-            row.style.opacity = '.45';
-          } else {
-            chk.disabled = false;
-            row.style.opacity = '';
-          }
-        });
-      }
-
       root.querySelectorAll('.p-chk').forEach(chk => {
         chk.addEventListener('change', () => {
           const id = chk.dataset.id;
-          if (!state.personalItems[id]) state.personalItems[id] = { checked: false, plans: [] };
+          if (!state.personalItems[id]) state.personalItems[id] = { checked: false, plans: [], policyNo: '' };
           state.personalItems[id].checked = chk.checked;
           root.querySelector(`#prow_${id}`).classList.toggle('checked', chk.checked);
-          updateLocks();
+          const policyInput = root.querySelector(`#ppolicy_${id}`);
+          if (policyInput) policyInput.style.display = chk.checked ? '' : 'none';
+        });
+      });
+
+      root.querySelectorAll('.p-policy-no').forEach(inp => {
+        inp.addEventListener('input', () => {
+          const id = inp.dataset.id;
+          if (!state.personalItems[id]) state.personalItems[id] = { checked: false, plans: [], policyNo: '' };
+          state.personalItems[id].policyNo = inp.value.trim();
         });
       });
 
@@ -464,7 +462,7 @@ function stepPersonalProducts() {
         chip.addEventListener('click', () => {
           const id = chip.dataset.id;
           const val = chip.dataset.val;
-          if (!state.personalItems[id]) state.personalItems[id] = { checked: false, plans: [] };
+          if (!state.personalItems[id]) state.personalItems[id] = { checked: false, plans: [], policyNo: '' };
           const cur = state.personalItems[id];
           if (!cur.plans) cur.plans = [];
           const customInput = root.querySelector(`#pcustom_${id}`);
@@ -498,7 +496,7 @@ function stepPersonalProducts() {
       root.querySelectorAll('.amount-custom').forEach(inp => {
         inp.addEventListener('input', () => {
           const id = inp.id.replace('pcustom_', '');
-          if (!state.personalItems[id]) state.personalItems[id] = { checked: false, plans: [] };
+          if (!state.personalItems[id]) state.personalItems[id] = { checked: false, plans: [], policyNo: '' };
           const cur = state.personalItems[id];
           if (!cur.plans) cur.plans = [];
           const item = PERSONAL_ITEMS.find(i => i.id === id);
@@ -514,13 +512,10 @@ function stepPersonalProducts() {
           }
         });
       });
-
-      updateLocks(); // 一開始渲染時（例如從編輯資料回來）就要先套用鎖定狀態
     },
     collect() {
       const checkedCount = Object.values(state.personalItems).filter(v => v.checked).length;
       if (checkedCount === 0) { alert('請至少勾選一項投保商品'); return false; }
-      if (checkedCount > 2) { alert('最多只能選擇兩項投保商品'); return false; }
       for (const item of PERSONAL_ITEMS) {
         const v = state.personalItems[item.id];
         if (!v || !v.checked) continue;
@@ -804,7 +799,9 @@ function stepReview() {
           .filter(([, v]) => v.checked)
           .map(([id, v]) => {
             const def = PERSONAL_ITEMS.find(i => i.id === id);
-            return `<div class="row"><span class="k">${def.name}</span><span class="v">${(v.plans && v.plans.length) ? v.plans.join('、') : '已投保'}</span></div>`;
+            const planText = (v.plans && v.plans.length) ? v.plans.join('、') : '已投保';
+            const policyLine = v.policyNo ? `<div class="row"><span class="k">${def.name} 保單號碼</span><span class="v">${v.policyNo}</span></div>` : '';
+            return `<div class="row"><span class="k">${def.name}</span><span class="v">${planText}</span></div>${policyLine}`;
           }).join('');
         topBlock = `
           <div class="grp-title">個人保險商品</div>
@@ -881,7 +878,7 @@ function buildPayload() {
       ...common,
       personal_items: Object.entries(state.personalItems).filter(([, v]) => v.checked).map(([id, v]) => {
         const def = PERSONAL_ITEMS.find(i => i.id === id);
-        return { item: def.name, plans: v.plans || [] };
+        return { item: def.name, plans: v.plans || [], policy_no: v.policyNo || '' };
       }),
       employer: state.employer,
       job_title: state.jobTitle,
@@ -1112,7 +1109,7 @@ function loadStateFromRecord(r) {
     const personalItems = {};
     (r.personal_items || []).forEach(v => {
       const def = PERSONAL_ITEMS.find(i => i.name === v.item);
-      if (def) personalItems[def.id] = { checked: true, plans: v.plans || [] };
+      if (def) personalItems[def.id] = { checked: true, plans: v.plans || [], policyNo: v.policy_no || '' };
     });
     Object.assign(state, common, {
       personalItems,
@@ -1170,9 +1167,11 @@ function renderRecordDetail(r) {
 
   let topBlock;
   if (isPersonal) {
-    const personalLines = (r.personal_items || []).map(v =>
-      `<div class="row"><span class="k">${v.item}</span><span class="v">${(v.plans && v.plans.length) ? v.plans.join('、') : '已投保'}</span></div>`
-    ).join('');
+    const personalLines = (r.personal_items || []).map(v => {
+      const planText = (v.plans && v.plans.length) ? v.plans.join('、') : '已投保';
+      const policyLine = v.policy_no ? `<div class="row"><span class="k">${v.item} 保單號碼</span><span class="v">${v.policy_no}</span></div>` : '';
+      return `<div class="row"><span class="k">${v.item}</span><span class="v">${planText}</span></div>${policyLine}`;
+    }).join('');
     topBlock = `
       <div class="grp-title">個人保險商品</div>
       ${personalLines}
