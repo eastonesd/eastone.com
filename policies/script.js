@@ -6,10 +6,12 @@ const CURRENT_ROC_YEAR = new Date().getFullYear() - 1911;
 const CURRENT_AD_YEAR = new Date().getFullYear();
 
 const state = {
+  category: null, // 'vehicle' | 'personal' | 'business'（今天只做 vehicle 與 personal）
   plate: '', vehicleType: '',
   hasCompulsory: false, compulsoryPolicyNo: '',
   hasVoluntary: false, voluntaryPolicyNo: '',
   voluntaryItems: {}, // id -> {checked, amount}
+  personalItems: {}, // id -> {checked, plans: []}
   insuredName: '',
   totalPremium: '',
   periodStart: { y: null, m: 1, d: 1 },
@@ -23,7 +25,14 @@ const state = {
   phoneSuffix: '',
   emailLocal: '', emailDomain: 'gmail.com', emailDomainCustom: '',
   zipcode: '', city: '', district: '', addressDetail: '',
+  employer: '', jobTitle: '', // 個人保險專用：在職公司／職稱
 };
+
+const CATEGORIES = [
+  { id: 'vehicle', label: '車險管理', enabled: true },
+  { id: 'personal', label: '個人保險', enabled: true },
+  { id: 'business', label: '企業保險', enabled: false },
+];
 
 const VEHICLE_TYPES = ['汽車', '普重', '大重'];
 
@@ -57,6 +66,24 @@ const VOLUNTARY_ITEMS = [
 ];
 
 const EMAIL_DOMAINS = ['gmail.com', 'yahoo.com.tw','kimo.com', 'outlook.com', 'hotmail.com', 'icloud.com', '其他'];
+
+// 個人保險商品清單。presets 是可選的「計畫」；沒有 presets 時看 note：
+// note 含「請輸入」→ 顯示一個文字輸入框（例如憑證號碼）；
+// 其他 note（例如單一方案說明）→ 純提示文字，不需要額外輸入。
+const PERSONAL_ITEMS = [
+  { id: 'accident015', name: '十全兒童2.0', presets: ['計畫A', '計畫B', '計畫C','傷害加值一', '傷害加值二', '醫療加值一', '醫療加值二'] },
+  { id: 'accident123', name: '十全大補增安心', presets: ['計畫A', '計畫B', '計畫C', '計畫D', '加值一', '加值二', '加值三', '加值四'] },
+  { id: 'accident004', name: '十全大補勞安型-四類', presets: ['計畫A', '計畫B', '計畫C', '加值一', '加值二', '加值三'] },
+  { id: 'accident056', name: '十全大補勞安型-五、六類', presets: ['計畫A', '計畫B', '加值一', '加值二',] },
+  { id: 'accident085', name: '璀璨人生', presets: ['計畫A', '計畫B', '計畫C'] },
+  { id: 'accident111', name: '三星報喜', presets: ['計畫A', '計畫B', '計畫C', '計畫D', '加值一', '加值二'] },
+  { id: 'medical060', name: '健康守護+3.0', presets: ['計畫A', '計畫B', '計畫C'] },
+  { id: 'cancer064', name: '愛藥即時', presets: ['計畫A', '計畫B', '加值一', '加值二'] },
+  { id: 'cancer065', name: '防癌無憂', presets: [], note: '此商品為單一方案，無法選擇計畫' },
+  { id: 'travel001', name: '一期逐夢', presets: ['計畫A', '計畫B', '計畫C', '計畫D申根', '計畫E申根'] },
+  { id: 'travel002', name: '快樂旅平卡', presets: [], note: '請輸入憑證號碼' },
+  { id: 'travel003', name: '公教旅平卡', presets: [], note: '請輸入憑證號碼' },
+];
 
 // ---------- helpers ----------
 function pad2(n) { return String(n).padStart(2, '0'); }
@@ -144,18 +171,71 @@ function updateWheelCenter(colEl, idx) {
 // STEP DEFINITIONS
 // ============================================================
 function getSteps() {
-  const steps = [
-    stepPlate(),
-    stepInsuranceTypes(),
-  ];
-  if (state.hasVoluntary) steps.push(stepVoluntaryItems());
-  steps.push(stepInsuredName());
-  steps.push(stepPremium());
-  steps.push(stepPeriod());
-  steps.push(stepInsuredInfo());
-  steps.push(stepVehicleInfo());
-  steps.push(stepReview());
+  const steps = [stepCategory()];
+  if (state.category === 'vehicle') {
+    steps.push(stepPlate());
+    steps.push(stepInsuranceTypes());
+    if (state.hasVoluntary) steps.push(stepVoluntaryItems());
+    steps.push(stepInsuredName());
+    steps.push(stepPremium());
+    steps.push(stepPeriod());
+    steps.push(stepInsuredInfo());
+    steps.push(stepVehicleInfo());
+    steps.push(stepReview());
+  } else if (state.category === 'personal') {
+    steps.push(stepPersonalProducts());
+    steps.push(stepInsuredName());
+    steps.push(stepPremium());
+    steps.push(stepPeriod());
+    steps.push(stepInsuredInfo());
+    steps.push(stepReview());
+  }
   return steps;
+}
+
+function stepCategory() {
+  return {
+    eyebrow: '保單類別', title: '請選擇要建立的保單類別',
+    render() {
+      const locked = !!state.editingId;
+      return `
+        <div class="option-grid" id="f_category">
+          ${CATEGORIES.map(c => {
+            const selected = state.category === c.id;
+            const disabled = !c.enabled || locked;
+            return `
+            <div class="option-card ${selected ? 'selected' : ''}" data-cat="${c.id}"
+                 style="${disabled ? 'opacity:.45; cursor:not-allowed;' : ''}">
+              ${c.label}
+              ${!c.enabled ? '<div style="font-weight:400; font-size:11px; margin-top:4px;">尚未開放</div>' : ''}
+            </div>`;
+          }).join('')}
+        </div>
+        ${locked ? '<p class="step-sub" style="margin-top:14px;">編輯既有資料時，保單類別不可更改。</p>' : ''}
+      `;
+    },
+    afterRender(root) {
+      if (state.editingId) return; // 編輯模式下鎖定類別，不能改
+      root.querySelectorAll('#f_category .option-card').forEach(card => {
+        const cat = CATEGORIES.find(c => c.id === card.dataset.cat);
+        if (!cat.enabled) return;
+        card.addEventListener('click', () => {
+          if (state.category !== cat.id) {
+            // 切換類別時，把另一類別專屬的欄位清掉，避免資料互相污染
+            state.category = cat.id;
+          }
+          root.querySelectorAll('#f_category .option-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+        });
+      });
+    },
+    collect() {
+      if (!state.category) { alert('請選擇保單類別'); return false; }
+      const cat = CATEGORIES.find(c => c.id === state.category);
+      if (!cat.enabled) { alert('這個類別尚未開放'); return false; }
+      return true;
+    }
+  };
 }
 
 function stepPlate() {
@@ -322,6 +402,140 @@ function stepVoluntaryItems() {
   };
 }
 
+function stepPersonalProducts() {
+  return {
+    eyebrow: '個人保險商品', title: '選擇投保商品與計畫',
+    render() {
+      return PERSONAL_ITEMS.map(item => {
+        const cur = state.personalItems[item.id] || { checked: false, plans: [] };
+        const plans = cur.plans || [];
+        const hasPresets = item.presets && item.presets.length > 0;
+        const needsFreeInput = !hasPresets && item.note && item.note.includes('請輸入');
+        // 自訂文字＝目前選取內容裡，不屬於任何預設計畫的那一個
+        const customValue = plans.find(p => !item.presets.includes(p)) || '';
+        const customOn = !!customValue;
+        return `
+        <div class="check-row ${cur.checked ? 'checked' : ''}" id="prow_${item.id}">
+          <label class="label">
+          <input type="checkbox" class="p-chk" data-id="${item.id}" ${cur.checked ? 'checked' : ''}>
+          <p>${item.name}</p></label>
+          ${hasPresets ? `
+          <div class="detail">
+            <div class="amount-row">
+              ${item.presets.map(p => `<div class="amount-chip ${plans.includes(p) ? 'selected' : ''}" data-id="${item.id}" data-val="${p}">${p}</div>`).join('')}
+              <div class="amount-chip ${customOn ? 'selected' : ''}" data-id="${item.id}" data-val="__other__">其他</div>
+            </div>
+            <input type="text" class="amount-custom ${customOn ? 'show' : ''}" id="pcustom_${item.id}" placeholder="請輸入計畫名稱" value="${customValue}">
+            <div class="hint" style="margin-top:6px;">可複選多個計畫</div>
+          </div>` : needsFreeInput ? `
+          <div class="detail">
+            <input type="text" class="amount-custom show" id="pcustom_${item.id}" placeholder="${item.note}" value="${plans[0] || ''}">
+          </div>` : (item.note ? `<div class="detail"><span class="hint">${item.note}</span></div>` : '')}
+        </div>`;
+      }).join('');
+    },
+    afterRender(root) {
+      function updateLocks() {
+        const checkedCount = Object.values(state.personalItems).filter(v => v.checked).length;
+        root.querySelectorAll('.p-chk').forEach(chk => {
+          const row = root.querySelector(`#prow_${chk.dataset.id}`);
+          if (!chk.checked && checkedCount >= 2) {
+            chk.disabled = true;
+            row.style.opacity = '.45';
+          } else {
+            chk.disabled = false;
+            row.style.opacity = '';
+          }
+        });
+      }
+
+      root.querySelectorAll('.p-chk').forEach(chk => {
+        chk.addEventListener('change', () => {
+          const id = chk.dataset.id;
+          if (!state.personalItems[id]) state.personalItems[id] = { checked: false, plans: [] };
+          state.personalItems[id].checked = chk.checked;
+          root.querySelector(`#prow_${id}`).classList.toggle('checked', chk.checked);
+          updateLocks();
+        });
+      });
+
+      // 計畫 chip：可複選，點一下加入、再點一下移除
+      root.querySelectorAll('.amount-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const id = chip.dataset.id;
+          const val = chip.dataset.val;
+          if (!state.personalItems[id]) state.personalItems[id] = { checked: false, plans: [] };
+          const cur = state.personalItems[id];
+          if (!cur.plans) cur.plans = [];
+          const customInput = root.querySelector(`#pcustom_${id}`);
+
+          if (val === '__other__') {
+            const turningOn = !chip.classList.contains('selected');
+            chip.classList.toggle('selected', turningOn);
+            customInput.classList.toggle('show', turningOn);
+            if (turningOn) {
+              customInput.focus();
+            } else {
+              // 取消「其他」：把目前的自訂文字從已選清單移除
+              const item = PERSONAL_ITEMS.find(i => i.id === id);
+              cur.plans = cur.plans.filter(p => item.presets.includes(p));
+              customInput.value = '';
+            }
+            return;
+          }
+
+          const idx = cur.plans.indexOf(val);
+          if (idx >= 0) {
+            cur.plans.splice(idx, 1);
+            chip.classList.remove('selected');
+          } else {
+            cur.plans.push(val);
+            chip.classList.add('selected');
+          }
+        });
+      });
+
+      root.querySelectorAll('.amount-custom').forEach(inp => {
+        inp.addEventListener('input', () => {
+          const id = inp.id.replace('pcustom_', '');
+          if (!state.personalItems[id]) state.personalItems[id] = { checked: false, plans: [] };
+          const cur = state.personalItems[id];
+          if (!cur.plans) cur.plans = [];
+          const item = PERSONAL_ITEMS.find(i => i.id === id);
+          const hasPresets = item.presets && item.presets.length > 0;
+          const typed = inp.value.trim();
+          if (hasPresets) {
+            // 只保留原本已選的預設計畫，自訂文字永遠只有一份、放在陣列最後
+            cur.plans = cur.plans.filter(p => item.presets.includes(p));
+            if (typed) cur.plans.push(typed);
+          } else {
+            // 沒有預設計畫的商品（例如需要輸入憑證號碼），單一文字欄位
+            cur.plans = typed ? [typed] : [];
+          }
+        });
+      });
+
+      updateLocks(); // 一開始渲染時（例如從編輯資料回來）就要先套用鎖定狀態
+    },
+    collect() {
+      const checkedCount = Object.values(state.personalItems).filter(v => v.checked).length;
+      if (checkedCount === 0) { alert('請至少勾選一項投保商品'); return false; }
+      if (checkedCount > 2) { alert('最多只能選擇兩項投保商品'); return false; }
+      for (const item of PERSONAL_ITEMS) {
+        const v = state.personalItems[item.id];
+        if (!v || !v.checked) continue;
+        const hasPresets = item.presets && item.presets.length > 0;
+        const needsFreeInput = !hasPresets && item.note && item.note.includes('請輸入');
+        const plans = v.plans || [];
+        if ((hasPresets || needsFreeInput) && plans.length === 0) {
+          alert(`請設定「${item.name}」的${hasPresets ? '計畫' : '內容'}`); return false;
+        }
+      }
+      return true;
+    }
+  };
+}
+
 function stepInsuredName() {
   return {
     eyebrow: '被保人', title: '被保人姓名',
@@ -455,6 +669,11 @@ function stepInsuredInfo() {
         <div class="field"><label>被保人姓名</label><input type="text" value="${state.insuredName}" disabled></div>
         <div class="field"><label>身分證字號</label><input type="text" id="f_id" value="${state.insuredIdNumber}" maxlength="10" placeholder="A123456789"></div>
         <div class="field"><label>出生日期（民國年／月／日）</label><div id="wheel_birth"></div></div>
+        ${state.category === 'personal' ? `
+        <div class="inline-row">
+          <div class="field"><label>在職公司</label><input type="text" id="f_employer" value="${state.employer}" placeholder="請輸入在職公司名稱"></div>
+          <div class="field"><label>職稱</label><input type="text" id="f_job_title" value="${state.jobTitle}" placeholder="請輸入職稱"></div>
+        </div>` : ''}
         <div class="field"><label>聯絡電話</label>
           <div class="prefix-input"><input type="text" id="f_phone" inputmode="numeric" maxlength="10" value="${state.phoneSuffix}" placeholder="0912345678"></div>
         </div>
@@ -540,6 +759,13 @@ function stepInsuredInfo() {
       state.district = root.querySelector('#f_district').value;
       state.addressDetail = root.querySelector('#f_addr_detail').value.trim();
 
+      if (state.category === 'personal') {
+        state.employer = root.querySelector('#f_employer').value.trim();
+        state.jobTitle = root.querySelector('#f_job_title').value.trim();
+        if (!state.employer) { alert('請輸入在職公司'); return false; }
+        if (!state.jobTitle) { alert('請輸入職稱'); return false; }
+      }
+
       if (!state.insuredIdNumber) { alert('請輸入身分證字號'); return false; }
       if (!state.phoneSuffix) { alert('請輸入電話號碼'); return false; }
       if (!state.emailLocal) { alert('請輸入電子信箱'); return false; }
@@ -556,27 +782,37 @@ function stepReview() {
     eyebrow: '確認建檔', title: '資料確認',
     render() {
       const domain = state.emailDomain === '其他' ? state.emailDomainCustom : state.emailDomain;
-      const voluntaryLines = Object.entries(state.voluntaryItems)
-        .filter(([, v]) => v.checked)
-        .map(([id, v]) => {
-          const def = VOLUNTARY_ITEMS.find(i => i.id === id);
-          return `<div class="row"><span class="k">${def.name}</span><span class="v">${def.noAmount ? '已投保' : v.amount}</span></div>`;
-        }).join('');
-      return `
-        <div class="review-list">
+
+      let topBlock = '';
+      if (state.category === 'vehicle') {
+        const voluntaryLines = Object.entries(state.voluntaryItems)
+          .filter(([, v]) => v.checked)
+          .map(([id, v]) => {
+            const def = VOLUNTARY_ITEMS.find(i => i.id === id);
+            return `<div class="row"><span class="k">${def.name}</span><span class="v">${def.noAmount ? '已投保' : v.amount}</span></div>`;
+          }).join('');
+        topBlock = `
           <div class="grp-title">車輛與險種</div>
           <div class="row"><span class="k">車牌號碼</span><span class="v">${state.plate}</span></div>
           <div class="row"><span class="k">車種</span><span class="v">${state.vehicleType}</span></div>
           ${state.hasCompulsory ? `<div class="row"><span class="k">強制險保單號碼</span><span class="v">${state.compulsoryPolicyNo}</span></div>` : ''}
           ${state.hasVoluntary ? `<div class="row"><span class="k">任意險保單號碼</span><span class="v">${state.voluntaryPolicyNo}</span></div>` : ''}
           ${voluntaryLines ? `<div class="grp-title">任意險投保內容</div>${voluntaryLines}` : ''}
+        `;
+      } else if (state.category === 'personal') {
+        const personalLines = Object.entries(state.personalItems)
+          .filter(([, v]) => v.checked)
+          .map(([id, v]) => {
+            const def = PERSONAL_ITEMS.find(i => i.id === id);
+            return `<div class="row"><span class="k">${def.name}</span><span class="v">${(v.plans && v.plans.length) ? v.plans.join('、') : '已投保'}</span></div>`;
+          }).join('');
+        topBlock = `
+          <div class="grp-title">個人保險商品</div>
+          ${personalLines}
+        `;
+      }
 
-          <div class="grp-title">保費與期間</div>
-          <div class="row"><span class="k">被保人</span><span class="v">${state.insuredName}</span></div>
-          <div class="row"><span class="k">總保費</span><span class="v">NT$ ${state.totalPremium}</span></div>
-          <div class="row"><span class="k">起保日</span><span class="v">民國${state.periodStart.y}年${state.periodStart.m}月${state.periodStart.d}日</span></div>
-          <div class="row"><span class="k">迄保日</span><span class="v">民國${state.periodEnd.y}年${state.periodEnd.m}月${state.periodEnd.d}日</span></div>
-
+      const vehicleInfoBlock = state.category === 'vehicle' ? `
           <div class="grp-title">車籍資料</div>
           <div class="row"><span class="k">原發照日</span><span class="v">民國${state.license.y}年${state.license.m}月${state.license.d}日</span></div>
           <div class="row"><span class="k">出廠年月</span><span class="v">${state.mfg.y} 年 ${state.mfg.m} 月</span></div>
@@ -584,8 +820,25 @@ function stepReview() {
           <div class="row"><span class="k">乘載人數</span><span class="v">${state.seatingCapacity} 人</span></div>
           <div class="row"><span class="k">引擎號碼</span><span class="v">${state.engineNumber}</span></div>
           <div class="row"><span class="k">廠牌型式</span><span class="v">${state.brandModel}</span></div>
+      ` : '';
 
+      const employmentBlock = state.category === 'personal' ? `
+          <div class="row"><span class="k">在職公司</span><span class="v">${state.employer}</span></div>
+          <div class="row"><span class="k">職稱</span><span class="v">${state.jobTitle}</span></div>
+      ` : '';
+
+      return `
+        <div class="review-list">
+          ${topBlock}
+
+          <div class="grp-title">保費與期間</div>
+          <div class="row"><span class="k">被保人</span><span class="v">${state.insuredName}</span></div>
+          <div class="row"><span class="k">總保費</span><span class="v">NT$ ${state.totalPremium}</span></div>
+          <div class="row"><span class="k">起保日</span><span class="v">民國${state.periodStart.y}年${state.periodStart.m}月${state.periodStart.d}日</span></div>
+          <div class="row"><span class="k">迄保日</span><span class="v">民國${state.periodEnd.y}年${state.periodEnd.m}月${state.periodEnd.d}日</span></div>
+          ${vehicleInfoBlock}
           <div class="grp-title">被保人資料</div>
+          ${employmentBlock}
           <div class="row"><span class="k">身分證字號</span><span class="v">${state.insuredIdNumber}</span></div>
           <div class="row"><span class="k">出生日期</span><span class="v">民國${state.birth.y}年${state.birth.m}月${state.birth.d}日</span></div>
           <div class="row"><span class="k">電話</span><span class="v">09${state.phoneSuffix}</span></div>
@@ -607,7 +860,37 @@ let currentIndex = 0;
 
 function buildPayload() {
   const domain = state.emailDomain === '其他' ? state.emailDomainCustom : state.emailDomain;
+  const common = {
+    category: state.category,
+    insured_name: state.insuredName,
+    total_premium: state.totalPremium,
+    policy_start_date: rocToIso(state.periodStart.y, state.periodStart.m, state.periodStart.d),
+    policy_end_date: rocToIso(state.periodEnd.y, state.periodEnd.m, state.periodEnd.d),
+    insured_id_number: state.insuredIdNumber,
+    insured_birthdate: rocToIso(state.birth.y, state.birth.m, state.birth.d),
+    insured_phone: '09' + state.phoneSuffix,
+    insured_email: `${state.emailLocal}@${domain}`,
+    insured_zipcode: state.zipcode,
+    insured_city: state.city,
+    insured_district: state.district,
+    insured_address_detail: state.addressDetail,
+  };
+
+  if (state.category === 'personal') {
+    return {
+      ...common,
+      personal_items: Object.entries(state.personalItems).filter(([, v]) => v.checked).map(([id, v]) => {
+        const def = PERSONAL_ITEMS.find(i => i.id === id);
+        return { item: def.name, plans: v.plans || [] };
+      }),
+      employer: state.employer,
+      job_title: state.jobTitle,
+    };
+  }
+
+  // 預設走車險（category === 'vehicle'）
   return {
+    ...common,
     plate_number: state.plate,
     vehicle_type: state.vehicleType,
     has_compulsory: state.hasCompulsory,
@@ -618,24 +901,12 @@ function buildPayload() {
       const def = VOLUNTARY_ITEMS.find(i => i.id === id);
       return { item: def.name, amount: def.noAmount ? null : v.amount };
     }),
-    insured_name: state.insuredName,
-    total_premium: state.totalPremium,
-    policy_start_date: rocToIso(state.periodStart.y, state.periodStart.m, state.periodStart.d),
-    policy_end_date: rocToIso(state.periodEnd.y, state.periodEnd.m, state.periodEnd.d),
     vehicle_license_date: rocToIso(state.license.y, state.license.m, state.license.d),
     vehicle_manufacture_date: state.mfg.y ? `${state.mfg.y}-${pad2(state.mfg.m)}` : null,
     displacement: state.displacement,
     seating_capacity: state.seatingCapacity,
     engine_number: state.engineNumber,
     brand_model: state.brandModel,
-    insured_id_number: state.insuredIdNumber,
-    insured_birthdate: rocToIso(state.birth.y, state.birth.m, state.birth.d),
-    insured_phone: '09' + state.phoneSuffix,
-    insured_email: `${state.emailLocal}@${domain}`,
-    insured_zipcode: state.zipcode,
-    insured_city: state.city,
-    insured_district: state.district,
-    insured_address_detail: state.addressDetail,
   };
 }
 
@@ -703,12 +974,15 @@ function showDoneScreen(isEdit) {
   const card = document.getElementById('wizardCard');
   const title = isEdit ? '更新完成' : '建檔完成';
   const verb = isEdit ? '成功更新' : '成功建立';
+  const summary = state.category === 'personal'
+    ? `個人保險（被保人：<b>${state.insuredName}</b>）`
+    : `<b>${state.plate}</b>（${state.vehicleType}）`;
   card.innerHTML = `
     <div style="text-align:center; padding:20px 0 6px;">
       <div class="done-icon">✓</div>
       <div class="step-title" style="text-align:center;">${title}</div>
       <div class="stub" style="text-align:left; margin:0 auto 26px; max-width:420px;">
-        <b>${state.plate}</b>（${state.vehicleType}）已${verb}保單資料。<br>
+        ${summary}已${verb}保單資料。<br>
         被保人：<b>${state.insuredName}</b>
       </div>
       <button type="button" class="btn btn-primary" id="btnAnother">建立下一筆</button>
@@ -725,10 +999,12 @@ function showDoneScreen(isEdit) {
 
 function resetWizard() {
   Object.assign(state, {
+    category: null,
     plate: '', vehicleType: '',
     hasCompulsory: false, compulsoryPolicyNo: '',
     hasVoluntary: false, voluntaryPolicyNo: '',
     voluntaryItems: {},
+    personalItems: {},
     insuredName: '', totalPremium: '',
     periodStart: { y: null, m: 1, d: 1 },
     periodEnd: { y: null, m: 1, d: 1 },
@@ -741,6 +1017,7 @@ function resetWizard() {
     phoneSuffix: '',
     emailLocal: '', emailDomain: 'gmail.com', emailDomainCustom: '',
     zipcode: '', city: '', district: '', addressDetail: '',
+    employer: '', jobTitle: '',
     editingId: null,
   });
   doneScreenActive = false;
@@ -762,15 +1039,23 @@ async function showList() {
   if (!rows.length) { holder.innerHTML = '<p>目前尚無建檔資料。</p>'; return; }
   holder.innerHTML = `
     <table class="records">
-      <thead><tr><th>車牌</th><th>保戶名字</th><th></th><th></th></tr></thead>
+      <thead><tr><th>類別</th><th>摘要</th><th>被保人</th><th></th><th></th></tr></thead>
       <tbody>
-        ${rows.map(r => `
+        ${rows.map(r => {
+          const isPersonal = r.category === 'personal';
+          const categoryLabel = isPersonal ? '個人保險' : '車險';
+          const summary = isPersonal
+            ? ((r.personal_items || []).map(i => i.item).join('、') || '—')
+            : (r.plate_number || '—');
+          return `
           <tr class="record-row" data-id="${r.id}" style="cursor:pointer;">
-            <td>${r.plate_number}</td>
+            <td>${categoryLabel}</td>
+            <td>${summary}</td>
             <td>${r.insured_name || ''}</td>
             <td><span class="edit-btn" data-id="${r.id}" style="color:var(--navy); cursor:pointer; font-size:12px; font-weight:700;">編輯資料</span></td>
             <td><span class="del-btn" data-id="${r.id}">刪除</span></td>
-          </tr>`).join('')}
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>`;
   holder.querySelectorAll('.record-row').forEach(row => {
@@ -794,14 +1079,6 @@ async function showList() {
 
 // 反向操作：把一筆已存在的資料「灌回」state，讓精靈可以重複使用來編輯
 function loadStateFromRecord(r) {
-  const mfgParts = r.vehicle_manufacture_date ? r.vehicle_manufacture_date.split('-') : [null, '1'];
-
-  const voluntaryItems = {};
-  (r.voluntary_items || []).forEach(v => {
-    const def = VOLUNTARY_ITEMS.find(i => i.name === v.item);
-    if (def) voluntaryItems[def.id] = { checked: true, amount: v.amount || '' };
-  });
-
   let emailLocal = '', emailDomain = 'gmail.com', emailDomainCustom = '';
   if (r.insured_email && r.insured_email.includes('@')) {
     const [local, domain] = r.insured_email.split('@');
@@ -814,25 +1091,13 @@ function loadStateFromRecord(r) {
     }
   }
 
-  Object.assign(state, {
+  const common = {
     editingId: r.id,
-    plate: r.plate_number || '',
-    vehicleType: r.vehicle_type || '',
-    hasCompulsory: !!r.has_compulsory,
-    compulsoryPolicyNo: r.compulsory_policy_no || '',
-    hasVoluntary: !!r.has_voluntary,
-    voluntaryPolicyNo: r.voluntary_policy_no || '',
-    voluntaryItems,
+    category: r.category || 'vehicle', // 舊資料沒有 category 欄位時，當作車險處理
     insuredName: r.insured_name || '',
     totalPremium: r.total_premium || '',
     periodStart: isoToRoc(r.policy_start_date) || { y: null, m: 1, d: 1 },
     periodEnd: isoToRoc(r.policy_end_date) || { y: null, m: 1, d: 1 },
-    license: isoToRoc(r.vehicle_license_date) || { y: null, m: 1, d: 1 },
-    mfg: { y: mfgParts[0] ? Number(mfgParts[0]) : null, m: mfgParts[1] ? Number(mfgParts[1]) : 1 },
-    displacement: r.displacement || '',
-    seatingCapacity: r.seating_capacity || 2,
-    engineNumber: r.engine_number || '',
-    brandModel: r.brand_model || '',
     insuredIdNumber: r.insured_id_number || '',
     birth: isoToRoc(r.insured_birthdate) || { y: null, m: 1, d: 1 },
     phoneSuffix: (r.insured_phone || '').replace(/^09/, ''),
@@ -841,6 +1106,44 @@ function loadStateFromRecord(r) {
     city: r.insured_city || '',
     district: r.insured_district || '',
     addressDetail: r.insured_address_detail || '',
+  };
+
+  if (common.category === 'personal') {
+    const personalItems = {};
+    (r.personal_items || []).forEach(v => {
+      const def = PERSONAL_ITEMS.find(i => i.name === v.item);
+      if (def) personalItems[def.id] = { checked: true, plans: v.plans || [] };
+    });
+    Object.assign(state, common, {
+      personalItems,
+      employer: r.employer || '',
+      jobTitle: r.job_title || '',
+    });
+    return;
+  }
+
+  // 車險
+  const mfgParts = r.vehicle_manufacture_date ? r.vehicle_manufacture_date.split('-') : [null, '1'];
+  const voluntaryItems = {};
+  (r.voluntary_items || []).forEach(v => {
+    const def = VOLUNTARY_ITEMS.find(i => i.name === v.item);
+    if (def) voluntaryItems[def.id] = { checked: true, amount: v.amount || '' };
+  });
+
+  Object.assign(state, common, {
+    plate: r.plate_number || '',
+    vehicleType: r.vehicle_type || '',
+    hasCompulsory: !!r.has_compulsory,
+    compulsoryPolicyNo: r.compulsory_policy_no || '',
+    hasVoluntary: !!r.has_voluntary,
+    voluntaryPolicyNo: r.voluntary_policy_no || '',
+    voluntaryItems,
+    license: isoToRoc(r.vehicle_license_date) || { y: null, m: 1, d: 1 },
+    mfg: { y: mfgParts[0] ? Number(mfgParts[0]) : null, m: mfgParts[1] ? Number(mfgParts[1]) : 1 },
+    displacement: r.displacement || '',
+    seatingCapacity: r.seating_capacity || 2,
+    engineNumber: r.engine_number || '',
+    brandModel: r.brand_model || '',
   });
 }
 
@@ -862,15 +1165,25 @@ function isoToRoc(iso) {
 function renderRecordDetail(r) {
   const start = isoToRoc(r.policy_start_date);
   const end = isoToRoc(r.policy_end_date);
-  const license = isoToRoc(r.vehicle_license_date);
   const birth = isoToRoc(r.insured_birthdate);
-  const mfg = r.vehicle_manufacture_date ? r.vehicle_manufacture_date.split('-') : null;
-  const voluntaryLines = (r.voluntary_items || []).map(v =>
-    `<div class="row"><span class="k">${v.item}</span><span class="v">${v.amount || '已投保'}</span></div>`
-  ).join('');
+  const isPersonal = r.category === 'personal';
 
-  return `
-    <div class="review-list">
+  let topBlock;
+  if (isPersonal) {
+    const personalLines = (r.personal_items || []).map(v =>
+      `<div class="row"><span class="k">${v.item}</span><span class="v">${(v.plans && v.plans.length) ? v.plans.join('、') : '已投保'}</span></div>`
+    ).join('');
+    topBlock = `
+      <div class="grp-title">個人保險商品</div>
+      ${personalLines}
+    `;
+  } else {
+    const license = isoToRoc(r.vehicle_license_date);
+    const mfg = r.vehicle_manufacture_date ? r.vehicle_manufacture_date.split('-') : null;
+    const voluntaryLines = (r.voluntary_items || []).map(v =>
+      `<div class="row"><span class="k">${v.item}</span><span class="v">${v.amount || '已投保'}</span></div>`
+    ).join('');
+    topBlock = `
       <div class="grp-title">車輛與險種</div>
       <div class="row"><span class="k">車牌號碼</span><span class="v">${r.plate_number}</span></div>
       <div class="row"><span class="k">車種</span><span class="v">${r.vehicle_type}</span></div>
@@ -891,8 +1204,28 @@ function renderRecordDetail(r) {
       <div class="row"><span class="k">乘載人數</span><span class="v">${r.seating_capacity || ''} 人</span></div>
       <div class="row"><span class="k">引擎號碼</span><span class="v">${r.engine_number || ''}</span></div>
       <div class="row"><span class="k">廠牌型式</span><span class="v">${r.brand_model || ''}</span></div>
+    `;
+  }
 
+  const employmentBlock = isPersonal ? `
+      <div class="row"><span class="k">在職公司</span><span class="v">${r.employer || ''}</span></div>
+      <div class="row"><span class="k">職稱</span><span class="v">${r.job_title || ''}</span></div>
+  ` : '';
+
+  const premiumBlock = isPersonal ? `
+      <div class="grp-title">保費與期間</div>
+      <div class="row"><span class="k">被保人</span><span class="v">${r.insured_name || ''}</span></div>
+      <div class="row"><span class="k">總保費</span><span class="v">NT$ ${r.total_premium || ''}</span></div>
+      <div class="row"><span class="k">起保日</span><span class="v">${start ? `民國${start.y}年${start.m}月${start.d}日` : ''}</span></div>
+      <div class="row"><span class="k">迄保日</span><span class="v">${end ? `民國${end.y}年${end.m}月${end.d}日` : ''}</span></div>
+  ` : '';
+
+  return `
+    <div class="review-list">
+      ${topBlock}
+      ${premiumBlock}
       <div class="grp-title">被保人資料</div>
+      ${employmentBlock}
       <div class="row"><span class="k">身分證字號</span><span class="v">${r.insured_id_number || ''}</span></div>
       <div class="row"><span class="k">出生日期</span><span class="v">${birth ? `民國${birth.y}年${birth.m}月${birth.d}日` : ''}</span></div>
       <div class="row"><span class="k">電話</span><span class="v">${r.insured_phone || ''}</span></div>
