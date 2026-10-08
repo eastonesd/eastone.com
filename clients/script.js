@@ -155,6 +155,17 @@ function bindCodeMaintenance() {
 }
 
 // ========================= 滾輪選單：性別 =========================
+// 依客戶ID第一碼數字（字母後的第1個數字）自動帶出性別滾輪：1→男、2→女、其他→其他
+function autoFillGenderFromId(idValue) {
+  const firstDigit = idValue.charAt(1); // 第0碼是英文字母，第1碼是第一個數字
+  if (!/^[0-9]$/.test(firstDigit)) return; // 還沒打到數字就先不動
+
+  const genderIndex = firstDigit === "1" ? 0 : firstDigit === "2" ? 1 : 2; // 男/女/其他
+  const wheel = document.getElementById("wheel-gender");
+  setWheel(wheel, genderIndex);
+  selectedGender = getWheelSelectedText(wheel);
+}
+
 function buildGenderWheel() {
   setupWheel(document.getElementById("wheel-gender"), () => {
     selectedGender = getWheelSelectedText(document.getElementById("wheel-gender"));
@@ -345,6 +356,7 @@ function collectPolicies() {
 function bindWizardNav() {
   document.getElementById("f-id").addEventListener("input", (e) => {
     e.target.value = e.target.value.toUpperCase();
+    autoFillGenderFromId(e.target.value);
   });
 
   document.getElementById("btn-next").addEventListener("click", () => {
