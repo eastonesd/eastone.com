@@ -10,6 +10,11 @@ const TOTAL_STEPS = 5;
 
 // ========================= 初始化 =========================
 document.addEventListener("DOMContentLoaded", async () => {
+  // 向瀏覽器要求把這個網站的本機資料標記為「持久化」，降低被自動清掉的機率
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(() => {});
+  }
+
   await seedInsuranceCodesIfEmpty();
   await loadPostalData();
   await loadInsuranceCodes();
@@ -24,6 +29,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindFileList();
   bindCodeMaintenance();
   bindModal();
+  bindBackup();
 
   addPolicyRow(); // 預設一列
   await refreshFileList();
@@ -164,7 +170,7 @@ function buildBirthdayWheels() {
   const thisYear = new Date().getFullYear();
   const years = [];
   for (let y = thisYear; y >= thisYear - 100; y--) years.push(y);
-  fillWheel(yearWheel, years.map((y) => `${y}`));
+  fillYearWheel(yearWheel, years); // 畫面顯示民國年，內部仍以西元年計算
 
   fillWheel(monthWheel, Array.from({ length: 12 }, (_, i) => `${i + 1}月`));
 
@@ -182,6 +188,20 @@ function fillWheel(wheelEl, items) {
     const div = document.createElement("div");
     div.className = "wheel-item";
     div.textContent = text;
+    track.appendChild(div);
+  });
+}
+
+// 年份滾輪專用：畫面顯示民國年（西元年 - 1911），但每個項目用 data-year 屬性
+// 保留真正的西元年，給星座／年齡計算與存檔使用，兩邊互不影響。
+function fillYearWheel(wheelEl, westernYears) {
+  const track = wheelEl.querySelector(".wheel-track");
+  track.innerHTML = "";
+  westernYears.forEach((y) => {
+    const div = document.createElement("div");
+    div.className = "wheel-item";
+    div.textContent = `${y - 1911}`;
+    div.dataset.year = y;
     track.appendChild(div);
   });
 }
@@ -223,6 +243,13 @@ function getWheelSelectedText(wheelEl) {
   return items[idx] ? items[idx].textContent : "";
 }
 
+// 年份滾輪專用：回傳目前選到的「西元年」（讀 data-year，不是畫面上顯示的民國年文字）
+function getWheelSelectedYear(wheelEl) {
+  const items = wheelEl.querySelectorAll(".wheel-item");
+  const idx = getWheelSelectedIndex(wheelEl);
+  return items[idx] ? Number(items[idx].dataset.year) : null;
+}
+
 // 直接把滾輪捲到指定的項目索引（不做平滑捲動），編輯資料要預先帶入現有值時用
 function setWheel(wheelEl, index) {
   if (index < 0) return;
@@ -233,7 +260,7 @@ function setWheel(wheelEl, index) {
 }
 
 async function onBirthdayWheelChange() {
-  const y = getWheelSelectedText(document.getElementById("wheel-year"));
+  const y = getWheelSelectedYear(document.getElementById("wheel-year"));
   const m = getWheelSelectedText(document.getElementById("wheel-month")).replace("月", "");
   const d = getWheelSelectedText(document.getElementById("wheel-day")).replace("日", "");
   if (!y || !m || !d) return;
@@ -506,6 +533,54 @@ function bindFileList() {
   document.getElementById("search-box").addEventListener("input", refreshFileList);
 }
 
+// ========================= 匯出備份 / 匯入復原 =========================
+function bindBackup() {
+  document.getElementById("btnExportBackup").addEventListener("click", async () => {
+    const clients = await clientList();
+    const codes = await codeList();
+    const payload = { clients, insurance_codes: codes };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const today = new Date().toISOString().slice(0, 10);
+    a.download = `客戶資料備份_${today}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById("btnImportBackup").addEventListener("click", () => {
+    document.getElementById("importFileInput").click();
+  });
+
+  document.getElementById("importFileInput").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      const clients = Array.isArray(payload) ? payload : payload.clients; // 兼容單純陣列格式
+      if (!Array.isArray(clients)) throw new Error("檔案格式不正確，應該是匯出時產生的 JSON 檔");
+      if (!confirm(`確定要匯入 ${clients.length} 筆客戶資料嗎？如果資料庫裡已經有相同客戶ID的紀錄，內容會被匯入的資料覆蓋掉。`)) {
+        e.target.value = "";
+        return;
+      }
+      const count = await clientImportAll(clients);
+      if (payload.insurance_codes) {
+        await codeImportAll(payload.insurance_codes);
+      }
+      showToast(`匯入完成，共 ${count} 筆客戶資料`);
+      await refreshFileList();
+      await refreshCodeList();
+    } catch (err) {
+      alert("匯入失敗：" + (err && err.message ? err.message : "檔案格式不正確"));
+    }
+    e.target.value = "";
+  });
+}
+
 async function refreshFileList() {
   const clients = await clientList();
   const keyword = document.getElementById("search-box").value.trim().toLowerCase();
@@ -526,7 +601,7 @@ async function refreshFileList() {
   filtered.forEach((c) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${c.id}</td><td>${c.name}</td><td>${c.gender || ""}</td>
-      <td><div class="edit-cell"><span class="icon-btn edit-client-btn" data-id="${c.id}" style="color:#fff;">編輯</span></div></td>`;
+      <td><span class="icon-btn edit-client-btn" data-id="${c.id}" style="color:var(--accent);">編輯資料</span></td>`;
     tr.addEventListener("click", (e) => {
       if (e.target.classList.contains("edit-client-btn")) return;
       openDetail(c.id);
