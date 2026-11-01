@@ -27,18 +27,15 @@
   gap: 14px;
 }
 
+/* 公司 logo（icons/logo.png，圓形、透明底），外圈保留原本的金色細框 */
 .ghdr-mark {
-  width: 38px;
-  height: 38px;
-  border: 2px solid #B8892B;
+  display: block;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Noto Serif TC', serif;
-  font-weight: 900;
-  color: #B8892B;
-  font-size: 16px;
+  background: #FBF8F0;
+  box-shadow: 0 0 0 2px #B8892B, 0 2px 8px rgba(0, 0, 0, .35);
+  object-fit: cover;
   flex-shrink: 0;
 }
 
@@ -93,8 +90,27 @@
   color: #F6F3EC;
 }
 
+/* 手機：五個按鈕排成一列等寬，外框改成小圓角矩形，選中的金色按鈕不會再凸出外框 */
 @media (max-width: 560px) {
-  .ghdr-wrap { flex-direction: column; align-items: flex-start; gap: 14px; }
-  .ghdr-nav { align-self: stretch; }
-  .ghdr-nav button { flex: 1; }
+  .ghdr-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 16px 14px;
+  }
+  .ghdr-mark { width: 40px; height: 40px; }
+  .ghdr-nav {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 3px;
+    padding: 4px;
+    border-radius: 14px;
+  }
+  .ghdr-nav button {
+    min-width: 0;
+    padding: 9px 0;
+    border-radius: 10px;
+    font-size: clamp(12px, 3.5vw, 14px);
+    letter-spacing: 0.02em;
+  }
 }
