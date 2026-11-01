@@ -74,37 +74,26 @@ async function refreshRatesFallback() {
 // ---------------- 四大指數 ----------------
 const fmtPrice = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-// 報價時間（台北時間）：例如 10/30 13:33
-function fmtQuoteTime(ms) {
-  if (!ms) return "";
-  const p = new Intl.DateTimeFormat("zh-TW", {
-    timeZone: "Asia/Taipei", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
-  }).formatToParts(new Date(ms));
-  const get = (t) => (p.find((x) => x.type === t) || {}).value || "";
-  return `${get("month")}/${get("day")} ${get("hour")}:${get("minute")}`;
-}
-
 function showIndices(indices) {
   (indices || []).forEach((q) => {
     const card = document.querySelector(`#indices-grid .card[data-key="${q.key}"]`);
     if (!card) return;
-    const valueEl = card.querySelector(".card-value");
-    const changeEl = card.querySelector(".card-change");
-    const timeEl = card.querySelector(".card-time");
     if (q.error || typeof q.price !== "number") return; // 抓不到就保留上一次的數字
 
-    valueEl.textContent = fmtPrice(q.price);
+    card.querySelector(".card-value").textContent = fmtPrice(q.price);
+    const changeEl = card.querySelector(".card-change");
+    const pctEl = card.querySelector(".card-pct");
     card.classList.remove("is-up", "is-down");
     if (typeof q.change === "number") {
       const sign = q.change > 0 ? "+" : q.change < 0 ? "−" : "";
-      const pct = typeof q.changePct === "number" ? ` (${sign}${Math.abs(q.changePct).toFixed(2)}%)` : "";
-      changeEl.textContent = `${sign}${fmtPrice(Math.abs(q.change))}${pct}`;
+      changeEl.textContent = `${sign}${fmtPrice(Math.abs(q.change))}`;
+      pctEl.textContent = typeof q.changePct === "number" ? `(${sign}${Math.abs(q.changePct).toFixed(2)}%)` : "";
       if (q.change > 0) card.classList.add("is-up");
       if (q.change < 0) card.classList.add("is-down");
     } else {
       changeEl.textContent = "";
+      pctEl.textContent = "";
     }
-    timeEl.textContent = fmtQuoteTime(q.time);
   });
 }
 
@@ -157,11 +146,31 @@ async function refreshNews() {
         </li>`
       )
       .join("");
+    fitHeadlines();
   } catch (err) {
     console.error("新聞更新失敗", err);
     list.innerHTML = '<li class="news-item skeleton">目前無法取得新聞，稍後再試</li>';
   }
 }
+
+// 標題太長時先把字縮小一點（最多縮到 78%）讓整行顯示；真的放不下才用「…」
+function fitHeadlines() {
+  document.querySelectorAll(".news-item a").forEach((a) => {
+    a.style.fontSize = "";
+    const base = parseFloat(getComputedStyle(a).fontSize);
+    let size = base;
+    while (a.scrollWidth > a.clientWidth && size > base * 0.78) {
+      size -= 0.5;
+      a.style.fontSize = `${size}px`;
+    }
+  });
+}
+let fitTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(fitHeadlines, 150);
+});
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitHeadlines);
 
 // ---------------- 啟動 ----------------
 setTodayDate();

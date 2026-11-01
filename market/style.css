@@ -1,186 +1,276 @@
+/* ============================================================
+   財經日報：一頁看完（不用滑動）＋ 動態 HUD 背景
+   所有尺寸都依螢幕高度與寬度自動縮放，手機、平板、電腦都塞得進一個畫面。
+   ============================================================ */
 :root {
-  --navy-deep: #0e1730;
-  --navy: #16213e;
-  --navy-light: #1f2c4f;
   --gold: #f2c14e;
   --gold-deep: #e0a92b;
   --white: #f5f6fa;
-  --up-red: #e03e3e;
-  --down-green: #2ea043;
-  --border-soft: rgba(242, 193, 78, 0.35);
+  --up-red: #d62828;
+  --down-green: #138a36;
+  --w: min(100vw, 520px); /* 內容欄寬度 */
+  --vh: 1vh;
 }
+@supports (height: 100dvh) { :root { --vh: 1dvh; } }
 
 * { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
 
 body {
-  margin: 0;
-  font-family: 'Noto Sans TC', "Microsoft JhengHei", sans-serif;
-  background: radial-gradient(circle at 20% 0%, var(--navy-light), var(--navy-deep) 60%);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #02040a;
   color: var(--white);
-  min-height: 100vh;
+  font-family: 'Noto Sans TC', "Microsoft JhengHei", sans-serif;
+}
+
+/* ---------- 動態背景 ---------- */
+.hud {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #02040a;
+}
+/* 跟背景圖同比例的框，鋪滿畫面（cover），裡面的圖層、線條都用同一套座標 */
+.hud-frame {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100vw, calc(100vh * 852 / 1846));
+  aspect-ratio: 852 / 1846;
+  transform: translate(-50%, -50%);
+}
+.hud-layer {
+  position: absolute;
+  inset: 0;
+  background: url("hud-bg.jpg") center / 100% 100% no-repeat;
+}
+/* 光環圓心在圖的 (48.94%, 48.43%)，半徑約 470px（寬 55.2%、高 25.5%） */
+.hud-stars {
+  -webkit-mask-image: radial-gradient(ellipse 55.2% 25.5% at 48.94% 48.43%, transparent 95%, #000 100%);
+          mask-image: radial-gradient(ellipse 55.2% 25.5% at 48.94% 48.43%, transparent 95%, #000 100%);
+}
+.hud-ring {
+  -webkit-mask-image: radial-gradient(ellipse 55.2% 25.5% at 48.94% 48.43%, #000 95%, transparent 100%);
+          mask-image: radial-gradient(ellipse 55.2% 25.5% at 48.94% 48.43%, #000 95%, transparent 100%);
+  transform-origin: 48.94% 48.43%;
+  animation: spin 150s linear infinite;
+  will-change: transform;
+}
+/* 雷達掃描光 */
+.hud-sweep {
+  position: absolute;
+  left: -1.53%;
+  top: 25.14%;
+  width: 100.94%;
+  height: 46.59%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(110, 210, 255, 0) 0deg, rgba(110, 210, 255, 0) 290deg, rgba(110, 210, 255, 0.22) 360deg);
+  mix-blend-mode: screen;
+  animation: spin 9s linear infinite;
+  will-change: transform;
+}
+.hud-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.hud-lines circle {
+  fill: none;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.hud-lines .l1 { stroke: #5fd3ff; stroke-opacity: .55; stroke-width: 2;   stroke-dasharray: 3 9;   animation: spin 60s linear infinite reverse; }
+.hud-lines .l2 { stroke: #f2c14e; stroke-opacity: .45; stroke-width: 3;   stroke-dasharray: 180 40 60 40 20 300; animation: spin 45s linear infinite; }
+.hud-lines .l3 { stroke: #5fd3ff; stroke-opacity: .35; stroke-width: 1.5; stroke-dasharray: 1 6;   animation: spin 30s linear infinite reverse; }
+.hud-lines .l4 { stroke: #f2c14e; stroke-opacity: .22; stroke-width: 10;  stroke-dasharray: 2 22;  animation: spin 90s linear infinite; }
+.hud-lines .l5 { stroke: #9fe4ff; stroke-opacity: .30; stroke-width: 2;   stroke-dasharray: 60 30 10 30; animation: spin 22s linear infinite reverse; }
+.hud-lines .core { fill: rgba(255, 196, 90, .35); animation: pulse 3.2s ease-in-out infinite; }
+
+/* 讓文字在背景上看得清楚的一層暗色 */
+.hud-shade {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, rgba(2, 4, 10, .30), rgba(2, 4, 10, .62));
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse {
+  0%, 100% { opacity: .35; transform: scale(.9); }
+  50%      { opacity: .9;  transform: scale(1.25); }
+}
+/* 系統設定「減少動態效果」的使用者：背景保持靜止 */
+@media (prefers-reduced-motion: reduce) {
+  .hud * { animation: none !important; }
+}
+
+/* ---------- 版面 ---------- */
+.home-link {
+  position: fixed;
+  z-index: 2;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  left: 12px;
+  font-size: 12px;
+  color: var(--gold);
+  text-decoration: none;
+  letter-spacing: 1px;
+  opacity: .85;
 }
 
 .page {
-  max-width: 480px;
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 520px;
   margin: 0 auto;
-  padding: 32px 20px 48px;
+  padding: calc(env(safe-area-inset-top, 0px) + max(26px, var(--vh) * 3.2)) 14px calc(var(--vh) * 1.2);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
 }
 
-/* ---------- Header ---------- */
-.masthead {
-  text-align: center;
-  margin-bottom: 28px;
-}
+.masthead { text-align: center; }
 
 .title {
-  font-size: 2.6rem;
-  font-weight: 900;
-  letter-spacing: 6px;
   margin: 0;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 900;
+  font-size: min(calc(var(--w) * 0.16), calc(var(--vh) * 8.2), 84px);
+  line-height: 1.1;
+  letter-spacing: 0.08em;
   background: linear-gradient(180deg, #fff2c4, var(--gold) 55%, var(--gold-deep));
   -webkit-background-clip: text;
-  background-clip: text;
+          background-clip: text;
   color: transparent;
-  text-shadow: 0 2px 12px rgba(242, 193, 78, 0.25);
+  filter: drop-shadow(0 2px 10px rgba(242, 193, 78, 0.35));
 }
 
 .subtitle {
-  font-size: 1.9rem;
+  margin: calc(var(--vh) * 0.4) 0 0;
   font-weight: 900;
-  margin: 4px 0 0;
+  font-size: min(calc(var(--w) * 0.09), calc(var(--vh) * 4.6), 46px);
+  line-height: 1.1;
   color: var(--white);
   letter-spacing: 1px;
-}
-
-/* ---------- Sections ---------- */
-.section {
-  margin-bottom: 30px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, .6);
 }
 
 .section-title {
+  margin: 0 0 calc(var(--vh) * 1);
   text-align: center;
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--gold);
-  margin: 0 0 16px;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 900;
+  font-size: min(calc(var(--w) * 0.062), calc(var(--vh) * 3.1), 30px);
+  line-height: 1.2;
+  color: var(--white);
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .7);
 }
 
-.update-note {
-  text-align: center;
-  font-size: 0.72rem;
-  color: rgba(245, 246, 250, 0.45);
-  margin: 10px 0 0;
-}
-
-/* ---------- Cards (rates + indices) ---------- */
+/* ---------- 卡片（匯率、指數） ---------- */
 .card-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: min(calc(var(--w) * 0.022), 10px);
 }
 
 .card {
-  background: linear-gradient(160deg, #ffe8a3, var(--gold) 55%, var(--gold-deep));
-  color: #1a1a1a;
-  border-radius: 14px;
-  padding: 14px 6px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
-  transition: transform 0.2s ease;
+  overflow: hidden;
+  border-radius: 10px;
+  color: #1a1a1a;
+  background: linear-gradient(180deg, #ffe680 0%, #ffd23f 48%, #f5b800 100%);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .6);
+  padding-bottom: calc(var(--vh) * 0.7);
 }
 
-.card:hover { transform: translateY(-2px); }
-
 .card-label {
-  font-weight: 700;
-  font-size: 0.95rem;
+  width: 100%;
+  text-align: center;
+  font-weight: 900;
+  font-size: min(calc(var(--w) * 0.038), calc(var(--vh) * 1.9), 18px);
+  padding: calc(var(--vh) * 0.55) 2px;
+  background: rgba(255, 255, 255, .38);
+  white-space: nowrap;
 }
 
 .card-value {
   font-weight: 900;
-  font-size: 1.15rem;
+  font-size: min(calc(var(--w) * 0.052), calc(var(--vh) * 2.6), 24px);
+  padding-top: calc(var(--vh) * 0.7);
+  white-space: nowrap;
+  letter-spacing: -0.2px;
 }
 
-.card-value.price { font-size: 1.05rem; }
-
+.index-card .card-label { font-size: min(calc(var(--w) * 0.035), calc(var(--vh) * 1.75), 16px); }
+.index-card .card-value { font-size: min(calc(var(--w) * 0.036), calc(var(--vh) * 1.8), 17px); }
 .card-change,
 .card-pct {
   font-weight: 800;
-  font-size: 0.82rem;
-  color: var(--up-red); /* 預設，會依漲跌以 JS 覆蓋 */
+  font-size: min(calc(var(--w) * 0.034), calc(var(--vh) * 1.7), 16px);
+  line-height: 1.25;
+  white-space: nowrap;
+  color: #555;
 }
+.card.is-up .card-change,   .card.is-up .card-pct   { color: var(--up-red); }
+.card.is-down .card-change, .card.is-down .card-pct { color: var(--down-green); }
 
-.card.is-down .card-change,
-.card.is-down .card-pct {
-  color: var(--down-green);
-}
-
-.card.is-up .card-change,
-.card.is-up .card-pct {
-  color: var(--up-red);
-}
-
-/* ---------- News list ---------- */
+/* ---------- 財經頭條 ---------- */
 .news-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: calc(var(--vh) * 0.9);
 }
 
-.news-item a {
+.news-item a,
+.news-item.skeleton {
   display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: calc(var(--vh) * 0.95) 12px;
+  border: 1.5px solid rgba(255, 255, 255, .85);
+  border-radius: 10px;
+  background: rgba(6, 12, 28, .55);
+  -webkit-backdrop-filter: blur(3px);
+          backdrop-filter: blur(3px);
   color: var(--white);
   text-decoration: none;
-  font-size: 0.98rem;
-  line-height: 1.5;
-  padding: 14px 16px;
-  border: 1.5px solid var(--border-soft);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.02);
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.news-item a:hover {
-  background: rgba(242, 193, 78, 0.12);
-  border-color: var(--gold);
-}
-
-.news-item.skeleton {
-  text-align: center;
-  color: rgba(245, 246, 250, 0.5);
-  padding: 14px;
-}
-
-/* ---------- Footer ---------- */
-.footer {
-  text-align: center;
-  margin-top: 36px;
-  color: rgba(245, 246, 250, 0.6);
-  font-size: 0.85rem;
-  letter-spacing: 1px;
-}
-
-/* ---------- Responsive ---------- */
-@media (max-width: 420px) {
-  .title { font-size: 2.1rem; letter-spacing: 3px; }
-  .subtitle { font-size: 1.5rem; }
-  .card-label { font-size: 0.8rem; }
-  .card-value { font-size: 0.95rem; }
-}
-
-/* ---------- 四大指數（數字較長，改成 2×2） ---------- */
-.indices-grid { grid-template-columns: repeat(2, 1fr); }
-.indices-grid .card { padding: 14px 8px 12px; gap: 4px; }
-.indices-grid .card-value.price { font-size: 1.25rem; }
-.card-time {
-  font-size: 0.7rem;
+  font-family: 'Noto Serif TC', serif;
   font-weight: 700;
-  color: rgba(26, 26, 26, 0.55);
+  font-size: min(calc(var(--w) * 0.038), calc(var(--vh) * 1.9), 17px);
+  line-height: 1.35;
+  transition: background .2s ease, border-color .2s ease;
 }
-.footer p { margin: 4px 0; }
+.news-item a:hover { background: rgba(242, 193, 78, .18); border-color: var(--gold); }
+.news-item.skeleton { text-align: center; color: rgba(245, 246, 250, .6); }
+
+/* ---------- 頁尾 ---------- */
+.footer {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  text-align: center;
+  padding: calc(var(--vh) * 1.2) 12px calc(env(safe-area-inset-bottom, 0px) + var(--vh) * 1.2);
+  background: rgba(4, 8, 20, .85);
+  border-top: 1px solid rgba(242, 193, 78, .35);
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 900;
+  font-size: min(calc(var(--w) * 0.045), calc(var(--vh) * 2.2), 20px);
+  letter-spacing: 2px;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.footer .sep { margin: 0 .35em; opacity: .7; }

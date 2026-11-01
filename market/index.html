@@ -2,21 +2,38 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>財經日報 | 即時財經資訊</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="財經日報">
+<meta name="theme-color" content="#04070f">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="page">
-
-  <div style="text-align:center; margin-bottom:14px;">
-    <a href="../index.html" style="color:var(--gold); font-size:.85rem; text-decoration:none; letter-spacing:1px;">← 理賠文件首頁</a>
+<!-- ===== 動態背景：星空靜止，光環以自己的圓心緩慢旋轉，外圈 HUD 線條反向轉 ===== -->
+<div class="hud" aria-hidden="true">
+  <div class="hud-frame">
+    <div class="hud-layer hud-stars"></div>
+    <div class="hud-layer hud-ring"></div>
+    <div class="hud-sweep"></div>
+    <svg class="hud-lines" viewBox="0 0 852 1846" preserveAspectRatio="none">
+      <circle class="l1" cx="417" cy="894" r="468" />
+      <circle class="l2" cx="417" cy="894" r="492" />
+      <circle class="l3" cx="417" cy="894" r="512" />
+      <circle class="l4" cx="417" cy="894" r="536" />
+      <circle class="l5" cx="417" cy="894" r="360" />
+      <circle class="core" cx="417" cy="894" r="40" />
+    </svg>
   </div>
+  <div class="hud-shade"></div>
+</div>
+
+<a class="home-link" href="../index.html">← 理賠文件首頁</a>
+
+<main class="page">
 
   <header class="masthead">
     <h1 class="title">財經日報</h1>
@@ -25,7 +42,7 @@
 
   <section class="section">
     <h3 class="section-title">即時匯率</h3>
-    <div class="card-grid rates-grid" id="rates-grid">
+    <div class="card-grid" id="rates-grid">
       <div class="card" data-key="美元"><span class="card-label">美元</span><span class="card-value">--</span></div>
       <div class="card" data-key="澳幣"><span class="card-label">澳幣</span><span class="card-value">--</span></div>
       <div class="card" data-key="日幣"><span class="card-label">日幣</span><span class="card-value">--</span></div>
@@ -42,20 +59,19 @@
 
   <section class="section">
     <h3 class="section-title">重要指數</h3>
-    <div class="card-grid indices-grid" id="indices-grid">
-      <div class="card" data-key="dji"><span class="card-label">道瓊</span><span class="card-value price">--</span><span class="card-change"></span><span class="card-time"></span></div>
-      <div class="card" data-key="spx"><span class="card-label">標普500</span><span class="card-value price">--</span><span class="card-change"></span><span class="card-time"></span></div>
-      <div class="card" data-key="ixic"><span class="card-label">那斯達克</span><span class="card-value price">--</span><span class="card-change"></span><span class="card-time"></span></div>
-      <div class="card" data-key="twii"><span class="card-label">台指</span><span class="card-value price">--</span><span class="card-change"></span><span class="card-time"></span></div>
+    <div class="card-grid" id="indices-grid">
+      <div class="card index-card" data-key="dji"><span class="card-label">道瓊</span><span class="card-value">--</span><span class="card-change"></span><span class="card-pct"></span></div>
+      <div class="card index-card" data-key="spx"><span class="card-label">標普500</span><span class="card-value">--</span><span class="card-change"></span><span class="card-pct"></span></div>
+      <div class="card index-card" data-key="ixic"><span class="card-label">那斯達克</span><span class="card-value">--</span><span class="card-change"></span><span class="card-pct"></span></div>
+      <div class="card index-card" data-key="twii"><span class="card-label">台指</span><span class="card-value">--</span><span class="card-change"></span><span class="card-pct"></span></div>
     </div>
   </section>
 
-  <footer class="footer">
-    <p>打造你的每日財經速覽</p>
-    <p>東石系統，打造堅若磐石的家庭金融</p>
-  </footer>
+</main>
 
-</div>
+<footer class="footer">
+  <span class="brand">東石系統</span><span class="sep">｜</span><span>打造堅若磐石的家庭金融</span>
+</footer>
 
 <script src="script.js"></script>
 </body>
