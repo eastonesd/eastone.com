@@ -24,31 +24,35 @@
   </header>
 
   <section class="section">
-    <h3 class="section-title">匯率觀測站</h3>
+    <h3 class="section-title">即時匯率</h3>
     <div class="card-grid rates-grid" id="rates-grid">
       <div class="card" data-key="美元"><span class="card-label">美元</span><span class="card-value">--</span></div>
       <div class="card" data-key="澳幣"><span class="card-label">澳幣</span><span class="card-value">--</span></div>
       <div class="card" data-key="日幣"><span class="card-label">日幣</span><span class="card-value">--</span></div>
       <div class="card" data-key="人民幣"><span class="card-label">人民幣</span><span class="card-value">--</span></div>
     </div>
-    <p class="update-note">每 60 秒自動更新 <span id="rates-updated"></span></p>
   </section>
 
   <section class="section">
-    <h3 class="section-title">五大重點財經頭條</h3>
+    <h3 class="section-title">財經頭條</h3>
     <ul class="news-list" id="news-list">
       <li class="news-item skeleton">讀取新聞中...</li>
     </ul>
-    <p class="update-note">每 60 秒自動更新 <span id="news-updated"></span></p>
   </section>
 
   <section class="section">
     <h3 class="section-title">重要指數</h3>
-    <p class="news-item skeleton" style="border-radius:8px;">指數功能尚未開放（Yahoo Finance 不開放瀏覽器直接讀取，之後接上合適的行情 API 後會補上）</p>
+    <div class="card-grid indices-grid" id="indices-grid">
+      <div class="card" data-key="dji"><span class="card-label">道瓊</span><span class="card-value price">--</span><span class="card-change"></span><span class="card-time"></span></div>
+      <div class="card" data-key="spx"><span class="card-label">標普500</span><span class="card-value price">--</span><span class="card-change"></span><span class="card-time"></span></div>
+      <div class="card" data-key="ixic"><span class="card-label">那斯達克</span><span class="card-value price">--</span><span class="card-change"></span><span class="card-time"></span></div>
+      <div class="card" data-key="twii"><span class="card-label">台指</span><span class="card-value price">--</span><span class="card-change"></span><span class="card-time"></span></div>
+    </div>
   </section>
 
   <footer class="footer">
     <p>打造你的每日財經速覽</p>
+    <p>東石系統，打造堅若磐石的家庭金融</p>
   </footer>
 
 </div>

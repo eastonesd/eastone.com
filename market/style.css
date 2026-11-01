@@ -173,3 +173,14 @@ body {
   .card-label { font-size: 0.8rem; }
   .card-value { font-size: 0.95rem; }
 }
+
+/* ---------- 四大指數（數字較長，改成 2×2） ---------- */
+.indices-grid { grid-template-columns: repeat(2, 1fr); }
+.indices-grid .card { padding: 14px 8px 12px; gap: 4px; }
+.indices-grid .card-value.price { font-size: 1.25rem; }
+.card-time {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(26, 26, 26, 0.55);
+}
+.footer p { margin: 4px 0; }

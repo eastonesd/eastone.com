@@ -1,9 +1,11 @@
-// 財經日報 前端邏輯（純前端版）
-// 每 60 秒直接向外部服務拉取一次 匯率 / 新聞 並更新畫面
-// 指數（道瓊/標普/那指/台指）目前先不做 —— Yahoo Finance 不開放瀏覽器跨網域讀取，
-// 之後如果要做，需要另外接一個有開放 CORS 的股票行情 API 或自架小代理伺服器。
+// 財經日報 前端邏輯
+// 每 60 秒更新一次：四大指數、即時匯率（來自 Supabase 的 market-data 服務，代抓 Yahoo Finance）、財經頭條。
+// market-data 抓不到匯率時，自動改用 open.er-api.com（每日更新一次）當備援。
 
 const REFRESH_MS = 60 * 1000; // 60 秒
+
+// 行情服務（四大指數 + 台幣匯率），公開資料、不需登入
+const MARKET_URL = "https://kocyedkngpxckixtudku.supabase.co/functions/v1/market-data";
 
 // 匯率目標幣別對應（1 單位外幣可兌換多少台幣 TWD）
 const RATE_SYMBOLS = {
@@ -27,11 +29,6 @@ function round3(n) {
   return Math.round(n * 1000) / 1000;
 }
 
-function formatTime(date) {
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-}
-
 function setTodayDate() {
   const now = new Date();
   const y = now.getFullYear();
@@ -41,7 +38,15 @@ function setTodayDate() {
 }
 
 // ---------------- 匯率 ----------------
-async function refreshRates() {
+function showRates(data) {
+  document.querySelectorAll("#rates-grid .card").forEach((card) => {
+    const valueEl = card.querySelector(".card-value");
+    if (data[card.dataset.key] !== undefined) valueEl.textContent = data[card.dataset.key];
+  });
+}
+
+// 備援：open.er-api.com（每日更新）
+async function refreshRatesFallback() {
   try {
     const res = await fetch("https://open.er-api.com/v6/latest/USD");
     const payload = await res.json();
@@ -58,19 +63,68 @@ async function refreshRates() {
         return;
       }
       const usdToCode = ratesUsdBase[code];
-      if (usdToCode) {
-        data[label] = round3(usdToTwd / usdToCode);
-      }
+      if (usdToCode) data[label] = round3(usdToTwd / usdToCode);
     });
-
-    document.querySelectorAll("#rates-grid .card").forEach((card) => {
-      const key = card.dataset.key;
-      const valueEl = card.querySelector(".card-value");
-      if (data[key] !== undefined) valueEl.textContent = data[key];
-    });
-    document.getElementById("rates-updated").textContent = `(更新於 ${formatTime(new Date())})`;
+    showRates(data);
   } catch (err) {
     console.error("匯率更新失敗", err);
+  }
+}
+
+// ---------------- 四大指數 ----------------
+const fmtPrice = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// 報價時間（台北時間）：例如 10/30 13:33
+function fmtQuoteTime(ms) {
+  if (!ms) return "";
+  const p = new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(new Date(ms));
+  const get = (t) => (p.find((x) => x.type === t) || {}).value || "";
+  return `${get("month")}/${get("day")} ${get("hour")}:${get("minute")}`;
+}
+
+function showIndices(indices) {
+  (indices || []).forEach((q) => {
+    const card = document.querySelector(`#indices-grid .card[data-key="${q.key}"]`);
+    if (!card) return;
+    const valueEl = card.querySelector(".card-value");
+    const changeEl = card.querySelector(".card-change");
+    const timeEl = card.querySelector(".card-time");
+    if (q.error || typeof q.price !== "number") return; // 抓不到就保留上一次的數字
+
+    valueEl.textContent = fmtPrice(q.price);
+    card.classList.remove("is-up", "is-down");
+    if (typeof q.change === "number") {
+      const sign = q.change > 0 ? "+" : q.change < 0 ? "−" : "";
+      const pct = typeof q.changePct === "number" ? ` (${sign}${Math.abs(q.changePct).toFixed(2)}%)` : "";
+      changeEl.textContent = `${sign}${fmtPrice(Math.abs(q.change))}${pct}`;
+      if (q.change > 0) card.classList.add("is-up");
+      if (q.change < 0) card.classList.add("is-down");
+    } else {
+      changeEl.textContent = "";
+    }
+    timeEl.textContent = fmtQuoteTime(q.time);
+  });
+}
+
+// 指數與匯率一起向 market-data 服務要
+async function refreshMarket() {
+  try {
+    const res = await fetch(MARKET_URL);
+    const data = await res.json();
+    showIndices(data.indices);
+
+    const fx = data.fx || {};
+    const rates = {};
+    Object.entries(RATE_SYMBOLS).forEach(([label, code]) => {
+      if (typeof fx[code] === "number") rates[label] = round3(fx[code]);
+    });
+    if (Object.keys(rates).length === Object.keys(RATE_SYMBOLS).length) showRates(rates);
+    else await refreshRatesFallback();
+  } catch (err) {
+    console.error("行情更新失敗", err);
+    await refreshRatesFallback();
   }
 }
 
@@ -103,8 +157,6 @@ async function refreshNews() {
         </li>`
       )
       .join("");
-
-    document.getElementById("news-updated").textContent = `(更新於 ${formatTime(new Date())})`;
   } catch (err) {
     console.error("新聞更新失敗", err);
     list.innerHTML = '<li class="news-item skeleton">目前無法取得新聞，稍後再試</li>';
@@ -112,12 +164,8 @@ async function refreshNews() {
 }
 
 // ---------------- 啟動 ----------------
-function refreshAll() {
-  refreshRates();
-  refreshNews();
-}
-
 setTodayDate();
-refreshAll();
-setInterval(refreshRates, REFRESH_MS);
+refreshMarket();
+refreshNews();
+setInterval(refreshMarket, REFRESH_MS);
 setInterval(refreshNews, REFRESH_MS);
