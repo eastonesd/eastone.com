@@ -62,6 +62,7 @@
   margin-top:2px;
 }
 .app-header .tag{
+  white-space:nowrap;
   font-family:'Space Mono', monospace;
   font-size:12px;
   color:var(--brass);
@@ -376,25 +377,56 @@ input:focus, select:focus{
 
 /* records table (list page) */
 .table-wrap{ width:100%; overflow-x:auto; }
-table.records{
-  width:100%; border-collapse:collapse; background:#fff;
-  border-radius:8px; overflow:hidden; box-shadow:var(--shadow);
-  font-size:13px;
+/* 已建檔案列表：跟「客戶資料」檔案區同一套樣式（米色表頭、細分隔線、表格不會超出卡片） */
+.list-head{
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:12px; margin-bottom:18px;
 }
+.list-head .step-title{ margin:0; }
+.list-actions{ display:flex; gap:10px; }
+.btn-outline{
+  padding:10px 18px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:var(--paper);
+  color:#6B6656;
+  font-family:inherit;
+  font-size:.95rem;
+  font-weight:600;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.btn-outline:hover{ background:#EDE8DC; }
+.records-scroll{ width:100%; overflow-x:auto; }
+table.records{ width:100%; border-collapse:collapse; font-size:.9rem; }
 table.records th{
-  background:var(--navy); color:#fff; padding:10px 12px; text-align:left;
-  font-weight:600; white-space:nowrap;
+  background:var(--paper); color:#6B6656; font-weight:600;
+  padding:8px 10px; text-align:left; white-space:nowrap;
+  border-bottom:1px solid var(--line);
 }
-table.records td{ padding:10px 12px; border-bottom:1px solid var(--line); white-space:nowrap; }
-table.records tr:last-child td{ border-bottom:none; }
-.del-btn{ color:var(--danger); cursor:pointer; font-size:12px; font-weight:700; }
+table.records td{ padding:10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+table.records tbody tr:hover{ background:#EDE8DC; }
+.records-sum{ max-width:11em; overflow:hidden; text-overflow:ellipsis; }
+.edit-btn{ color:var(--navy); cursor:pointer; font-weight:700; }
+.del-btn{ color:var(--danger); cursor:pointer; font-weight:700; }
 
 .top-nav{ display:flex;justify-content:center;gap:16px; margin-bottom:18px; }
 .top-nav a{ color:var(--navy); font-weight:700; font-size:13px; text-decoration:none; border-bottom:2px solid transparent; }
 .top-nav a.active{ border-color:var(--brass); }
 
 @media (max-width:520px){
-  .card{ padding:24px 18px 22px; }
+  .card{ width:calc(100% - 24px); padding:24px 14px 22px; }
   .option-grid{ grid-template-columns:1fr 1fr; }
+  .app-header{ padding:8px 16px; }
+  .list-actions{ width:100%; }
+  .list-actions .btn-outline{ flex:1; }
+  table.records th, table.records td{ padding:10px 4px; font-size:.85rem; }
+  .records-sum{ max-width:5.5em; }
+}
+/* 特別窄的手機（320px 左右） */
+@media (max-width:340px){
+  .card{ width:calc(100% - 16px); padding:22px 10px 20px; }
+  table.records th, table.records td{ padding:9px 3px; font-size:.78rem; }
+  .records-sum{ max-width:4.5em; }
 }
 

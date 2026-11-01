@@ -52,11 +52,11 @@
 <!-- RECORDS LIST -->
 <div class="table-wrap" id="listWrap" style="display:none;">
   <div class="card" style="max-width:none;">
-    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:22px;">
-      <div class="step-title" style="margin:0;">已建檔案</div>
-      <div style="display:flex; gap:10px;">
-        <button type="button" class="btn btn-ghost" id="btnExportBackup">匯出備份</button>
-        <button type="button" class="btn btn-ghost" id="btnImportBackup">匯入復原</button>
+    <div class="list-head">
+      <div class="step-title">已建檔案</div>
+      <div class="list-actions">
+        <button type="button" class="btn-outline" id="btnExportBackup">匯出備份</button>
+        <button type="button" class="btn-outline" id="btnImportBackup">匯入復原</button>
         <input type="file" id="importFileInput" accept="application/json" style="display:none;">
       </div>
     </div>

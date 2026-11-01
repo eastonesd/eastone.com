@@ -1035,8 +1035,9 @@ async function showList() {
   const rows = await dbGetAll();
   if (!rows.length) { holder.innerHTML = '<p>目前尚無建檔資料。</p>'; return; }
   holder.innerHTML = `
+    <div class="records-scroll">
     <table class="records">
-      <thead><tr><th>類別</th><th>摘要</th><th>被保人</th><th></th><th></th></tr></thead>
+      <thead><tr><th>類別</th><th>摘要</th><th>被保人</th><th>編輯資料</th><th>刪除</th></tr></thead>
       <tbody>
         ${rows.map(r => {
           const isPersonal = r.category === 'personal';
@@ -1047,14 +1048,15 @@ async function showList() {
           return `
           <tr class="record-row" data-id="${r.id}" style="cursor:pointer;">
             <td>${categoryLabel}</td>
-            <td>${summary}</td>
+            <td class="records-sum" title="${summary}">${summary}</td>
             <td>${r.insured_name || ''}</td>
-            <td><span class="edit-btn" data-id="${r.id}" style="color:var(--navy); cursor:pointer; font-size:12px; font-weight:700;">編輯資料</span></td>
+            <td><span class="edit-btn" data-id="${r.id}">編輯資料</span></td>
             <td><span class="del-btn" data-id="${r.id}">刪除</span></td>
           </tr>`;
         }).join('')}
       </tbody>
-    </table>`;
+    </table>
+    </div>`;
   holder.querySelectorAll('.record-row').forEach(row => {
     row.addEventListener('click', () => showDetail(row.dataset.id));
   });

@@ -267,6 +267,18 @@ th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
   text-align: center;
 }
 
+/* 檔案區表格：每格都不換行（「編輯資料」「性別」維持一行）；手機上縮小格距 */
+.file-list-table th, .file-list-table td { white-space: nowrap; }
+@media (max-width: 600px) {
+  .file-list-table th, .file-list-table td { padding: 10px 6px; font-size: .88rem; }
+}
+/* 特別窄的手機（320px 左右）再縮一點；萬一還是太寬，只在卡片內左右滑，不會整頁跑版 */
+@media (max-width: 340px) {
+  #tab-filelist .card { padding-left: 12px; padding-right: 12px; }
+  .file-list-table th, .file-list-table td { padding: 9px 4px; font-size: .8rem; }
+}
+#tab-filelist .card { overflow-x: auto; }
+
 /* 檔案區：匯出備份／匯入復原按鈕列 */
 .backup-row { display: flex; gap: 10px; margin-bottom: 12px; }
 .backup-row .btn-secondary { flex: 1; width: auto; }
