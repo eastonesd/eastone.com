@@ -243,7 +243,7 @@
   <nav class="ghdr-nav">
     <button id="tab-claim" class="active" onclick="showPage('claim')">理賠</button>
     <button id="tab-endorse" onclick="showPage('endorse')">契變</button>
-    <button id="tab-policy" onclick="location.href='policies/index.html'">產險管理</button>
+    <button id="tab-policy" onclick="location.href='policies/index.html'">車險管理</button>
     <button id="tab-clients" onclick="location.href='clients/index.html'">客戶資料</button>
     <button id="tab-market" onclick="location.href='market/index.html'">財經日報</button>
   </nav>
@@ -277,53 +277,50 @@
   // 20 家壽險公司資料
   // filename 對應各自資料夾中的檔案，請將實際 PDF 檔案放入對應資料夾並改成對應檔名
   const claimCompanies = [
-    { name:"國泰人壽(含國寶、幸福)", file:"cathay.pdf" },
-    { name:"富邦人壽(含ING安泰、喬治亞、花旗)", file:"fubon.pdf" },
-    { name:"南山人壽(含朝陽、興農)", file:"nanshan.pdf" },
-    { name:"新光人壽(含保德信、台新)", file:"shinkong.pdf" },
-    { name:"台灣人壽(含中國信託、大都會)", file:"taiwanlife.pdf" },
+    { name:"國泰人壽", file:"cathay.pdf" },
+    { name:"富邦人壽", file:"fubon.pdf" },
+    { name:"南山人壽", file:"nanshan.pdf" },
+    { name:"新光人壽", file:"shinkong.pdf" },
+    { name:"台灣人壽", file:"taiwanlife.pdf" },
+    { name:"中國人壽", file:"chinalife.pdf" },
     { name:"三商美邦人壽", file:"massmutual.pdf" },
-    { name:"全球人壽(含國華、全美)", file:"tglife.pdf" },
+    { name:"全球人壽", file:"tglife.pdf" },
     { name:"保誠人壽", file:"prudential.pdf" },
-    { name:"遠雄人壽(含蘇黎世、中興)", file:"farglory.pdf" },
-    { name:"元大人壽(含紐約)", file:"yuanta.pdf" },
-    { name:"安聯人壽(含匯豐、統一)", type:"link", link:"https://www.allianz.com.tw/zh_TW/download-zone/claim-forms.html" },
-    { name:"第一金人壽(含第一英傑華)", file:"firstlife.pdf" },
+    { name:"遠雄人壽", file:"farglory.pdf" },
+    { name:"元大人壽", file:"yuanta.pdf" },
+    { name:"安聯人壽", type:"link", link:"allianz.html" },
+    { name:"第一金人壽", file:"firstlife.pdf" },
     { name:"合作金庫人壽", file:"tacoop.pdf" },
-    { name:"台銀人壽(含中央)", file:"botlife.pdf" },
+    { name:"台銀人壽", file:"botlife.pdf" },
     { name:"宏泰人壽", file:"hontai.pdf" },
     { name:"中華郵政壽險", file:"postlife.pdf" },
-    { name:"凱基人壽(含中國、保誠、慶豐、第一、瑞泰、華僑)", file:"kgi.pdf" },
-    { name:"友邦人壽(含美國)", file:"aia.pdf" },
-    { name:"安達人壽(含康健、中泰)", file:"chubb.pdf" },
-    { name:"法國巴黎人壽", file:"cardi.pdf" },
-    { name:"富邦產物車險", file:"fuboncar.pdf" },
-    { name:"富邦產物個險/旅平險", file:"fubonper.pdf"},
+    { name:"康健人壽", file:"cigna.pdf" },
+    { name:"友邦人壽", file:"aia.pdf" },
+    { name:"安達人壽", file:"chubb.pdf" },
   ];
 
   // 契變頁跟理賠頁同一批公司，檔案放在 pdfs-endorse/ 資料夾（跟理賠的 pdfs/ 分開，避免檔名互相覆蓋）
   const endorseCompanies = [
-    { name:"國泰人壽(含國寶、幸福)", file:"國泰人壽契變書.pdf" },
-    { name:"富邦人壽(含ING安泰、喬治亞、花旗)", file:"富邦人壽契變書.pdf" },
-    { name:"南山人壽(含朝陽、興農)", file:"南山人壽契變書.pdf" },
-    { name:"新光人壽(含保德信、台新)", file:"新光台新契變書.pdf" },
-    { name:"台灣人壽(含中國信託、大都會)", file:"台灣人壽契變書.pdf" },
-    { name:"三商美邦人壽", file:"三商美邦契變書.pdf" },
-    { name:"全球人壽(含國華、全美)", file:"全球人壽契變書.pdf" },
-    { name:"保誠人壽", file:"保誠人壽契變書.pdf" },
-    { name:"遠雄人壽(含蘇黎世、中興)", file:"遠雄人壽契變書.pdf" },
-    { name:"元大人壽(含紐約)", type:"link", link:"https://www.yuantalife.com.tw/our-services/form/catalog/" },
-    { name:"安聯人壽(含匯豐、統一)", type:"link", link:"https://www.allianz.com.tw/zh_TW/download-zone/policy-changing-forms.html" },
-    { name:"第一金人壽(含第一英傑華)", file:"第一金人壽契變書.pdf" },
-    { name:"合作金庫人壽", file:"合作金庫契變書.pdf" },
-    { name:"台銀人壽(含中央)", file:"台銀人壽契變書.pdf" },
-    { name:"宏泰人壽", file:"宏泰人壽契變書.pdf" },
-    { name:"中華郵政壽險", file:"中華郵政契變書.pdf" },
-    { name:"凱基人壽(含中國、保誠、慶豐、第一、瑞泰、華僑)", file:"凱基人壽契變書.pdf" },
-    { name:"友邦人壽(含美國)", file:"友邦人壽契變書.pdf" },
-    { name:"安達人壽(含康健、中泰)", file:"安達人壽契變書.pdf" },
-    { name:"法國巴黎人壽", type:"link", link:"https://life.cardif.com.tw/a311" },
-    { name:"富邦產物車險", file:"富產車險契變書.pdf" },
+    { name:"國泰人壽", file:"cathay.pdf" },
+    { name:"富邦人壽", file:"fubon.pdf" },
+    { name:"南山人壽", file:"nanshan.pdf" },
+    { name:"新光人壽", file:"shinkong.pdf" },
+    { name:"台灣人壽", file:"taiwanlife.pdf" },
+    { name:"中國人壽", file:"chinalife.pdf" },
+    { name:"三商美邦人壽", file:"massmutual.pdf" },
+    { name:"全球人壽", file:"tglife.pdf" },
+    { name:"保誠人壽", file:"prudential.pdf" },
+    { name:"遠雄人壽", file:"farglory.pdf" },
+    { name:"元大人壽", file:"yuanta.pdf" },
+    { name:"安聯人壽", file:"allianz.pdf" },
+    { name:"第一金人壽", file:"firstlife.pdf" },
+    { name:"合作金庫人壽", file:"tacoop.pdf" },
+    { name:"台銀人壽", file:"botlife.pdf" },
+    { name:"宏泰人壽", file:"hontai.pdf" },
+    { name:"中華郵政壽險", file:"postlife.pdf" },
+    { name:"康健人壽", file:"cigna.pdf" },
+    { name:"友邦人壽", file:"aia.pdf" },
+    { name:"安達人壽", file:"chubb.pdf" },
   ];
 
   // 產生一組文件下載卡片網格。folder：PDF 所在資料夾／docLabel：按鈕文字用的文件類型名稱／docSuffix：下載檔名後綴

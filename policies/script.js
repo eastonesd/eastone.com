@@ -1260,6 +1260,7 @@ function showForm() {
   renderStep();
 }
 
+
 document.getElementById('navForm').addEventListener('click', (e) => {
   e.preventDefault();
   // 如果精靈目前停在「建檔完成／更新完成」畫面，點「新增建檔」要重新開始一份全新的，
@@ -1271,5 +1272,51 @@ document.getElementById('stepTag').addEventListener('click', () => {
   if (doneScreenActive) resetWizard();
 });
 
-// init
-showForm();
+// ========================= 匯出備份 / 匯入復原 =========================
+document.getElementById('btnExportBackup').addEventListener('click', async () => {
+  const rows = await dbGetAll();
+  const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const today = new Date().toISOString().slice(0, 10);
+  a.download = `車險保單備份_${today}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('btnImportBackup').addEventListener('click', () => {
+  document.getElementById('importFileInput').click();
+});
+
+document.getElementById('importFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const records = JSON.parse(text);
+    if (!Array.isArray(records)) throw new Error('檔案格式不正確，應該是匯出時產生的 JSON 檔');
+    if (!confirm(`確定要匯入 ${records.length} 筆資料嗎？如果資料庫裡已經有相同編號的紀錄，內容會被匯入的資料覆蓋掉。`)) {
+      e.target.value = '';
+      return;
+    }
+    const count = await dbImportAll(records);
+    alert(`匯入完成，共 ${count} 筆資料。`);
+    showList();
+  } catch (err) {
+    alert('匯入失敗：' + (err && err.message ? err.message : '檔案格式不正確'));
+  }
+  e.target.value = '';
+});
+
+// init：先確認登入（沒登入會被導到登入頁），再顯示表單
+requireLogin('../').then((user) => {
+  showForm();
+  // 這台裝置如果還有舊版存在本機的保單，詢問是否搬到雲端
+  offerLocalMigration({
+    dbName: 'policiesDB', storeName: 'policies', label: '產險保單', user,
+    importFn: dbImportAll,
+  });
+});

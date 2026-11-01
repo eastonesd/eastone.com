@@ -1,0 +1,148 @@
+/* ============================================================
+   登入相關樣式：頁首下方的帳號列、修改密碼視窗、登入頁
+   （獨立檔案，不動 site-header.css）
+   ============================================================ */
+
+.auth-bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  padding: 6px clamp(20px, 4vw, 56px);
+  background: #121D33;
+  color: #C9BFA6;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.auth-user { margin-right: 8px; letter-spacing: .03em; }
+.auth-link {
+  background: none;
+  border: none;
+  color: #E4C77E;
+  font: inherit;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-left: 1px solid rgba(201, 191, 166, .35);
+}
+.auth-link:hover { color: #F6F3EC; text-decoration: underline; }
+
+/* ---------- 卡片 / 表單（登入頁與修改密碼共用） ---------- */
+.auth-card {
+  background: #FFFDF8;
+  border: 1px solid #D8D0BC;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(24, 39, 65, .08);
+  padding: 30px 30px 26px;
+  width: 100%;
+  max-width: 380px;
+  font-family: 'Noto Sans TC', sans-serif;
+  color: #2A2A26;
+  position: relative;
+}
+.auth-card::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 5px;
+  background: repeating-linear-gradient(90deg, #B8892B 0 10px, transparent 10px 20px);
+  border-radius: 10px 10px 0 0;
+  opacity: .55;
+}
+.auth-title {
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 700;
+  font-size: 21px;
+  color: #121D33;
+  margin-bottom: 20px;
+}
+.auth-card label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1B2A4A;
+  margin-bottom: 16px;
+}
+.auth-card input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 7px;
+  padding: 11px 13px;
+  border: 1.5px solid #D8D0BC;
+  border-radius: 7px;
+  background: #fff;
+  font-size: 15px;
+  font-family: inherit;
+}
+.auth-card input:focus {
+  outline: none;
+  border-color: #1B2A4A;
+  box-shadow: 0 0 0 3px rgba(36, 58, 94, .12);
+}
+.auth-msg { min-height: 20px; font-size: 13px; color: #A2402D; margin-bottom: 10px; }
+.auth-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.auth-btn {
+  padding: 12px 24px;
+  border-radius: 7px;
+  border: none;
+  background: #1B2A4A;
+  color: #fff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.auth-btn:hover { background: #121D33; }
+.auth-btn:disabled { opacity: .5; cursor: wait; }
+.auth-btn-ghost { background: transparent; color: #1B2A4A; }
+.auth-btn-ghost:hover { background: transparent; text-decoration: underline; }
+.auth-btn-block { width: 100%; }
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(18, 29, 51, .55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+/* ---------- 登入頁 ---------- */
+.auth-page {
+  margin: 0;
+  min-height: 100vh;
+  background: #F6F3EC;
+  display: flex;
+  flex-direction: column;
+}
+.auth-page main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+}
+.auth-note { font-size: 12px; color: #8B8370; margin-top: 16px; line-height: 1.7; }
+.auth-back { display: inline-block; margin-top: 12px; font-size: 13px; color: #1B2A4A; }
+
+/* 連線錯誤提示 */
+.auth-error {
+  position: fixed;
+  left: 16px; right: 16px; bottom: 16px;
+  z-index: 1100;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #A2402D;
+  color: #fff;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+}

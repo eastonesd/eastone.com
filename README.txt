@@ -61,3 +61,13 @@ claims-app/
 
 目前這個資料夾已經內建 manifest.json，是方案A的基礎，
 可以直接測試「加入主畫面 / 安裝」的效果。
+
+【契約變更（契變）文件】
+契變頁面跟理賠頁面一樣的 20 家公司清單，PDF 放進 pdfs-endorse/ 資料夾，
+檔名對照跟理賠一樣（cathay.pdf、fubon.pdf...），下載後的檔名會自動變成
+「公司名稱_契約變更申請書.pdf」。
+
+如果安聯人壽的契變文件也是 HTML 形式（不是 PDF），打開 index.html 搜尋
+"endorseCompanies" 這個陣列，把安聯那一行改成：
+{ name:"安聯人壽", type:"link", link:"你的連結" }
+（跟理賠頁面安聯那筆的寫法一樣）

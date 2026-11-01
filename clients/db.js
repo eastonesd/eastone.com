@@ -1,57 +1,51 @@
 // ============================================================
-// IndexedDB 本機資料庫（取代原本 Flask + SQLite 的 /api/clients、/api/insurance-codes）
-// 每台裝置各自獨立一份資料。
+// 客戶資料 / 保單代號 —— 雲端資料庫（Supabase）版
+// 取代原本存在瀏覽器裡的 IndexedDB。函式名稱、參數、回傳格式都跟舊版相同，
+// 所以 script.js 不需要跟著改。
+// 每個人只看得到自己建立的客戶（由資料庫的 Row Level Security 保證）；
+// 保單代號全公司共用。
+// 需要先載入 ../shared/supabase-client.js（提供 sb、sbThrow）。
 // ============================================================
 
-const CDB_NAME = 'clientsDB';
-const CDB_VERSION = 1;
+const PAGE_SIZE = 1000; // Supabase 單次最多回傳 1000 筆，超過要分頁抓
 
-function openClientsDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(CDB_NAME, CDB_VERSION);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains('clients')) {
-        db.createObjectStore('clients', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('insurance_codes')) {
-        db.createObjectStore('insurance_codes', { keyPath: 'code' });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+// 分頁把整張表抓完
+async function fetchAllRows(table, columns, action) {
+  const all = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await sb.from(table).select(columns).range(from, from + PAGE_SIZE - 1);
+    sbThrow(error, action);
+    all.push(...data);
+    if (data.length < PAGE_SIZE) return all;
+  }
 }
 
-// ---------- 保單代號（insurance_codes） ----------
+// 分批寫入（避免一次送太大包）
+async function upsertInChunks(table, rows, onConflict, action) {
+  for (let i = 0; i < rows.length; i += 500) {
+    const { error } = await sb.from(table).upsert(rows.slice(i, i + 500), { onConflict });
+    sbThrow(error, action);
+  }
+}
 
-// 第一次使用時，把 INSURANCE_CODES_SEED（來自 data.js）灌進 IndexedDB
+function nowStamp() {
+  return new Date().toISOString().slice(0, 19);
+}
+
+// ---------- 保單代號（insurance_codes，全公司共用） ----------
+
+// 預設代號已經由 schema.sql 寫進資料庫；這裡只是保險起見，萬一資料表是空的才補上
 async function seedInsuranceCodesIfEmpty() {
-  const db = await openClientsDB();
-  const count = await new Promise((resolve, reject) => {
-    const req = db.transaction('insurance_codes', 'readonly').objectStore('insurance_codes').count();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+  const { count, error } = await sb.from('insurance_codes').select('code', { count: 'exact', head: true });
+  sbThrow(error, '讀取保單代號');
   if (count > 0) return;
-  await new Promise((resolve, reject) => {
-    const tx = db.transaction('insurance_codes', 'readwrite');
-    const store = tx.objectStore('insurance_codes');
-    Object.entries(INSURANCE_CODES_SEED).forEach(([code, name]) => {
-      store.put({ code: code.toUpperCase(), name });
-    });
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  const rows = Object.entries(INSURANCE_CODES_SEED).map(([code, name]) => ({ code: code.toUpperCase(), name }));
+  const { error: e2 } = await sb.from('insurance_codes').upsert(rows, { onConflict: 'code', ignoreDuplicates: true });
+  sbThrow(e2, '建立預設保單代號');
 }
 
 async function codeList() {
-  const db = await openClientsDB();
-  const rows = await new Promise((resolve, reject) => {
-    const req = db.transaction('insurance_codes', 'readonly').objectStore('insurance_codes').getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+  const rows = await fetchAllRows('insurance_codes', 'code,name', '讀取保單代號');
   rows.sort((a, b) => (a.code < b.code ? -1 : 1));
   const map = {};
   rows.forEach((r) => { map[r.code] = r.name; });
@@ -59,44 +53,63 @@ async function codeList() {
 }
 
 async function codeAdd(code, name) {
-  const db = await openClientsDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('insurance_codes', 'readwrite');
-    tx.objectStore('insurance_codes').put({ code, name });
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  const { error } = await sb.from('insurance_codes').upsert({ code, name }, { onConflict: 'code' });
+  sbThrow(error, '儲存保單代號');
 }
 
 async function codeDelete(code) {
-  const db = await openClientsDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('insurance_codes', 'readwrite');
-    tx.objectStore('insurance_codes').delete(code);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  const { error } = await sb.from('insurance_codes').delete().eq('code', code);
+  sbThrow(error, '刪除保單代號');
 }
 
 // ---------- 客戶（clients，含內嵌的 policies 陣列） ----------
+// 資料表結構：owner（建立者，自動帶入）、id（客戶ID）、data（整筆客戶資料 JSON）
 
 async function clientList() {
-  const db = await openClientsDB();
-  const rows = await new Promise((resolve, reject) => {
-    const req = db.transaction('clients', 'readonly').objectStore('clients').getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-  return rows.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  const rows = await fetchAllRows('clients', 'data', '讀取客戶列表');
+  return rows
+    .map((r) => r.data)
+    .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
 }
 
 async function clientGet(id) {
-  const db = await openClientsDB();
-  return new Promise((resolve, reject) => {
-    const req = db.transaction('clients', 'readonly').objectStore('clients').get((id || '').toUpperCase());
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
-  });
+  const { data, error } = await sb.from('clients')
+    .select('data')
+    .eq('id', (id || '').toUpperCase())
+    .maybeSingle();
+  sbThrow(error, '讀取客戶資料');
+  return data ? data.data : null;
+}
+
+// 新增／更新共用：把表單送來的 payload 整理成要存的客戶資料
+function buildClientRecord(payload) {
+  let zodiac = null, actual_age = null, insurance_age = null;
+  if (payload.birthday) {
+    const [y, m, d] = payload.birthday.split('-').map(Number);
+    zodiac = getZodiac(m, d);
+    actual_age = calcActualAge(y, m, d);
+    insurance_age = calcInsuranceAge(y, m, d);
+  }
+  return {
+    name: (payload.name || '').trim(),
+    gender: payload.gender || '',
+    birthday: payload.birthday || null,
+    zodiac, actual_age, insurance_age,
+    email_local: payload.email_local || '',
+    email_domain: payload.email_domain || '',
+    phone: payload.phone || '',
+    zip_code: payload.zip_code || '',
+    city: payload.city || '',
+    district: payload.district || '',
+    address_detail: payload.address_detail || '',
+    policies: (payload.policies || []).map((p) => ({
+      policy_no: p.policy_no || '',
+      main_code: (p.main_code || '').toUpperCase(),
+      main_name: p.main_name || '',
+      currency: p.currency || 'TWD',
+      total_premium: p.total_premium || 0,
+    })),
+  };
 }
 
 async function clientAdd(payload) {
@@ -107,103 +120,53 @@ async function clientAdd(payload) {
   const existing = await clientGet(id);
   if (existing) throw new Error(`客戶ID「${id}」已存在`);
 
-  let zodiac = null, actual_age = null, insurance_age = null;
-  if (payload.birthday) {
-    const [y, m, d] = payload.birthday.split('-').map(Number);
-    zodiac = getZodiac(m, d);
-    actual_age = calcActualAge(y, m, d);
-    insurance_age = calcInsuranceAge(y, m, d);
-  }
+  const now = nowStamp();
+  const record = { id, ...buildClientRecord(payload), created_at: now, updated_at: now };
 
-  const now = new Date().toISOString().slice(0, 19);
-  const record = {
-    id, name,
-    gender: payload.gender || '',
-    birthday: payload.birthday || null,
-    zodiac, actual_age, insurance_age,
-    email_local: payload.email_local || '',
-    email_domain: payload.email_domain || '',
-    phone: payload.phone || '',
-    zip_code: payload.zip_code || '',
-    city: payload.city || '',
-    district: payload.district || '',
-    address_detail: payload.address_detail || '',
-    policies: (payload.policies || []).map((p) => ({
-      policy_no: p.policy_no || '',
-      main_code: (p.main_code || '').toUpperCase(),
-      main_name: p.main_name || '',
-      currency: p.currency || 'TWD',
-      total_premium: p.total_premium || 0,
-    })),
-    created_at: now,
-    updated_at: now,
-  };
-
-  const db = await openClientsDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('clients', 'readwrite');
-    tx.objectStore('clients').add(record);
-    tx.oncomplete = () => resolve(record);
-    tx.onerror = () => reject(tx.error);
-  });
+  const { error } = await sb.from('clients').insert({ id, data: record });
+  if (error && error.code === '23505') throw new Error(`客戶ID「${id}」已存在`);
+  sbThrow(error, '建檔');
+  return record;
 }
 
+// 更新既有客戶（供「編輯資料」功能使用；客戶ID視為不可變的主鍵，不會被改掉）
 async function clientUpdate(id, payload) {
   const key = (id || '').trim().toUpperCase();
   const existing = await clientGet(key);
   if (!existing) throw new Error('查無此客戶');
+  if (!(payload.name || '').trim()) throw new Error('姓名為必填');
 
-  const name = (payload.name || '').trim();
-  if (!name) throw new Error('姓名為必填');
+  const record = { ...existing, ...buildClientRecord(payload), id: key, updated_at: nowStamp() };
 
-  let zodiac = null, actual_age = null, insurance_age = null;
-  if (payload.birthday) {
-    const [y, m, d] = payload.birthday.split('-').map(Number);
-    zodiac = getZodiac(m, d);
-    actual_age = calcActualAge(y, m, d);
-    insurance_age = calcInsuranceAge(y, m, d);
-  }
-
-  const record = {
-    ...existing,
-    name,
-    gender: payload.gender || '',
-    birthday: payload.birthday || null,
-    zodiac, actual_age, insurance_age,
-    email_local: payload.email_local || '',
-    email_domain: payload.email_domain || '',
-    phone: payload.phone || '',
-    zip_code: payload.zip_code || '',
-    city: payload.city || '',
-    district: payload.district || '',
-    address_detail: payload.address_detail || '',
-    policies: (payload.policies || []).map((p) => ({
-      policy_no: p.policy_no || '',
-      main_code: (p.main_code || '').toUpperCase(),
-      main_name: p.main_name || '',
-      currency: p.currency || 'TWD',
-      total_premium: p.total_premium || 0,
-    })),
-    updated_at: new Date().toISOString().slice(0, 19),
-  };
-
-  const db = await openClientsDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('clients', 'readwrite');
-    tx.objectStore('clients').put(record);
-    tx.oncomplete = () => resolve(record);
-    tx.onerror = () => reject(tx.error);
-  });
+  const { error } = await sb.from('clients')
+    .update({ data: record, updated_at: new Date().toISOString() })
+    .eq('id', key);
+  sbThrow(error, '更新客戶資料');
+  return record;
 }
 
 async function clientDelete(id) {
-  const db = await openClientsDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('clients', 'readwrite');
-    tx.objectStore('clients').delete((id || '').toUpperCase());
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  const { error } = await sb.from('clients').delete().eq('id', (id || '').toUpperCase());
+  sbThrow(error, '刪除客戶');
+}
+
+// 匯入客戶備份：整批寫入（同客戶ID的舊資料會被覆蓋）。
+// 舊版本機系統匯出的 JSON 也能直接匯入，資料會歸到目前登入的人名下。
+async function clientImportAll(records) {
+  const rows = (records || [])
+    .filter((r) => r && r.id)
+    .map((r) => {
+      const id = String(r.id).trim().toUpperCase();
+      return { id, data: { ...r, id }, updated_at: new Date().toISOString() };
+    });
+  await upsertInChunks('clients', rows, 'owner,id', '匯入客戶資料');
+  return rows.length;
+}
+
+// 匯入保單代號備份
+async function codeImportAll(codesMap) {
+  const rows = Object.entries(codesMap || {}).map(([code, name]) => ({ code, name }));
+  await upsertInChunks('insurance_codes', rows, 'code', '匯入保單代號');
 }
 
 // ============================================================

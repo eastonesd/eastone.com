@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="車險管理">
 <link rel="stylesheet" href="../shared/site-header.css">
+<link rel="stylesheet" href="../shared/auth.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -48,7 +49,14 @@
 <!-- RECORDS LIST -->
 <div class="table-wrap" id="listWrap" style="display:none;">
   <div class="card" style="max-width:none;">
-    <div class="step-title">已建檔案</div>
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:22px;">
+      <div class="step-title" style="margin:0;">已建檔案</div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn btn-ghost" id="btnExportBackup">匯出備份</button>
+        <button type="button" class="btn btn-ghost" id="btnImportBackup">匯入復原</button>
+        <input type="file" id="importFileInput" accept="application/json" style="display:none;">
+      </div>
+    </div>
     <div id="recordsTableHolder">載入中...</div>
   </div>
 </div>
@@ -65,6 +73,10 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/auth.js"></script>
+<script src="../shared/migrate-local.js"></script>
 <script src="zipcodes.js"></script>
 <script src="db.js"></script>
 <script src="script.js"></script>

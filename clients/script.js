@@ -10,10 +10,8 @@ const TOTAL_STEPS = 5;
 
 // ========================= 初始化 =========================
 document.addEventListener("DOMContentLoaded", async () => {
-  // 向瀏覽器要求把這個網站的本機資料標記為「持久化」，降低被自動清掉的機率
-  if (navigator.storage && navigator.storage.persist) {
-    navigator.storage.persist().catch(() => {});
-  }
+  // 沒登入會被導到登入頁；資料改存在雲端資料庫，不再需要要求瀏覽器保留本機資料
+  const user = await requireLogin("../");
 
   await seedInsuranceCodesIfEmpty();
   await loadPostalData();
@@ -34,6 +32,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   addPolicyRow(); // 預設一列
   await refreshFileList();
   await refreshCodeList();
+
+  // 這台裝置如果還有舊版存在本機的客戶資料，詢問是否搬到雲端（連同自訂的保單代號）
+  await offerLocalMigration({
+    dbName: "clientsDB", storeName: "clients", label: "客戶資料", user,
+    importFn: async (rows) => {
+      const count = await clientImportAll(rows);
+      const codes = await readLocalStore("clientsDB", "insurance_codes");
+      if (codes.length) {
+        const map = {};
+        codes.forEach((c) => { if (c && c.code) map[c.code] = c.name; });
+        await codeImportAll(map);
+      }
+      return count;
+    },
+    onDone: async () => {
+      await loadInsuranceCodes();
+      await refreshFileList();
+      await refreshCodeList();
+    },
+  });
 });
 
 function showToast(msg) {
