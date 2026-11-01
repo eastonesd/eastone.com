@@ -146,3 +146,30 @@
   line-height: 1.6;
   box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
 }
+
+/* LINE 到期提醒視窗 */
+.line-dialog { max-width: 440px; }
+.line-body p { margin: 0 0 12px; font-size: 14px; line-height: 1.7; }
+.line-status { font-weight: 700; color: #1B2A4A; }
+.line-on { color: #2F6B4F; }
+.line-note, .line-muted { color: #6B6656; font-size: 13px; }
+.line-steps { margin: 0 0 8px; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #2A2A26; }
+.line-steps li { margin-bottom: 14px; }
+.line-steps li > div { margin-top: 8px; }
+.line-friend { display: inline-block; text-decoration: none; background: #06C755; }
+.line-friend:hover { background: #05a648; }
+.line-code {
+  font-family: 'Space Mono', ui-monospace, Menlo, Consolas, monospace;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-align: center;
+  color: #121D33;
+  background: #F6F3EC;
+  border: 1.5px dashed #B8892B;
+  border-radius: 8px;
+  padding: 12px 8px;
+  margin: 10px 0 6px;
+  user-select: all;
+}
+.line-dialog .auth-msg { color: #2F6B4F; }

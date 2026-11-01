@@ -8,6 +8,10 @@
 const SUPABASE_URL = 'https://kocyedkngpxckixtudku.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_n309GkhFeBRtg7thi9cSdQ_m6MiBpoU';
 
+// LINE 官方帳號的 ID（@ 開頭，例如 '@123abcde'）。申請好官方帳號後填在這裡，
+// 「LINE 提醒」視窗就會出現加好友按鈕。還沒申請前留空即可。
+const LINE_OA_ID = '@686icngd';
+
 // supabase-js 的 UMD 版會建立全域變數 supabase，這裡建立連線物件 sb 給其他檔案使用
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 

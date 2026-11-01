@@ -29,6 +29,7 @@ function renderAuthBar(user, rootPrefix) {
   bar.className = 'auth-bar';
   bar.innerHTML = `
     <span class="auth-user"></span>
+    <button type="button" class="auth-link" data-act="line">LINE 提醒</button>
     <button type="button" class="auth-link" data-act="pw">修改密碼</button>
     <button type="button" class="auth-link" data-act="logout">登出</button>`;
   bar.querySelector('.auth-user').textContent = user.email || '';
@@ -41,6 +42,83 @@ function renderAuthBar(user, rootPrefix) {
     location.replace(`${rootPrefix}login.html`);
   });
   bar.querySelector('[data-act="pw"]').addEventListener('click', openPasswordDialog);
+  bar.querySelector('[data-act="line"]').addEventListener('click', openLineDialog);
+}
+
+// ---------- LINE 到期提醒：綁定狀態／產生綁定碼／解除綁定 ----------
+function openLineDialog() {
+  const overlay = document.createElement('div');
+  overlay.className = 'auth-overlay';
+  overlay.innerHTML = `
+    <div class="auth-card auth-dialog line-dialog">
+      <div class="auth-title">LINE 到期提醒</div>
+      <div class="line-body">讀取中...</div>
+      <div class="auth-msg"></div>
+      <div class="auth-actions">
+        <button type="button" class="auth-btn auth-btn-ghost" data-act="close">關閉</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const body = overlay.querySelector('.line-body');
+  const msg = overlay.querySelector('.auth-msg');
+  overlay.querySelector('[data-act="close"]').addEventListener('click', () => overlay.remove());
+
+  const addFriend = LINE_OA_ID
+    ? `<a class="auth-btn line-friend" href="https://line.me/R/ti/p/${encodeURIComponent(LINE_OA_ID)}" target="_blank" rel="noopener">加入官方帳號好友（${LINE_OA_ID}）</a>`
+    : `<span class="line-muted">官方帳號尚未設定，請聯絡管理者。</span>`;
+
+  async function render() {
+    msg.textContent = '';
+    const { data, error } = await sb.from('line_links').select('linked_at').maybeSingle();
+    if (error) { body.textContent = '讀取失敗：' + error.message; return; }
+
+    if (data) {
+      const d = new Date(data.linked_at);
+      body.innerHTML = `
+        <p class="line-status line-on">已綁定 LINE（${d.getFullYear() - 1911}/${d.getMonth() + 1}/${d.getDate()}）</p>
+        <p class="line-note">保單到期前 30 天內，每天早上 9 點會把快到期的保單整理成一則訊息傳到你的 LINE。</p>
+        <button type="button" class="auth-btn auth-btn-ghost" data-act="unlink">解除綁定</button>`;
+      body.querySelector('[data-act="unlink"]').addEventListener('click', async () => {
+        if (!confirm('確定要解除綁定嗎？之後就不會再收到 LINE 到期提醒。')) return;
+        const { error: e } = await sb.from('line_links').delete().not('owner', 'is', null);
+        if (e) { msg.textContent = '解除失敗：' + e.message; return; }
+        render();
+      });
+      return;
+    }
+
+    body.innerHTML = `
+      <p class="line-status">尚未綁定</p>
+      <ol class="line-steps">
+        <li>用手機 LINE 加入東石系統官方帳號好友<div>${addFriend}</div></li>
+        <li>按下方按鈕產生綁定碼（30 分鐘內有效）
+          <div><button type="button" class="auth-btn" data-act="code">產生綁定碼</button></div>
+          <div class="line-code-wrap" hidden>
+            <div class="line-code"></div>
+            <button type="button" class="auth-btn auth-btn-ghost" data-act="copy">複製綁定碼</button>
+          </div>
+        </li>
+        <li>把綁定碼傳給官方帳號，收到「綁定成功」後按
+          <button type="button" class="auth-btn auth-btn-ghost" data-act="recheck">重新檢查</button></li>
+      </ol>`;
+    const codeWrap = body.querySelector('.line-code-wrap');
+    const codeBox = body.querySelector('.line-code');
+    body.querySelector('[data-act="code"]').addEventListener('click', async (e) => {
+      e.target.disabled = true;
+      const { data: code, error: e2 } = await sb.rpc('create_line_link_code');
+      e.target.disabled = false;
+      if (e2) { msg.textContent = '產生失敗：' + e2.message; return; }
+      codeBox.textContent = code;
+      codeWrap.hidden = false;
+      e.target.textContent = '重新產生';
+    });
+    body.querySelector('[data-act="copy"]').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(codeBox.textContent); msg.textContent = '已複製'; }
+      catch (err) { msg.textContent = '無法自動複製，請手動選取綁定碼'; }
+    });
+    body.querySelector('[data-act="recheck"]').addEventListener('click', render);
+  }
+  render();
 }
 
 function openPasswordDialog() {
