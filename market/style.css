@@ -181,15 +181,24 @@ body {
   gap: min(calc(var(--w) * 0.022), 10px);
 }
 
+/* 半透明金色玻璃：看得到背後的動態光環，但字依然清楚。
+   --card-alpha 越小越透明（0～1），改這一個數字就能調整。 */
 .card {
+  --card-alpha: 0.55;
   display: flex;
   flex-direction: column;
   align-items: center;
   overflow: hidden;
   border-radius: 10px;
-  color: #1a1a1a;
-  background: linear-gradient(180deg, #ffe680 0%, #ffd23f 48%, #f5b800 100%);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .6);
+  color: #120d00;
+  background: linear-gradient(180deg,
+    rgba(255, 230, 128, var(--card-alpha)) 0%,
+    rgba(255, 210, 63, var(--card-alpha)) 48%,
+    rgba(245, 184, 0, var(--card-alpha)) 100%);
+  -webkit-backdrop-filter: blur(1.5px);
+          backdrop-filter: blur(1.5px);
+  border: 1px solid rgba(255, 230, 140, .75);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .45);
   padding-bottom: calc(var(--vh) * 0.7);
 }
 
@@ -199,7 +208,7 @@ body {
   font-weight: 900;
   font-size: min(calc(var(--w) * 0.038), calc(var(--vh) * 1.9), 18px);
   padding: calc(var(--vh) * 0.55) 2px;
-  background: rgba(255, 255, 255, .38);
+  background: rgba(255, 255, 255, .22);
   white-space: nowrap;
 }
 
@@ -221,8 +230,11 @@ body {
   white-space: nowrap;
   color: #555;
 }
-.card.is-up .card-change,   .card.is-up .card-pct   { color: var(--up-red); }
-.card.is-down .card-change, .card.is-down .card-pct { color: var(--down-green); }
+.card.is-up .card-change,   .card.is-up .card-pct   { color: #8f0016; }
+.card.is-down .card-change, .card.is-down .card-pct { color: #00471a; }
+/* 半透明卡片上的字加一圈淡金色光暈，背景再亮再暗都看得清楚 */
+.card-value, .card-label { text-shadow: 0 0 2px rgba(255, 238, 170, .9), 0 0 5px rgba(255, 228, 130, .55); }
+.card-change, .card-pct   { text-shadow: 0 0 2px rgba(255, 238, 170, .95), 0 0 6px rgba(255, 228, 130, .75); }
 
 /* ---------- 財經頭條 ---------- */
 .news-list {
