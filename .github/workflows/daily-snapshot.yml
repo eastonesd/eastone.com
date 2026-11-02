@@ -1,0 +1,70 @@
+# 每天早上 08:35（台北時間）拍一張財經日報截圖，放到 daily-report 分支，
+# 9:00 的 LINE 推播會把它連同到期提醒一起傳給已綁定的使用者。
+# daily-report 分支只保留最近 7 天的圖，而且每次都整個重建，不會讓 repo 越來越大。
+name: Daily market snapshot
+
+on:
+  schedule:
+    - cron: "35 0 * * *"   # UTC 00:35 = 台北 08:35
+  workflow_dispatch:        # 也可以在 GitHub 的 Actions 頁面手動按「Run workflow」
+  push:
+    branches: [main]
+    paths:
+      - "tools/snapshot.mjs"
+      - ".github/workflows/daily-snapshot.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Playwright
+        run: |
+          mkdir -p /tmp/snap && cd /tmp/snap
+          npm init -y >/dev/null
+          npm install playwright@1.56.0 >/dev/null
+          npx playwright install --with-deps chromium
+
+      - name: Take screenshot
+        run: |
+          cp tools/snapshot.mjs /tmp/snap/
+          cd /tmp/snap && node snapshot.mjs "$GITHUB_WORKSPACE/out"
+          ls -la "$GITHUB_WORKSPACE/out"
+
+      - name: Publish to daily-report branch (keep last 7 days)
+        env:
+          REPO_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        run: |
+          set -e
+          git clone --depth 1 --branch daily-report "$REPO_URL" prev 2>/dev/null || mkdir -p prev
+          mkdir pub
+          cutoff=$(TZ=Asia/Taipei date -d '6 days ago' +%F)
+          for f in prev/market-*.jpg; do
+            [ -e "$f" ] || continue
+            d=$(basename "$f" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
+            if [[ "$d" > "$cutoff" || "$d" == "$cutoff" ]]; then cp "$f" pub/; fi
+          done
+          cp out/*.jpg pub/
+          today=$(TZ=Asia/Taipei date +%F)
+          printf '{"date":"%s","image":"market-%s.jpg","preview":"market-%s-preview.jpg"}\n' "$today" "$today" "$today" > pub/latest.json
+          cd pub
+          git init -q -b daily-report
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "財經日報截圖 $today"
+          git push -q -f "$REPO_URL" daily-report
+          ls -la
