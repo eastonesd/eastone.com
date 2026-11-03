@@ -1,11 +1,17 @@
-# 每天早上 08:35（台北時間）拍一張財經日報截圖，放到 daily-report 分支，
+# 每天早上 8 點多（台北時間）拍一張財經日報截圖，放到 daily-report 分支，
 # 9:00 的 LINE 推播會把它連同到期提醒一起傳給已綁定的使用者。
+# GitHub 的排程有時會延遲或漏跑，所以排了 4 次（08:05、08:20、08:35、08:50），
+# 另外 Supabase 會在 08:25 主動呼叫一次（workflow_dispatch）。
+# 排程觸發時如果今天的圖已經拍好就直接跳過，不會重複拍。
 # daily-report 分支只保留最近 7 天的圖，而且每次都整個重建，不會讓 repo 越來越大。
 name: Daily market snapshot
 
 on:
   schedule:
-    - cron: "35 0 * * *"   # UTC 00:35 = 台北 08:35
+    - cron: "5 0 * * *"    # UTC 00:05 = 台北 08:05
+    - cron: "20 0 * * *"   # 08:20
+    - cron: "35 0 * * *"   # 08:35
+    - cron: "50 0 * * *"   # 08:50
   workflow_dispatch:        # 也可以在 GitHub 的 Actions 頁面手動按「Run workflow」
   push:
     branches: [main]
@@ -25,13 +31,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Skip if today's screenshot already exists (scheduled runs only)
+        id: check
+        run: |
+          today=$(TZ=Asia/Taipei date +%F)
+          have=$(curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/daily-report/latest.json?t=$(date +%s)" 2>/dev/null | grep -o '"date":"[0-9-]*"' | cut -d'"' -f4 || true)
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$have" = "$today" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"; echo "今天 ($today) 的截圖已經有了，跳過"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.check.outputs.skip != 'true'
 
       - uses: actions/setup-node@v4
+        if: steps.check.outputs.skip != 'true'
         with:
           node-version: "20"
 
       - name: Install Playwright
+        if: steps.check.outputs.skip != 'true'
         run: |
           mkdir -p /tmp/snap && cd /tmp/snap
           npm init -y >/dev/null
@@ -39,12 +59,14 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Take screenshot
+        if: steps.check.outputs.skip != 'true'
         run: |
           cp tools/snapshot.mjs /tmp/snap/
           cd /tmp/snap && node snapshot.mjs "$GITHUB_WORKSPACE/out"
           ls -la "$GITHUB_WORKSPACE/out"
 
       - name: Publish to daily-report branch (keep last 7 days)
+        if: steps.check.outputs.skip != 'true'
         env:
           REPO_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
         run: |
