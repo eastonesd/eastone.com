@@ -173,3 +173,6 @@
   user-select: all;
 }
 .line-dialog .auth-msg { color: #2F6B4F; }
+
+.line-days { display: flex; align-items: center; gap: 8px; margin: 10px 0 4px; font-size: 14px; }
+.line-days select { padding: 6px 8px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }

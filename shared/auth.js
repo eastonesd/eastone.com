@@ -69,15 +69,25 @@ function openLineDialog() {
 
   async function render() {
     msg.textContent = '';
-    const { data, error } = await sb.from('line_links').select('linked_at').maybeSingle();
+    const { data, error } = await sb.from('line_links').select('*').maybeSingle();
     if (error) { body.textContent = '讀取失敗：' + error.message; return; }
 
     if (data) {
       const d = new Date(data.linked_at);
       body.innerHTML = `
         <p class="line-status line-on">已綁定 LINE（${d.getFullYear() - 1911}/${d.getMonth() + 1}/${d.getDate()}）</p>
-        <p class="line-note">保單到期前 30 天內，每天早上 9 點會把快到期的保單整理成一則訊息傳到你的 LINE。</p>
+        <label class="line-days"${'remind_days' in data ? '' : ' hidden'}>提前提醒天數
+          <select data-act="days">${[30, 60, 90].map((n) => `<option value="${n}"${n === (data.remind_days || 30) ? ' selected' : ''}>到期前 ${n} 天</option>`).join('')}</select>
+        </label>
+        <p class="line-note">保單到期前 <b class="line-days-n">${data.remind_days || 30}</b> 天內，每天早上 9 點會把快到期的保單整理成一則訊息傳到你的 LINE（每張保單只提醒一次）。</p>
         <button type="button" class="auth-btn auth-btn-ghost" data-act="unlink">解除綁定</button>`;
+      body.querySelector('[data-act="days"]').addEventListener('change', async (ev) => {
+        const n = Number(ev.target.value);
+        const { error: e } = await sb.from('line_links').update({ remind_days: n }).not('owner', 'is', null);
+        if (e) { msg.textContent = '儲存失敗：' + e.message; return; }
+        body.querySelector('.line-days-n').textContent = n;
+        msg.textContent = `已改成到期前 ${n} 天提醒`;
+      });
       body.querySelector('[data-act="unlink"]').addEventListener('click', async () => {
         if (!confirm('確定要解除綁定嗎？之後就不會再收到 LINE 到期提醒。')) return;
         const { error: e } = await sb.from('line_links').delete().not('owner', 'is', null);
