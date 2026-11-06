@@ -48,6 +48,7 @@ function renderList() {
 const benefitValue = (b, item) => {
   const unit = item ? item.unit_label : "";
   if (item && item.pay_type === "flag") return "有";
+  if (b.basis === "paid_premium") return `${b.min_label ? "至少 " : ""}已繳保費總和${Number(b.amount) !== 1 ? " × " + b.amount : ""}`;
   const v = Number(b.amount).toLocaleString();
   return `${b.min_label ? "至少 " : ""}${b.amount_low != null ? Number(b.amount_low).toLocaleString() + "～" : ""}${v} ${esc(unit)}`;
 };
@@ -72,7 +73,7 @@ async function openProduct(id) {
         <button type="button" class="btn-secondary kb-small" id="kb-close">關閉</button></div>
     </div>
     <div class="kb-facts">
-      <div><span>保額單位</span><b>${esc(p.unit)}</b></div>
+      <div><span>保額單位</span><b>${esc(p.unit)}${p.currency && p.currency !== "TWD" ? "（" + esc(p.currency) + "）" : ""}</b></div>
       <div><span>保障期間</span><b>${esc(p.coverage_to || "—")}</b></div>
       <div><span>繳費年期</span><b>${esc((p.pay_terms || []).join("、") || "—")}</b></div>
       <div><span>費率型態</span><b>${RATE_MODE[p.rate_mode] || p.rate_mode}</b></div>
@@ -80,7 +81,7 @@ async function openProduct(id) {
       <div><span>狀態</span><b>${p.verified ? `已驗證${p.verified_at ? "（" + String(p.verified_at).slice(0, 10) + "）" : ""}` : "待驗證"}</b></div>
     </div>
 
-    <h3>給付內容 <small>每 1 ${esc(p.unit)}</small></h3>
+    <h3>給付內容 <small>每 1 ${esc(p.unit)}${p.currency && p.currency !== "TWD" ? "，金額單位 " + esc(p.currency) : ""}</small></h3>
     <div class="kb-scroll"><table class="kb-table">
       <thead><tr><th>給付項目</th><th>每單位</th><th>適用</th><th>條件／限制</th><th>條款</th></tr></thead>
       <tbody>${p.benefits.map((b) => { const it = KB.item(b.item_code); return `<tr>
@@ -91,7 +92,7 @@ async function openProduct(id) {
     <h3>條款重點提醒</h3>
     ${(p.notes || []).length ? `<ul class="kb-notes">${p.notes.map((n) => `<li>${esc(n.text)}${n.clause ? `<i>${esc(n.clause)}</i>` : ""}</li>`).join("")}</ul>` : `<p class="kb-empty">—</p>`}
 
-    <h3>費率表 <small>年繳、每 1 ${esc(p.unit)}；半年 ×${p.modal_factors["半年繳"]}、季 ×${p.modal_factors["季繳"]}、月 ×${p.modal_factors["月繳"]}</small></h3>
+    <h3>費率表 <small>年繳、每 1 ${esc(p.unit)}${p.currency && p.currency !== "TWD" ? "（" + esc(p.currency) + "）" : ""}；半年 ×${p.modal_factors["半年繳"]}、季 ×${p.modal_factors["季繳"]}、月 ×${p.modal_factors["月繳"]}</small></h3>
     ${terms.length ? terms.map((t) => {
       const ages = [...new Set(rates.filter((r) => r.term === t).map((r) => r.age))].sort((a, b) => a - b);
       const get = (sex, age) => { const r = rates.find((x) => x.term === t && x.sex === sex && x.age === age); return r ? Number(r.rate).toLocaleString() : "—"; };
@@ -135,7 +136,7 @@ async function reload(id) {
 function editProduct(p) {
   const isNew = !p;
   p = p || { company: "富邦人壽", code: "", name: "", version: "", kind: "main", nature: "protection", category: "", unit: "萬",
-    coverage_to: "", pay_terms: [], rate_mode: "level", modal_factors: { 年繳: 1, 半年繳: 0.52, 季繳: 0.262, 月繳: 0.088 },
+    coverage_to: "", pay_terms: [], rate_mode: "level", currency: "TWD", modal_factors: { 年繳: 1, 半年繳: 0.52, 季繳: 0.262, 月繳: 0.088 },
     assumed_rate: null, notes: [], source: "", verified: false, benefits: [] };
   const opt = (map, v) => Object.entries(map).map(([k, l]) => `<option value="${k}"${k === v ? " selected" : ""}>${l}</option>`).join("");
   const itemOpts = (v) => KB.items.map((i) => `<option value="${i.code}"${i.code === v ? " selected" : ""}>${esc(i.name)}</option>`).join("");
@@ -153,6 +154,7 @@ function editProduct(p) {
       <label>主約／附約<select id="e-kind">${opt(KIND, p.kind)}</select></label>
       <label>保障型／理財型<select id="e-nature">${opt(NATURE, p.nature)}</select></label>
       <label>類別<input id="e-category" value="${esc(p.category)}" placeholder="例 壽險、癌症、醫療"></label>
+      <label>幣別<select id="e-currency">${["TWD", "USD", "AUD", "CNY", "EUR", "JPY"].map((c) => `<option${c === (p.currency || "TWD") ? " selected" : ""}>${c}</option>`).join("")}</select></label>
       <label>保額單位<select id="e-unit">${["萬", "單位", "計劃", "附加"].map((u) => `<option${u === p.unit ? " selected" : ""}>${u}</option>`).join("")}</select></label>
       <label>保障期間<input id="e-coverage" value="${esc(p.coverage_to)}" placeholder="例 終身、95歲、繳費期滿"></label>
       <label>繳費年期（逗號分隔）<input id="e-terms" value="${esc((p.pay_terms || []).join(","))}" placeholder="例 6年,10年,20年"></label>
@@ -166,7 +168,7 @@ function editProduct(p) {
     </div>
 
     <h3>給付內容 <small>金額是「每 1 個保額單位」給付多少</small></h3>
-    <div class="kb-scroll"><table class="kb-table kb-edit-table"><thead><tr><th>項目</th><th>每單位</th><th>區間下限</th><th>保單年度</th><th>保險年齡</th><th>至少</th><th>條件</th><th>限制</th><th>條款</th><th></th></tr></thead>
+    <div class="kb-scroll"><table class="kb-table kb-edit-table"><thead><tr><th>項目</th><th>計算基礎</th><th>每單位／倍數</th><th>區間下限</th><th>保單年度</th><th>保險年齡</th><th>至少</th><th>條件</th><th>限制</th><th>條款</th><th></th></tr></thead>
       <tbody id="e-benefits">${p.benefits.map((b) => benefitRow(b, itemOpts, nul)).join("")}</tbody></table></div>
     <button type="button" class="btn-secondary kb-small" id="e-add-benefit">＋ 新增給付項目</button>
 
@@ -198,7 +200,8 @@ function editProduct(p) {
 
 function benefitRow(b, itemOpts, nul) {
   return `<tr>
-    <td><select class="e-item">${itemOpts(b.item_code)}</select></td>
+ <td><select class="e-item">${itemOpts(b.item_code)}</select></td>
+    <td><select class="e-basis"><option value="unit"${b.basis !== "paid_premium" ? " selected" : ""}>每單位保額</option><option value="paid_premium"${b.basis === "paid_premium" ? " selected" : ""}>已繳保費總和</option></select></td>
     <td><input class="e-amount" type="number" step="any" value="${nul(b.amount)}"></td>
     <td><input class="e-low" type="number" step="any" value="${nul(b.amount_low)}"></td>
     <td><div class="kb-pair"><input class="e-fy" type="number" value="${nul(b.from_year)}" placeholder="起"><input class="e-ty" type="number" value="${nul(b.to_year)}" placeholder="迄"></div></td>
@@ -215,7 +218,7 @@ async function saveProduct(p, isNew) {
   const rec = {
     company: $("e-company").value.trim(), code: $("e-code").value.trim().toUpperCase(), name: $("e-name").value.trim(),
     version: $("e-version").value.trim(), kind: $("e-kind").value, nature: $("e-nature").value, category: $("e-category").value.trim(),
-    unit: $("e-unit").value, coverage_to: $("e-coverage").value.trim(),
+    unit: $("e-unit").value, currency: $("e-currency").value, coverage_to: $("e-coverage").value.trim(),
     pay_terms: $("e-terms").value.split(/[,，、\s]+/).map((x) => x.trim()).filter(Boolean),
     rate_mode: $("e-ratemode").value,
     modal_factors: { 年繳: 1, 半年繳: Number($("e-f-h").value), 季繳: Number($("e-f-q").value), 月繳: Number($("e-f-m").value) },
@@ -226,7 +229,7 @@ async function saveProduct(p, isNew) {
   };
   if (!rec.code || !rec.name) { showToast("請填代號與名稱"); return; }
   const rows = [...$("e-benefits").querySelectorAll("tr")].map((tr, i) => ({
-    item_code: tr.querySelector(".e-item").value, amount: Number(tr.querySelector(".e-amount").value) || 0,
+    item_code: tr.querySelector(".e-item").value, basis: tr.querySelector(".e-basis").value, amount: Number(tr.querySelector(".e-amount").value) || 0,
     amount_low: num(tr.querySelector(".e-low").value), from_year: num(tr.querySelector(".e-fy").value), to_year: num(tr.querySelector(".e-ty").value),
     from_age: num(tr.querySelector(".e-fa").value), to_age: num(tr.querySelector(".e-ta").value), min_label: tr.querySelector(".e-min").checked,
     cond: tr.querySelector(".e-cond").value.trim(), max_times: tr.querySelector(".e-max").value.trim(), clause: tr.querySelector(".e-clause").value.trim(), sort: i,

@@ -18,10 +18,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   await requireLogin("../");
   const id = (new URLSearchParams(location.search).get("id") || "").toUpperCase();
   try {
-    const [all] = await Promise.all([clientList(), KB.load()]);
+    const [all, , fx] = await Promise.all([clientList(), KB.load(), kbFetchFx()]);
     const insured = all.find((c) => c.id === id);
     if (!insured) { $("ck-main").innerHTML = `<p class="ck-loading">查無此客戶</p>`; return; }
-    render(kbCompute({ allClients: all, insured }), insured);
+    render(kbCompute({ allClients: all, insured, fx }), insured);
   } catch (err) {
     $("ck-main").innerHTML = `<p class="ck-loading">無法計算：${esc(err.message || err)}<br>（保單知識庫可能尚未建立）</p>`;
   }
@@ -74,7 +74,7 @@ function render(res, insured) {
           <summary><span>${esc(v.item.name)}</span><b>${valueText(v)}<small>${v.item.pay_type === "flag" ? "" : esc(v.item.unit_label)}</small></b></summary>
           ${limitNote}
           ${v.rows.map((r) => `<div class="ck-src"><span>${esc(r.ct.policy_no)}｜${esc(contractLabel(r.ct))}</span>
-              <span>${r.ct.product && r.ct.product.unit !== "附加" ? `${r.ct.units} ${esc(r.ct.product.unit)}` : ""}${v.item.pay_type === "flag" ? "" : " → " + money(r.value)}</span></div>
+              <span>${r.basis === "paid_premium" ? `已繳保費 ${r.ct.paidYears} 年` : r.ct.product && r.ct.product.unit !== "附加" ? `${r.ct.units} ${esc(r.ct.product.unit)}` : ""}${v.item.pay_type === "flag" ? "" : " → " + (r.currency !== "TWD" ? `${esc(r.currency)} ${money(r.orig)} ≈ ` : "") + money(r.value)}</span></div>
             <div class="ck-cond">${esc(r.cond)}${r.max_times ? "；" + esc(r.max_times) : ""}${r.clause ? `<i>${esc(r.clause)}</i>` : ""}</div>`).join("")}
         </details>`;
       }).join("")}</section>`;
@@ -88,6 +88,7 @@ function render(res, insured) {
   }).join("");
 
   const diff = premium.nextYear - premium.thisYear;
+  const fxNote = res.foreign.length ? `<p class="ck-fx">單位：新臺幣。外幣保單以 ${res.foreign.map((f) => f.rate ? `${esc(f.currency)}/TWD ${f.rate.toFixed(3)}` : `${esc(f.currency)}（查無匯率，未換算）`).join("、")} 換算${res.fxAt ? `（${new Date(res.fxAt).toLocaleString("zh-TW", { hour12: false })}）` : ""}，匯率變動會影響金額。</p>` : "";
   $("ck-main").innerHTML = `
     <section class="card ck-head">
       <div>
@@ -101,6 +102,7 @@ function render(res, insured) {
       </div>
     </section>
 
+    ${fxNote}
     ${pending.length || noKb.length ? `<section class="card ck-warn">
       <b>資料待確認</b>
       ${pending.length ? `<div>${pending.length} 張保單尚未補齊詳細資料：${pending.map((c) => esc(c.policy_no || "（未填號碼）")).join("、")}</div>` : ""}

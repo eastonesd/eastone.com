@@ -65,3 +65,4 @@
   .ck-events li div { grid-column: 1 / -1; }
 }
 @media (max-width: 420px) { .ck-phases { grid-template-columns: 1fr; } }
+.ck-fx { margin: 0; font-size: .8rem; color: var(--ink-soft); background: #F3F6FB; border-radius: 10px; padding: 8px 14px; }

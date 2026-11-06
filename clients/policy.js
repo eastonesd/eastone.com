@@ -195,6 +195,7 @@ function applyKbMain(fill) {
   if (CATEGORIES.includes(product.category)) $("pf-cat1").value = product.category;
   if (COMPANIES.includes(product.company)) $("pf-company").value = product.company;
   if (product.coverage_to) $("pf-main-cover").value = product.coverage_to;
+  if (product.currency && [...$("pf-currency").options].some((o) => o.value === product.currency)) $("pf-currency").value = product.currency;
   if (SA_UNITS.includes(product.unit)) $("pf-main-sa-unit").value = product.unit;
   if (product.pay_terms && product.pay_terms.length === 1) $("pf-main-term").value = product.pay_terms[0];
   syncDividend();
@@ -214,7 +215,8 @@ async function calcMainPremium() {
   if (r.error) { showToast(r.error); return; }
   $("pf-main-premium").value = r.modal;
   if (!$("pf-main-term").value) $("pf-main-term").value = r.term;
-  $("pf-main-calc-note").textContent = `試算：費率 ${r.rate.toLocaleString()} × ${r.units} × ${$("pf-mode-pay").value} ${r.factor} ＝ ${r.modal.toLocaleString()} 元（未扣折扣）`;
+  const cur = (kbProductOf($("pf-main-code").value) || {}).currency || "TWD";
+  $("pf-main-calc-note").textContent = `試算：費率 ${r.rate.toLocaleString()} × ${r.units} × ${$("pf-mode-pay").value} ${r.factor} ＝ ${r.modal.toLocaleString()} ${cur === "TWD" ? "元" : cur}（未扣折扣）`;
   updateTotal();
 }
 

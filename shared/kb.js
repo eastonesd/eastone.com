@@ -54,6 +54,21 @@ const KB = {
   },
 };
 
+// ---------------- 匯率（外幣保單換算新臺幣） ----------------
+// 用財經日報同一個服務（Yahoo 即時匯率，60 秒快取）；拿不到就回傳只有 TWD 的表，外幣金額會標示「未換算」
+const KB_FX_URL = 'https://kocyedkngpxckixtudku.supabase.co/functions/v1/market-data';
+async function kbFetchFx() {
+  try {
+    const res = await fetch(KB_FX_URL);
+    const data = await res.json();
+    const fx = { TWD: 1 };
+    Object.entries(data.fx || {}).forEach(([k, v]) => { if (typeof v === 'number') fx[k] = v; });
+    return { rates: fx, at: data.fetchedAt || Date.now() };
+  } catch {
+    return { rates: { TWD: 1 }, at: null };
+  }
+}
+
 // ---------------- 年齡與期間 ----------------
 function kbParseDate(iso) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
@@ -166,8 +181,9 @@ function kbNature(ct, product) {
 }
 
 // 主計算：回傳契約明細、當年度保障數值、時間軸事件、保費摘要、條款提醒
-function kbCompute({ allClients, insured, asOf }) {
+function kbCompute({ allClients, insured, asOf, fx }) {
   asOf = asOf || kbIso(new Date());
+  const fxRates = (fx && fx.rates) || { TWD: 1 };
   const contracts = kbCollectContracts(allClients, insured.id).map((ct) => {
     if (ct.pending) return ct;
     const product = KB.product(ct.code, ct.company || undefined) || KB.product(ct.code);
@@ -184,7 +200,14 @@ function kbCompute({ allClients, insured, asOf }) {
     const payingNext = paying && (payYears == null || py + 1 <= payYears);
     const units = kbUnits(product, ct.sa, ct.saUnit);
     const periods = KB_MODE_PERIODS[ct.pay_mode] || 1;
+    const currency = (product && product.currency) || ct.currency || 'TWD';
+    const fxRate = fxRates[currency] ?? null; // null＝這個幣別沒有匯率，不換算
+    // 年繳標準保費：分期繳的保費除以繳別係數還原（「年繳保費總和」用）
+    const factor = (product && product.modal_factors && product.modal_factors[ct.pay_mode]) || (ct.pay_mode === '年繳' ? 1 : null);
+    const annualStd = factor ? ct.premium / factor : ct.premium * periods;
+    const paidYears = payYears == null ? Math.max(0, py) : Math.min(Math.max(0, py), payYears);
     return { ...ct, product, issueAge, py, age, coverageText, coverEnd, payYears, covered, paying, payingNext, units,
+      currency, fxRate, annualStd, paidYears,
       annualPremium: Math.round(ct.premium * periods), nature: kbNature(ct, product) };
   });
 
@@ -199,14 +222,19 @@ function kbCompute({ allClients, insured, asOf }) {
       if (b.to_age != null && ct.age > b.to_age) return;
       const item = KB.item(b.item_code);
       if (!item) return;
-      const v = values[b.item_code] || (values[b.item_code] = { item, total: 0, low: 0, hasLow: false, min: false, rows: [] });
-      const value = Math.round(Number(b.amount) * ct.units);
-      const low = b.amount_low != null ? Math.round(Number(b.amount_low) * ct.units) : null;
+      const v = values[b.item_code] || (values[b.item_code] = { item, total: 0, low: 0, hasLow: false, min: false, unconverted: false, rows: [] });
+      // 原幣金額：每單位 × 單位數，或「已繳保費總和 × amount」
+      const orig = b.basis === 'paid_premium' ? Number(b.amount) * ct.annualStd * ct.paidYears : Number(b.amount) * ct.units;
+      const origLow = b.amount_low != null ? Number(b.amount_low) * ct.units : null;
+      const rate = ct.fxRate ?? 1;
+      const value = Math.round(orig * rate);
+      const low = origLow != null ? Math.round(origLow * rate) : null;
       v.total += value;
       v.low += low != null ? low : value;
       v.hasLow = v.hasLow || low != null;
       v.min = v.min || b.min_label;
-      v.rows.push({ ct, value, low, cond: b.cond, max_times: b.max_times, clause: b.clause });
+      v.unconverted = v.unconverted || ct.fxRate == null;
+      v.rows.push({ ct, value, low, orig: Math.round(orig), currency: ct.currency, basis: b.basis, cond: b.cond, max_times: b.max_times, clause: b.clause });
     });
   });
 
@@ -223,7 +251,8 @@ function kbCompute({ allClients, insured, asOf }) {
     ct.product.benefits.forEach((b) => {
       const item = KB.item(b.item_code);
       if (!item) return;
-      const value = Math.round(Number(b.amount) * ct.units);
+      if (b.basis === 'paid_premium') return; // 依已繳保費計算的不列節點
+      const value = Math.round(Number(b.amount) * ct.units * (ct.fxRate ?? 1));
       if (b.from_year != null && b.from_year > 1) {
         pushEvent(kbIso(kbAddYears(eff, b.from_year - 1)), ct.issueAge + b.from_year - 1, `${item.name} 變為 ${value.toLocaleString()} ${item.unit_label}（第 ${b.from_year} 保單年度起）`, ct, 'change');
       }
@@ -239,7 +268,7 @@ function kbCompute({ allClients, insured, asOf }) {
   contracts.forEach((ct) => {
     if (ct.pending || !ct.paying) return;
     const d = 1 - (ct.discount || 0) / 100;
-    const yr = ct.annualPremium * d;
+    const yr = ct.annualPremium * d * (ct.fxRate ?? 1);
     premium.thisYear += yr;
     premium[ct.nature === 'wealth' ? 'wealth' : 'protection'] += yr;
     if (!ct.payingNext) return;
@@ -257,5 +286,7 @@ function kbCompute({ allClients, insured, asOf }) {
     (ct.product.notes || []).forEach((n) => notes.push({ ...n, product: ct.product }));
   });
 
-  return { asOf, contracts, values, events, premium, notes };
+  const foreign = [...new Set(contracts.filter((c) => !c.pending && c.currency !== 'TWD').map((c) => c.currency))]
+    .map((cur) => ({ currency: cur, rate: fxRates[cur] ?? null }));
+  return { asOf, contracts, values, events, premium, notes, foreign, fxAt: fx && fx.at };
 }
