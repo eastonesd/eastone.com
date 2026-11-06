@@ -159,3 +159,4 @@
 }
 .pf-card-exp { align-items: center; }
 .pf-slash { font-weight: 700; color: #8A8474; padding: 0 2px; }
+#pf-card-no { letter-spacing: .06em; font-variant-numeric: tabular-nums; }

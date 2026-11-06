@@ -224,6 +224,25 @@ function bindForm() {
   $("pf-r-add").addEventListener("click", addCheckedRiders);
 
   $("pf-channel").addEventListener("change", syncChannel);
+  // 卡號：只收數字，每 4 碼自動空一格，最多 16 碼；游標維持在原本的位置
+  // 游標剛好在空格後面按退格：連同前一個數字一起刪，不會卡在空格上
+  $("pf-card-no").addEventListener("keydown", (e) => {
+    const el = e.target;
+    if (e.key !== "Backspace" || el.selectionStart !== el.selectionEnd || el.value[el.selectionStart - 1] !== " ") return;
+    e.preventDefault();
+    const at = el.selectionStart - 2;
+    el.value = el.value.slice(0, at) + el.value.slice(at + 1);
+    el.setSelectionRange(at, at);
+    el.dispatchEvent(new Event("input"));
+  });
+  $("pf-card-no").addEventListener("input", (e) => {
+    const el = e.target;
+    const digitsBefore = el.value.slice(0, el.selectionStart).replace(/\D/g, "").length;
+    el.value = fmtCardNo(el.value);
+    let pos = 0, seen = 0;
+    while (pos < el.value.length && seen < digitsBefore) { if (/\d/.test(el.value[pos])) seen++; pos++; }
+    el.setSelectionRange(pos, pos);
+  });
   $("pf-bene-add").addEventListener("click", () => addBene({ type: "named", name: "", ratio: "", equal: true }));
 
   $("pf-form").addEventListener("submit", (e) => { e.preventDefault(); savePolicy(); });
@@ -514,7 +533,7 @@ function fillForm(p) {
   const [cy, cm] = (ch.card_exp || "").split("-");
   $("pf-card-y").value = cy || "";
   $("pf-card-m").value = cm || "";
-  $("pf-card-no").value = ch.card_no || "";
+  $("pf-card-no").value = fmtCardNo(ch.card_no);
   syncChannel();
 
   $("pf-benes").innerHTML = "";
@@ -574,7 +593,7 @@ function collectPolicy() {
     pay_channel: ch === "帳戶扣款"
       ? { type: ch, bank: $("pf-bank").value, branch: $("pf-branch").value.trim(), account: $("pf-account").value.trim() }
       : ch === "信用卡/金融卡"
-        ? { type: ch, card_bank: $("pf-card-bank").value, card_exp: [$("pf-card-y").value, $("pf-card-m").value].filter(Boolean).join("-"), card_no: $("pf-card-no").value.trim() }
+        ? { type: ch, card_bank: $("pf-card-bank").value, card_exp: [$("pf-card-y").value, $("pf-card-m").value].filter(Boolean).join("-"), card_no: $("pf-card-no").value.replace(/\D/g, "") }
         : { type: ch },
     beneficiaries: collectBenes(),
     agent: { name: $("pf-agent-name").value.trim(), license_no: $("pf-agent-license").value.trim(), contact: $("pf-agent-contact").value.trim() },
@@ -710,4 +729,8 @@ function eraDateInput(id) {
   });
   pick.addEventListener("change", () => { if (pick.value) { commit(pick.value); show(); } });
   show();
+}
+
+function fmtCardNo(v) {
+  return String(v || "").replace(/\D/g, "").slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 ");
 }
