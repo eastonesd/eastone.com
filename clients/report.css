@@ -214,3 +214,10 @@ body { background: #E9E6DF; color: var(--ink); font-family: "Noto Sans TC", "Pin
   .page:last-child { break-after: auto; page-break-after: auto; }
   .fill:focus { background: none; }
 }
+
+/* 受益人 */
+.rp-table td.bene { font-size: 11pt; line-height: 1.35; min-width: 24mm; }
+.bene-legal { color: #A2402D; font-weight: 700; }
+.bene-warn { margin-top: 3px; font-size: 10pt; color: #A2402D; font-weight: 700; }
+.bene-box { margin: 10px 0; padding: 10px 14px; border: 2px solid #A2402D; border-radius: 8px; background: #FBEFEC; color: #5A2418; font-size: 12.5pt; line-height: 1.55; }
+.bene-box b { color: #A2402D; }

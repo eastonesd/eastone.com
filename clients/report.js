@@ -194,22 +194,34 @@ function render() {
   const byPolicy = {};
   ok.forEach((c) => (byPolicy[c.policy_no] = byPolicy[c.policy_no] || []).push(c));
   const paidUp = ok.filter((c) => c.kind === "main" && c.covered && !c.paying).length;
+  // 受益人：法定繼承人要特別提醒
+  const isLegal = (b) => !b.name || /法定/.test(b.name);
+  const beneHtml = (list) => {
+    if (!list || !list.length) return `<span class="sub">未填</span>`;
+    const sorted = [...list].sort((x, y) => (Number(x.order) || 1) - (Number(y.order) || 1));
+    const rows = sorted.map((b) => `<div class="${isLegal(b) ? "bene-legal" : ""}">${sorted.length > 1 ? `${esc(b.order || "1")}. ` : ""}${esc(b.name || "法定繼承人")}${b.equal || !b.ratio ? (sorted.length > 1 ? "（均分）" : "") : `（${esc(b.ratio)}%）`}</div>`).join("");
+    return rows + (sorted.some(isLegal) ? `<div class="bene-warn">⚠ 請確認是否指定</div>` : "");
+  };
+  const legalPolicies = Object.entries(byPolicy).filter(([, list]) => list[0].beneficiaries && list[0].beneficiaries.length && list[0].beneficiaries.some(isLegal)).map(([no]) => no);
+
   const pInv = page("", "POLICY INVENTORY", "保單目錄與繳費總覽", "我有哪些保單？主附約怎麼組成？目前每年繳多少？", `
     <table class="rp-table">
-      <thead><tr><th>保險公司／保單號碼</th><th>主約・附約</th><th>保額</th><th>繳費／保障</th><th class="num">保費</th></tr></thead>
+      <thead><tr><th>保險公司／保單號碼</th><th>主約・附約</th><th>保額</th><th>繳費／保障</th><th class="num">保費</th><th>身故受益人</th></tr></thead>
       <tbody>${Object.entries(byPolicy).map(([no, list]) => list.map((c, i) => `<tr class="${c.kind === "rider" ? "rider" : "main"}${c.covered ? "" : " off"}">
         <td>${i === 0 ? `<b>${esc(c.company || "—")}</b><div class="sub">${esc(no)}<br>${esc(c.pay_mode)}・生效 ${fmtDate(c.effective)}${c.applicant && c.applicant !== INSURED.name ? `<br>要保人 ${esc(c.applicant)}` : ""}</div>` : ""}</td>
         <td>${c.kind === "rider" ? "↳ " : ""}<b>${esc(c.code || "")}</b> ${esc(c.name || "")}<div class="sub">${c.nature === "wealth" ? "理財" : "保障"}${c.status && c.status !== "正常" ? "・" + esc(c.status) : ""}</div></td>
         <td>${c.sa !== "" && c.sa != null ? esc(c.sa) + esc(c.saUnit || "") + (c.currency !== "TWD" ? " " + esc(c.currency) : "") : "—"}</td>
         <td>${esc(c.term || "—")}<div class="sub">${esc(c.coverageText || "—")}</div></td>
-        <td class="num">${c.currency !== "TWD" ? esc(c.currency) + " " : ""}${money(c.premium)}</td></tr>`).join("")).join("")
-        || `<tr><td colspan="5" class="rp-empty">沒有以 ${esc(INSURED.name)} 為被保人的保單</td></tr>`}</tbody>
+        <td class="num">${c.currency !== "TWD" ? esc(c.currency) + " " : ""}${money(c.premium)}</td>
+        <td class="bene">${i === 0 ? (c.pending ? "—" : beneHtml(c.beneficiaries)) : ""}</td></tr>`).join("")).join("")
+        || `<tr><td colspan="6" class="rp-empty">沒有以 ${esc(INSURED.name)} 為被保人的保單</td></tr>`}</tbody>
     </table>
     <div class="rp-sum">
       <div><span>目前年繳化保費</span><b>${money(premium.thisYear)}</b></div>
       <div><span>明年預計總繳</span><b>${money(premium.nextYear)}</b><em>${premium.nextYear - premium.thisYear === 0 ? "今年 +0" : `今年 ${premium.nextYear > premium.thisYear ? "+" : "−"}${money(Math.abs(premium.nextYear - premium.thisYear))}`}</em></div>
       <div><span>已繳清保單</span><b>${paidUp}</b><em>張</em></div>
     </div>
+    ${legalPolicies.length ? `<div class="bene-box">⚠ <b>受益人提醒：</b>${legalPolicies.map(esc).join("、")} 的身故受益人為「法定繼承人」。法定繼承人依民法順位分配，未必是您想照顧的人；若有指定對象（配偶、子女、父母等），請與服務人員確認是否辦理受益人變更。</div>` : ""}
     <p class="rp-note">年繳化保費＝每期保費 × 每年期數（月繳 ×12、季繳 ×4、半年繳 ×2），已扣保費折扣。${esc(fxLine)}</p>`);
 
   // 保費配置分析
@@ -348,7 +360,7 @@ function render() {
 
   // 結論與下一步（填滿整頁）
   const keep = lit.map((a) => a.name);
-  const confirm = [...pending.map((c) => `補齊 ${c.policy_no || ""} 保單詳細資料`), ...noKb.map((c) => `核對 ${c.code} ${c.name || ""} 條款`),
+  const confirm = [...legalPolicies.map((no) => `${no} 受益人為法定繼承人，確認是否指定`), ...noKb.map((c) => `核對 ${c.code} ${c.name || ""} 條款`),
     ...RES.foreign.filter((f) => !f.rate).map((f) => `${f.currency} 匯率`)];
   const pEnd = page("", "CONCLUSION & ACTIONS", "健診結論與下一步", "哪些保障值得維持、哪些問題要確認、哪些需求值得後續討論？", `
     <div class="cols3">

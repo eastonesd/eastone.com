@@ -160,6 +160,7 @@ function kbCollectContracts(allClients, insuredId) {
       applicant: L.applicant_name || '', applicant_id: L.applicant_id || '', effective: L.effective_date,
       pay_mode: L.pay_mode || '年繳', status: L.status || '正常', currency: M.currency || 'TWD',
       discount: L.discount && L.discount.on ? Number(L.discount.pct) || 0 : 0, riderCount: (L.riders || []).length,
+      beneficiaries: L.beneficiaries || [],
     };
     if ((L.insured_id || c.id) === insuredId) out.push({ ...base, kind: 'main', code: M.code, name: M.name, cat1: M.cat1, cat2: M.cat2,
       term: M.term, coverage: M.coverage || '', sa: M.sum_assured, saUnit: M.sa_unit, premium: Number(M.premium) || 0 });
