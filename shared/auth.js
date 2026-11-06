@@ -41,10 +41,14 @@ async function requireLogin(rootPrefix) {
   return session.user;
 }
 
+const CONTACT_EMAIL = 'eastone.sd@gmail.com'; // 「聯絡我們」收信信箱
+
 const ICONS = {
   user: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="4.2"/><path d="M3.8 20.5c1.3-4 4.5-6 8.2-6s6.9 2 8.2 6"/></svg>',
   line: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.2-9 7.2 0 3.6 3.2 6.6 7.5 7.1l-.6 2.7 3.6-2.6c4.5-.5 7.5-3.5 7.5-7.2 0-4-4-7.2-9-7.2z"/></svg>',
   key: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M21 12v2"/></svg>',
+  chat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>',
   out: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M3 12h11M10 8l4 4-4 4"/></svg>',
 };
 
@@ -119,6 +123,12 @@ function toggleAccountMenu(btn) {
     <div class="acct-sep"></div>
     <button type="button" class="acct-item" data-act="line" role="menuitem">${ICONS.line}<span>LINE 提醒</span></button>
     <button type="button" class="acct-item" data-act="pw" role="menuitem">${ICONS.key}<span>修改密碼</span></button>
+    <div class="acct-sep"></div>
+    <div class="acct-label">聯絡我們</div>
+    <a class="acct-item" role="menuitem" target="_blank" rel="noopener"
+       href="https://line.me/R/ti/p/${encodeURIComponent(typeof LINE_OA_ID !== 'undefined' ? LINE_OA_ID : '@686icngd')}">${ICONS.chat}<span>LINE 官方帳號</span></a>
+    <a class="acct-item" role="menuitem"
+       href="mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('東石系統｜聯絡我們')}&body=${encodeURIComponent(`\n\n—\n帳號：${email}`)}">${ICONS.mail}<span>寄 Email 給我們</span></a>
     <div class="acct-sep"></div>
     <button type="button" class="acct-item" data-act="logout" role="menuitem">${ICONS.out}<span>登出</span></button>`;
   menu.querySelector('.acct-badge').textContent = btn.textContent;

@@ -38,6 +38,8 @@
   display: flex; align-items: center; gap: 16px; width: 100%; padding: 11px 20px;
   background: none; border: none; color: inherit; font: 500 15px 'Noto Sans TC', sans-serif; text-align: left; cursor: pointer;
 }
+.acct-label { padding: 6px 20px 2px; font-size: 12px; color: #9FB0D0; letter-spacing: .08em; }
+a.acct-item { text-decoration: none; }
 .acct-item:hover, .acct-item:focus-visible { background: rgba(255, 255, 255, .08); outline: none; }
 .acct-item svg { width: 22px; height: 22px; flex: none; fill: none; stroke: #DCE3F1; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
