@@ -147,3 +147,13 @@
 .pf-date-pick::-webkit-datetime-edit { display: none; }
 .pf-date-pick::-webkit-calendar-picker-indicator { width: 22px; height: 22px; margin: 0; cursor: pointer; opacity: .7; }
 .pf-era-tag { font-style: normal; font-size: .72rem; font-weight: 700; color: var(--gold, #B8892B); margin-left: 6px; }
+
+/* 主約卡：第一列 保險公司｜商品｜版本｜幣別；第二列 商品名稱｜類別1｜類別2 */
+.pf-main-row1, .pf-main-row2 { display: grid; gap: 0 16px; }
+.pf-main-row1 { grid-template-columns: 1.1fr 1fr 2fr .8fr; }
+.pf-main-row2 { grid-template-columns: 2fr 1fr 1fr; }
+@media (max-width: 900px) {
+  .pf-main-row1 { grid-template-columns: 1fr 1fr; }
+  .pf-main-row2 { grid-template-columns: 1fr 1fr; }
+  .pf-main-row2 label:first-child { grid-column: 1 / -1; }
+}

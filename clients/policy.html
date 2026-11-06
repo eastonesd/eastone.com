@@ -98,25 +98,19 @@
     <!-- 2 主約 -->
     <section class="card pf-card">
       <div class="pf-card-title">2　保單主約</div>
-      <div class="pf-grid2">
-        <div>
-          <label>保險公司<select id="pf-company"></select></label>
-          <label>幣別
-            <select id="pf-currency"><option selected>TWD</option><option>USD</option><option>AUD</option><option>CNY</option><option>EUR</option></select>
-          </label>
-        </div>
-        <div>
-          <div class="pf-row2">
-            <label class="pf-code">商品<input type="text" id="pf-main-family" placeholder="例 IAT" list="pf-code-list" autocomplete="off"></label>
-            <label>版本<select id="pf-main-ver"><option value="">先選商品</option></select></label>
-            <input type="hidden" id="pf-main-code">
-          </div>
-          <label class="pf-full">商品名稱<input type="text" id="pf-main-name" placeholder="輸入代號或名稱" list="pf-name-list"></label>
-          <div class="pf-row2">
-            <label>類別 1<select id="pf-cat1" class="pf-cat"></select></label>
-            <label>類別 2<select id="pf-cat2" class="pf-cat"></select></label>
-          </div>
-        </div>
+      <div class="pf-main-row1">
+        <label>保險公司<select id="pf-company"></select></label>
+        <label class="pf-code">商品<input type="text" id="pf-main-family" placeholder="例 IAT" list="pf-code-list" autocomplete="off"></label>
+        <label>版本<select id="pf-main-ver"><option value="">先選商品</option></select></label>
+        <label>幣別
+          <select id="pf-currency"><option selected>TWD</option><option>USD</option><option>AUD</option><option>CNY</option><option>EUR</option></select>
+        </label>
+        <input type="hidden" id="pf-main-code">
+      </div>
+      <div class="pf-main-row2">
+        <label>商品名稱<input type="text" id="pf-main-name" placeholder="輸入代號或名稱" list="pf-name-list"></label>
+        <label>類別 1<select id="pf-cat1" class="pf-cat"></select></label>
+        <label>類別 2<select id="pf-cat2" class="pf-cat"></select></label>
       </div>
       <div class="pf-kb" id="pf-main-kb" hidden></div>
       <div class="pf-grid4">
@@ -249,9 +243,9 @@
   <option value="75歲"><option value="65歲"><option value="20年"><option value="1年（定期）"><option value="繳費期滿">
 </datalist>
 <datalist id="pf-term-list">
-  <option value="躉繳"><option value="2年"><option value="6年"><option value="10年"><option value="15年">
+  <option value="躉繳"><option value="2年"><option value="3年"><option value="6年"><option value="8年"><option value="10年"><option value="15年">
   <option value="20年"><option value="25年"><option value="30年"><option value="55歲"><option value="60歲">
-  <option value="65歲"><option value="75歲"><option value="85歲"><option value="99歲"><option value="1年（定期）">
+  <option value="65歲"><option value="75歲"><option value="85歲"><option value="95歲"><option value="1年（定期）">
 </datalist>
 
 <div id="toast" class="toast" hidden></div>
