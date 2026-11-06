@@ -189,14 +189,18 @@
   <!-- ============ 保單代號維護 ============ -->
   <section id="tab-codes" class="tab-panel">
     <div class="card">
-      <p class="hint">在此維護貴公司「主約英文代號」對應的險種名稱，建檔時輸入代號即自動帶出名稱。</p>
-      <div class="code-add-row">
-        <input type="text" id="code-input" placeholder="代號 (例如 WL)" maxlength="10">
-        <input type="text" id="code-name-input" placeholder="險種名稱 (例如 終身壽險)">
-        <button type="button" id="btn-add-code" class="btn-primary">新增/更新</button>
+      <div class="code-kind-tabs" role="tablist">
+        <button type="button" class="code-kind active" data-kind="main">主約</button>
+        <button type="button" class="code-kind" data-kind="rider">附約</button>
       </div>
-      <table class="file-list-table">
-        <thead><tr><th>代號</th><th>險種名稱</th><th></th></tr></thead>
+      <p class="hint" id="code-hint">同一商品的迭代版本（例如 IAT、IAT1、IAT2）會整合成一個商品；建檔時先選商品，再選版本。</p>
+      <div class="code-add-row">
+        <input type="text" id="code-input" placeholder="代號 (例如 IAT2)" maxlength="10">
+        <input type="text" id="code-name-input" placeholder="險種名稱 (例如 新吉好利 利變增額)">
+        <button type="button" id="btn-add-code" class="btn-primary">新增/更新主約</button>
+      </div>
+      <table class="file-list-table code-table">
+        <thead><tr><th>商品</th><th>版本代號</th><th>險種名稱</th><th></th></tr></thead>
         <tbody id="code-list-body"></tbody>
       </table>
     </div>

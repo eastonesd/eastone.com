@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   await requireLogin("../");
   const id = (new URLSearchParams(location.search).get("id") || "").toUpperCase();
   $("ck-pdf").href = `report.html?id=${encodeURIComponent(id)}`;
+  $("ck-back").href = `index.html#client=${encodeURIComponent(id)}`;
+  $("ck-back").textContent = "← 返回客戶資料卡";
   try {
     const [all, , fx] = await Promise.all([clientList(), KB.load(), kbFetchFx()]);
     const insured = all.find((c) => c.id === id);

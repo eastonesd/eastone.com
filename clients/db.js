@@ -44,16 +44,28 @@ async function seedInsuranceCodesIfEmpty() {
   sbThrow(e2, '建立預設保單代號');
 }
 
-async function codeList() {
-  const rows = await fetchAllRows('insurance_codes', 'code,name', '讀取保單代號');
+// 保單代號列：[{ code, name, kind: 'main' | 'rider' }]
+async function codeRows() {
+  const rows = await fetchAllRows('insurance_codes', 'code,name,kind', '讀取保單代號');
+  rows.forEach((r) => { r.kind = r.kind === 'rider' ? 'rider' : 'main'; });
   rows.sort((a, b) => (a.code < b.code ? -1 : 1));
+  return rows;
+}
+
+async function codeList() {
   const map = {};
-  rows.forEach((r) => { map[r.code] = r.name; });
+  (await codeRows()).forEach((r) => { map[r.code] = r.name; });
   return map;
 }
 
-async function codeAdd(code, name) {
-  const { error } = await sb.from('insurance_codes').upsert({ code, name }, { onConflict: 'code' });
+// 同一商品的迭代版本：代號最後一碼是數字、前一碼是英文（IAT1、IAT2 → IAT；PF55 這類不算）
+function codeFamily(code) {
+  const c = String(code || '').toUpperCase();
+  return /[A-Z]\d$/.test(c) ? c.slice(0, -1) : c;
+}
+
+async function codeAdd(code, name, kind = 'main') {
+  const { error } = await sb.from('insurance_codes').upsert({ code, name, kind }, { onConflict: 'code' });
   sbThrow(error, '儲存保單代號');
 }
 

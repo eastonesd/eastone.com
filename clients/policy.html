@@ -107,9 +107,11 @@
         </div>
         <div>
           <div class="pf-row2">
-            <label class="pf-code">代號<input type="text" id="pf-main-code" placeholder="例 SDB" list="pf-code-list"></label>
-            <label>商品名稱<input type="text" id="pf-main-name" placeholder="輸入代號或名稱" list="pf-name-list"></label>
+            <label class="pf-code">商品<input type="text" id="pf-main-family" placeholder="例 IAT" list="pf-code-list" autocomplete="off"></label>
+            <label>版本<select id="pf-main-ver"><option value="">先選商品</option></select></label>
+            <input type="hidden" id="pf-main-code">
           </div>
+          <label class="pf-full">商品名稱<input type="text" id="pf-main-name" placeholder="輸入代號或名稱" list="pf-name-list"></label>
           <div class="pf-row2">
             <label>類別 1<select id="pf-cat1" class="pf-cat"></select></label>
             <label>類別 2<select id="pf-cat2" class="pf-cat"></select></label>
@@ -213,6 +215,7 @@
       <div id="pf-benes"></div>
       <button type="button" class="btn-secondary pf-small pf-add" id="pf-bene-add">＋ 新增受益人</button>
       <datalist id="pf-bene-list"></datalist>
+      <datalist id="pf-rel-list"></datalist>
     </section>
 
     <!-- 5 服務人員 -->

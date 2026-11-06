@@ -199,7 +199,7 @@ function render() {
   const beneHtml = (list) => {
     if (!list || !list.length) return `<span class="sub">未填</span>`;
     const sorted = [...list].sort((x, y) => (Number(x.order) || 1) - (Number(y.order) || 1));
-    const rows = sorted.map((b) => `<div class="${isLegal(b) ? "bene-legal" : ""}">${sorted.length > 1 ? `${esc(b.order || "1")}. ` : ""}${esc(b.name || "法定繼承人")}${b.equal || !b.ratio ? (sorted.length > 1 ? "（均分）" : "") : `（${esc(b.ratio)}%）`}</div>`).join("");
+    const rows = sorted.map((b) => `<div class="${isLegal(b) ? "bene-legal" : ""}">${sorted.length > 1 ? `${esc(b.order || "1")}. ` : ""}${esc(b.name || "法定繼承人")}${b.relation && !isLegal(b) ? `<span class="sub">（${esc(b.relation)}）</span>` : ""}${b.equal || !b.ratio ? (sorted.length > 1 ? "（均分）" : "") : `（${esc(b.ratio)}%）`}</div>`).join("");
     return rows + (sorted.some(isLegal) ? `<div class="bene-warn">⚠ 請確認是否指定</div>` : "");
   };
   const legalPolicies = Object.entries(byPolicy).filter(([, list]) => list[0].beneficiaries && list[0].beneficiaries.length && list[0].beneficiaries.some(isLegal)).map(([no]) => no);

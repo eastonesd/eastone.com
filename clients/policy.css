@@ -79,7 +79,7 @@
 .pf-rider-meta { font-size: .78rem; color: var(--ink-soft); margin: 2px 0 10px; }
 
 /* 受益人 */
-.pf-bene { display: grid; grid-template-columns: 80px 1fr 110px auto 32px; gap: 10px; align-items: end; margin-bottom: 6px; }
+.pf-bene { display: grid; grid-template-columns: 70px 130px 1fr 110px 100px auto 32px; gap: 10px; align-items: end; margin-bottom: 6px; }
 .pf-bene label { margin-bottom: 10px; }
 .pf-bene .pf-check { margin-bottom: 24px; }
 .pf-bene .icon-btn { margin-bottom: 24px; }
@@ -105,8 +105,9 @@
   .pf-search-boxes { grid-template-columns: repeat(2, 1fr); }
   .pf-search-foot { flex-direction: column; align-items: stretch; }
   .pf-search-foot .pf-small { width: 100% !important; }
-  .pf-bene { grid-template-columns: 70px 1fr 90px; }
-  .pf-bene .pf-bene-equal { grid-column: 1 / 3; margin-bottom: 12px; }
+  .pf-bene { grid-template-columns: 70px 1fr 1fr; grid-auto-flow: dense; padding-bottom: 8px; border-bottom: 1px dashed rgba(0,0,0,.12); }
+  .pf-bene .pf-bene-name { grid-column: 1 / -1; }
+  .pf-bene .pf-bene-equal { margin-bottom: 12px; }
   .pf-bene .icon-btn { margin-bottom: 12px; justify-self: end; }
   .pf-main .card { padding: 16px; }
   .pf-savebar { padding-left: 14px; padding-right: 14px; }
@@ -134,3 +135,7 @@
 .pf-kb-tag { font-weight: 700; color: #1E6B34; background: #E3F1E6; padding: 2px 8px; border-radius: 999px; }
 .pf-kb-tag.todo { color: var(--gold); background: #FFF6DD; }
 .pf-rider .pf-kb { margin-top: 2px; }
+
+.pf-full { display: block; margin-top: 10px; }
+.pf-full input { width: 100%; }
+.pf-bene input:disabled { background: #F2EFE7; color: #8A8474; }

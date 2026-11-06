@@ -352,3 +352,14 @@ th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
   .detail-actions .btn-primary { grid-column: 1 / -1; }
   .pc-rider { margin-left: 12px; }
 }
+
+/* 保單代號：主約／附約 */
+.code-kind-tabs { display: inline-flex; border: 1px solid var(--accent-deep); border-radius: 999px; overflow: hidden; margin-bottom: 12px; }
+.code-kind { border: 0; background: transparent; padding: 7px 22px; font-weight: 700; cursor: pointer; color: var(--accent-deep); font-family: inherit; font-size: .95rem; }
+.code-kind.active { background: var(--accent-deep); color: #fff; }
+.code-table tr.fam-more td { border-top-color: transparent; }
+.code-table tr.fam-first td { border-top: 1px solid rgba(0,0,0,.12); }
+.fam-count { margin-left: 6px; font-size: .78rem; color: var(--gold); font-weight: 700; }
+.code-acts { white-space: nowrap; text-align: right; }
+.link-btn { background: none; border: 0; color: var(--accent-deep); cursor: pointer; font-size: .9rem; margin-right: 10px; font-family: inherit; }
+.code-empty { text-align: center; color: #8A8474; padding: 18px; }

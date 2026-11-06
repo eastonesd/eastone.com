@@ -32,8 +32,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   addPolicyRow(); // 預設一列
   // 從保單頁「← 返回客戶資料」回來時，直接打開檔案區
-  if (location.hash === "#filelist") document.querySelector('.tab-btn[data-tab="filelist"]').click();
+  const backTo = decodeURIComponent((location.hash.match(/^#client=([\w-]+)/) || [])[1] || "");
+  if (location.hash === "#filelist" || backTo) document.querySelector('.tab-btn[data-tab="filelist"]').click();
   await refreshFileList();
+  if (backTo) {
+    history.replaceState(null, "", location.pathname + location.search + "#filelist");
+    openDetail(backTo);
+  }
   await refreshCodeList();
 
   // 這台裝置如果還有舊版存在本機的客戶資料，詢問是否搬到雲端（連同自訂的保單代號）
@@ -142,24 +147,59 @@ async function loadInsuranceCodes() {
   insuranceCodes = await codeList();
 }
 
+let codeKind = "main";      // 保單代號維護目前顯示主約或附約
+let codeRowsCache = [];
+
 async function refreshCodeList() {
-  await loadInsuranceCodes();
+  codeRowsCache = await codeRows();
+  insuranceCodes = {};
+  codeRowsCache.forEach((r) => { insuranceCodes[r.code] = r.name; });
+  renderCodeList();
+}
+
+function renderCodeList() {
+  const label = codeKind === "rider" ? "附約" : "主約";
+  const other = codeKind === "rider" ? "主約" : "附約";
+  document.querySelectorAll(".code-kind").forEach((b) => b.classList.toggle("active", b.dataset.kind === codeKind));
+  document.getElementById("btn-add-code").textContent = `新增/更新${label}`;
+  const rows = codeRowsCache.filter((r) => r.kind === codeKind);
+  // 依商品（去掉版本數字的代號）分組
+  const fams = new Map();
+  rows.forEach((r) => { const f = codeFamily(r.code); if (!fams.has(f)) fams.set(f, []); fams.get(f).push(r); });
   const tbody = document.getElementById("code-list-body");
   tbody.innerHTML = "";
-  Object.entries(insuranceCodes).forEach(([code, name]) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${code}</td><td>${name}</td>
-      <td><button class="icon-btn" data-code="${code}">刪除</button></td>`;
-    tr.querySelector(".icon-btn").addEventListener("click", async () => {
-      await codeDelete(code);
-      showToast(`已刪除代號 ${code}`);
-      refreshCodeList();
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="code-empty">還沒有${label}代號，請在上方新增。</td></tr>`;
+    return;
+  }
+  fams.forEach((list, fam) => {
+    list.forEach((r, i) => {
+      const tr = document.createElement("tr");
+      tr.className = i === 0 ? "fam-first" : "fam-more";
+      tr.innerHTML = `<td>${i === 0 ? `<b>${escHtml(fam)}</b>${list.length > 1 ? `<span class="fam-count">${list.length} 版</span>` : ""}` : ""}</td>
+        <td>${escHtml(r.code)}</td><td>${escHtml(r.name)}</td>
+        <td class="code-acts"><button type="button" class="link-btn" data-move>改為${other}</button><button type="button" class="icon-btn" data-del>刪除</button></td>`;
+      tr.querySelector("[data-del]").addEventListener("click", async () => {
+        if (!confirm(`確定刪除代號 ${r.code}？`)) return;
+        await codeDelete(r.code);
+        showToast(`已刪除代號 ${r.code}`);
+        refreshCodeList();
+      });
+      tr.querySelector("[data-move]").addEventListener("click", async () => {
+        await codeAdd(r.code, r.name, codeKind === "rider" ? "main" : "rider");
+        showToast(`${r.code} 已改為${other}`);
+        refreshCodeList();
+      });
+      tbody.appendChild(tr);
     });
-    tbody.appendChild(tr);
   });
 }
 
 function bindCodeMaintenance() {
+  document.querySelectorAll(".code-kind").forEach((b) => b.addEventListener("click", () => {
+    codeKind = b.dataset.kind;
+    renderCodeList();
+  }));
   document.getElementById("btn-add-code").addEventListener("click", async () => {
     const code = document.getElementById("code-input").value.trim().toUpperCase();
     const name = document.getElementById("code-name-input").value.trim();
@@ -167,10 +207,10 @@ function bindCodeMaintenance() {
       showToast("請輸入代號與險種名稱");
       return;
     }
-    await codeAdd(code, name);
+    await codeAdd(code, name, codeKind);
     document.getElementById("code-input").value = "";
     document.getElementById("code-name-input").value = "";
-    showToast(`已儲存代號 ${code}`);
+    showToast(`已儲存${codeKind === "rider" ? "附約" : "主約"}代號 ${code}`);
     refreshCodeList();
   });
 }

@@ -37,6 +37,7 @@ const AGENT_KEY = "eastone.policy.agent"; // 記住上次填的服務人員（�
 let client = null;      // 目前這位客戶
 let allClients = [];    // 這位業務員的所有客戶（要保人／被保人下拉用）
 let codes = {};         // 保單代號 { CODE: 名稱 }
+let codeKinds = {};     // { CODE: 'main' | 'rider' }
 let editIndex = null;   // null = 新增；數字 = 修改第幾張
 let riders = [];        // 附約清單
 
@@ -57,12 +58,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   const id = (params.get("id") || "").toUpperCase();
   if (!id) { location.href = "index.html"; return; }
 
-  [client, allClients, codes] = await Promise.all([clientGet(id), clientList(), codeList()]);
+  let rows;
+  [client, allClients, rows] = await Promise.all([clientGet(id), clientList(), codeRows()]);
+  rows.forEach((r) => { codes[r.code] = r.name; codeKinds[r.code] = r.kind; });
   if (!client) { alert("查無此客戶"); location.href = "index.html"; return; }
+  // 返回時直接打開這位客戶的資料卡
+  document.querySelectorAll(".pf-back").forEach((a) => { a.href = `index.html#client=${encodeURIComponent(client.id)}`; a.textContent = "← 返回客戶資料卡"; });
   // 保單知識庫：讀不到（例如還沒建好）也不影響填表，只是不能自動帶入與試算
   try {
     await KB.load();
-    KB.products.forEach((p) => { if (!codes[p.code]) codes[p.code] = p.name; });
+    KB.products.forEach((p) => {
+      if (!codes[p.code]) codes[p.code] = p.name;
+      if (!codeKinds[p.code]) codeKinds[p.code] = p.kind === "rider" ? "rider" : "main";
+    });
   } catch (err) { console.warn("知識庫讀取失敗", err); }
 
   buildStaticOptions();
@@ -97,10 +105,53 @@ function buildStaticOptions() {
   document.querySelectorAll(".pf-person").forEach((s) => fillSelect(s, people, client.id));
 
   // 商品代號／名稱提示
-  const entries = Object.entries(codes);
-  $("pf-code-list").innerHTML = entries.map(([c, n]) => `<option value="${esc(c)}">${esc(n)}</option>`).join("");
-  $("pf-name-list").innerHTML = entries.map(([c, n]) => `<option value="${esc(n)}">${esc(c)}</option>`).join("");
-  $("pf-bene-list").innerHTML = ["法定繼承人", ...allClients.map((c) => c.name)].map((n) => `<option value="${esc(n)}">`).join("");
+  // 主約：同一商品的各版本整合成一個商品（IAT、IAT1、IAT2 → IAT）
+  const mains = Object.entries(codes).filter(([c]) => codeKinds[c] !== "rider");
+  const fams = mainFamilies();
+  $("pf-code-list").innerHTML = [...fams.entries()].map(([f, list]) => `<option value="${esc(f)}">${esc(codes[list[list.length - 1]])}${list.length > 1 ? `（${list.length} 版）` : ""}</option>`).join("");
+  $("pf-name-list").innerHTML = mains.map(([c, n]) => `<option value="${esc(n)}">${esc(c)}</option>`).join("");
+  $("pf-rel-list").innerHTML = BENE_RELATIONS.map((n) => `<option value="${n}">`).join("");
+  $("pf-bene-list").innerHTML = [...new Set(allClients.map((c) => c.name).filter(Boolean))].map((n) => `<option value="${esc(n)}">`).join("");
+}
+
+// ---------------- 主約：商品 → 版本 ----------------
+function mainFamilies() {
+  const fams = new Map();
+  Object.keys(codes).filter((c) => codeKinds[c] !== "rider").sort().forEach((c) => {
+    const f = codeFamily(c);
+    if (!fams.has(f)) fams.set(f, []);
+    fams.get(f).push(c);
+  });
+  return fams;
+}
+
+// 依商品欄填出版本選單；pick 指定要選哪一版，沒指定就選最新版
+function fillVersions(typed, pick) {
+  const sel = $("pf-main-ver");
+  if (!typed) { sel.innerHTML = `<option value="">先選商品</option>`; return; }
+  const fam = mainFamilies().get(typed) || mainFamilies().get(codeFamily(typed)) || [];
+  const list = fam.length ? [...fam] : [typed];
+  if (pick && !list.includes(pick)) list.push(pick);
+  sel.innerHTML = list.map((c) => `<option value="${esc(c)}">${esc(c)}${codes[c] ? "　" + esc(codes[c]) : fam.length ? "" : "（代號庫沒有）"}</option>`).join("");
+  // 打商品代號（IAT）→ 預設最新版；直接打完整版本代號（IAT1）→ 選那一版
+  sel.value = pick || (!mainFamilies().has(typed) && list.includes(typed) ? typed : list[list.length - 1]);
+}
+
+// 版本確定後：帶出名稱、類別、知識庫資料
+function onMainCode() {
+  const c = $("pf-main-ver").value;
+  $("pf-main-code").value = c;
+  if (codes[c]) { $("pf-main-name").value = codes[c]; guessCategory(codes[c]); }
+  applyKbMain(true);
+}
+
+// 程式設定主約代號（讀取舊保單、用名稱反查）
+function setMainCode(code) {
+  const c = (code || "").toUpperCase();
+  $("pf-main-code").value = c;
+  const fam = c ? (mainFamilies().has(codeFamily(c)) ? codeFamily(c) : c) : "";
+  $("pf-main-family").value = fam;
+  fillVersions(fam, c || undefined);
 }
 
 function personName(id) {
@@ -145,16 +196,17 @@ function bindForm() {
   $("pf-effective").addEventListener("change", () => { $("pf-r-effective").value = $("pf-effective").value; });
 
   // 主約代號 ↔ 名稱
-  $("pf-main-code").addEventListener("input", (e) => {
-    const c = e.target.value.trim().toUpperCase();
-    e.target.value = c;
-    if (codes[c]) { $("pf-main-name").value = codes[c]; guessCategory(codes[c]); }
-    applyKbMain(true);
+  $("pf-main-family").addEventListener("input", (e) => {
+    const v = e.target.value.trim().toUpperCase();
+    e.target.value = v;
+    fillVersions(v);
+    onMainCode();
   });
+  $("pf-main-ver").addEventListener("change", onMainCode);
   $("pf-main-name").addEventListener("change", (e) => {
     const name = e.target.value.trim();
-    const hit = Object.entries(codes).find(([, n]) => n === name);
-    if (hit) $("pf-main-code").value = hit[0];
+    const hit = Object.entries(codes).find(([c, n]) => n === name && codeKinds[c] !== "rider") || Object.entries(codes).find(([, n]) => n === name);
+    if (hit) setMainCode(hit[0]);
     guessCategory(name);
     applyKbMain(true);
   });
@@ -169,7 +221,7 @@ function bindForm() {
   $("pf-r-add").addEventListener("click", addCheckedRiders);
 
   $("pf-channel").addEventListener("change", syncChannel);
-  $("pf-bene-add").addEventListener("click", () => addBene({ order: "1", name: "", ratio: "", equal: true }));
+  $("pf-bene-add").addEventListener("click", () => addBene({ type: "named", name: "", ratio: "", equal: true }));
 
   $("pf-form").addEventListener("submit", (e) => { e.preventDefault(); savePolicy(); });
   $("pf-delete").addEventListener("click", deletePolicy);
@@ -250,12 +302,12 @@ function syncChannel() {
 function searchRiders() {
   const kws = [...document.querySelectorAll(".pf-kw")].map((k) => k.value.trim().toUpperCase()).filter(Boolean);
   if (!kws.length) { showToast("請至少輸入一個關鍵字或代號"); return; }
-  const hits = Object.entries(codes).filter(([c, n]) => kws.some((k) => c.includes(k) || n.toUpperCase().includes(k)));
+  const hits = Object.entries(codes).filter(([c]) => codeKinds[c] === "rider").filter(([c, n]) => kws.some((k) => c.includes(k) || n.toUpperCase().includes(k)));
   $("pf-results").hidden = false;
   $("pf-results-count").textContent = `查詢結果共 ${hits.length} 筆`;
   $("pf-results-body").innerHTML = hits.length
     ? hits.map(([c, n]) => `<tr><td><input type="checkbox" class="pf-hit" data-code="${esc(c)}"></td><td>${esc(c)}</td><td>${esc(n)}</td></tr>`).join("")
-    : `<tr><td colspan="3" class="pf-empty">查無商品，可到「保單代號維護」新增</td></tr>`;
+    : `<tr><td colspan="3" class="pf-empty">查無附約，可到「保單代號維護 → 附約」新增</td></tr>`;
 }
 
 function addCheckedRiders() {
@@ -328,28 +380,61 @@ function renderRiders() {
 }
 
 // ---------------- 受益人 ----------------
-function addBene(b) {
+const BENE_RELATIONS = ["配偶", "子女", "父母", "兄弟姊妹", "祖父母", "孫子女", "本人", "其他"];
+const isLegalName = (n) => !n || /法定/.test(n);
+
+function addBene(b = {}) {
+  const legal = b.type ? b.type === "legal" : isLegalName(b.name);
+  const order = b.order || String(Math.min(9, Math.max(0, ...beneRows().map((r) => +r.querySelector(".pf-bene-order select").value)) + 1));
   const row = document.createElement("div");
   row.className = "pf-bene";
   row.innerHTML = `
-    <label class="pf-bene-order">順位<select>${[1, 2, 3, 4, 5].map((n) => `<option${String(n) === String(b.order) ? " selected" : ""}>${n}</option>`).join("")}</select></label>
-    <label class="pf-bene-name">受益人<input type="text" list="pf-bene-list" value="${esc(b.name)}" placeholder="法定繼承人"></label>
+    <label class="pf-bene-order">順位<select>${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<option${String(n) === String(order) ? " selected" : ""}>${n}</option>`).join("")}</select></label>
+    <label class="pf-bene-type">類型<select><option value="legal"${legal ? " selected" : ""}>法定繼承人</option><option value="named"${legal ? "" : " selected"}>指定受益人</option></select></label>
+    <label class="pf-bene-name">受益人<input type="text" list="pf-bene-list" value="${legal ? "" : esc(b.name)}" placeholder="${legal ? "法定繼承人" : "選擇或輸入姓名"}"${legal ? " disabled" : ""}></label>
+    <label class="pf-bene-rel">關係<input type="text" list="pf-rel-list" value="${legal ? "" : esc(b.relation || "")}" placeholder="${legal ? "—" : "例 配偶"}"${legal ? " disabled" : ""}></label>
     <label class="pf-bene-ratio">比例 %<input type="number" min="0" max="100" step="any" value="${esc(b.ratio)}"${b.equal ? " disabled" : ""}></label>
     <label class="pf-check pf-bene-equal"><input type="checkbox"${b.equal ? " checked" : ""}> 均分</label>
     <button type="button" class="icon-btn pf-bene-del" title="移除">✕</button>`;
   const ratio = row.querySelector(".pf-bene-ratio input");
+  const name = row.querySelector(".pf-bene-name input");
+  const rel = row.querySelector(".pf-bene-rel input");
   row.querySelector(".pf-bene-equal input").addEventListener("change", (e) => { ratio.disabled = e.target.checked; if (e.target.checked) ratio.value = ""; });
-  row.querySelector(".pf-bene-del").addEventListener("click", () => row.remove());
+  row.querySelector(".pf-bene-type select").addEventListener("change", (e) => {
+    const isLegal = e.target.value === "legal";
+    name.disabled = rel.disabled = isLegal;
+    name.placeholder = isLegal ? "法定繼承人" : "選擇或輸入姓名";
+    rel.placeholder = isLegal ? "—" : "例 配偶";
+    if (isLegal) { name.value = ""; rel.value = ""; } else name.focus();
+  });
+  row.querySelector(".pf-bene-del").addEventListener("click", () => { row.remove(); renumberBenes(); });
   $("pf-benes").appendChild(row);
 }
 
+function beneRows() {
+  return [...document.querySelectorAll(".pf-bene")];
+}
+
+// 刪掉某個順位後，後面的順位往前遞補（1、3 → 1、2；同順位的維持同順位）
+function renumberBenes() {
+  const sels = beneRows().map((r) => r.querySelector(".pf-bene-order select"));
+  const used = [...new Set(sels.map((s) => +s.value))].sort((a, b) => a - b);
+  sels.forEach((s) => { s.value = String(used.indexOf(+s.value) + 1); });
+}
+
 function collectBenes() {
-  return [...document.querySelectorAll(".pf-bene")].map((row) => ({
-    order: row.querySelector(".pf-bene-order select").value,
-    name: row.querySelector(".pf-bene-name input").value.trim() || "法定繼承人",
-    ratio: row.querySelector(".pf-bene-ratio input").value,
-    equal: row.querySelector(".pf-bene-equal input").checked,
-  }));
+  return beneRows().map((row) => {
+    const legal = row.querySelector(".pf-bene-type select").value === "legal";
+    const name = row.querySelector(".pf-bene-name input").value.trim();
+    return {
+      order: row.querySelector(".pf-bene-order select").value,
+      type: legal || !name ? "legal" : "named",
+      name: legal || !name ? "法定繼承人" : name,
+      relation: legal ? "" : row.querySelector(".pf-bene-rel input").value.trim(),
+      ratio: row.querySelector(".pf-bene-ratio input").value,
+      equal: row.querySelector(".pf-bene-equal input").checked,
+    };
+  });
 }
 
 // ---------------- 合計 ----------------
@@ -395,7 +480,7 @@ function fillForm(p) {
 
   $("pf-company").value = M.company || "富邦人壽";
   $("pf-currency").value = M.currency || p.currency || "TWD";
-  $("pf-main-code").value = M.code || p.main_code || "";
+  setMainCode(M.code || p.main_code || "");
   $("pf-main-name").value = M.name || p.main_name || codes[(p.main_code || "").toUpperCase()] || "";
   $("pf-cat1").value = M.cat1 || "重大傷病";
   $("pf-cat2").value = M.cat2 || "無";
@@ -430,7 +515,7 @@ function fillForm(p) {
   syncChannel();
 
   $("pf-benes").innerHTML = "";
-  const benes = L.beneficiaries && L.beneficiaries.length ? L.beneficiaries : [{ order: "1", name: "法定繼承人", ratio: "", equal: true }];
+  const benes = L.beneficiaries && L.beneficiaries.length ? L.beneficiaries : [{ order: "1", type: "legal", name: "法定繼承人", ratio: "", equal: true }];
   benes.forEach(addBene);
 
   const ag = L.agent || loadAgentDefault();
@@ -511,7 +596,7 @@ async function savePolicy() {
     showToast("保單號碼格式：10 碼數字 - 2 碼數字");
     return;
   }
-  if (!p.main_code && !p.main_name) { $("pf-main-code").focus(); showToast("請填主約代號或商品名稱"); return; }
+  if (!p.main_code && !p.main_name) { $("pf-main-family").focus(); showToast("請填主約代號或商品名稱"); return; }
   const list = [...(client.policies || [])];
   const dup = list.findIndex((x, i) => i !== editIndex && x.policy_no === p.policy_no);
   if (dup >= 0) { showToast("這個保單號碼已經存在"); return; }
