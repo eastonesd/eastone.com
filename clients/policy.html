@@ -9,10 +9,10 @@
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="客戶管理">
-<link rel="stylesheet" href="../shared/site-header.css?v=20261107-2">
-<link rel="stylesheet" href="../shared/auth.css?v=20261107-2">
-<link rel="stylesheet" href="style.css?v=20261107-2">
-<link rel="stylesheet" href="policy.css?v=20261107-2">
+<link rel="stylesheet" href="../shared/site-header.css?v=20261107-3">
+<link rel="stylesheet" href="../shared/auth.css?v=20261107-3">
+<link rel="stylesheet" href="style.css?v=20261107-3">
+<link rel="stylesheet" href="policy.css?v=20261107-3">
 </head>
 <body>
 
@@ -196,10 +196,11 @@
       </div>
       <div class="pf-grid3" id="pf-ch-card" hidden>
         <label>發卡銀行<select id="pf-card-bank" class="pf-bank-select"></select></label>
-        <label>到期年月
-          <div class="pf-unit">
-            <select id="pf-card-y"></select>
-            <select id="pf-card-m"></select>
+        <label>有效期限（月／年）
+          <div class="pf-unit pf-card-exp">
+            <select id="pf-card-m" aria-label="月"></select>
+            <span class="pf-slash">/</span>
+            <select id="pf-card-y" aria-label="年"></select>
           </div>
         </label>
         <label>卡號<input type="text" id="pf-card-no" inputmode="numeric" placeholder="卡號"></label>
@@ -251,11 +252,11 @@
 <div id="toast" class="toast" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
-<script src="../shared/supabase-client.js?v=20261107-2"></script>
-<script src="../shared/auth.js?v=20261107-2"></script>
-<script src="data.js?v=20261107-2"></script>
-<script src="db.js?v=20261107-2"></script>
-<script src="../shared/kb.js?v=20261107-2"></script>
-<script src="policy.js?v=20261107-2"></script>
+<script src="../shared/supabase-client.js?v=20261107-3"></script>
+<script src="../shared/auth.js?v=20261107-3"></script>
+<script src="data.js?v=20261107-3"></script>
+<script src="db.js?v=20261107-3"></script>
+<script src="../shared/kb.js?v=20261107-3"></script>
+<script src="policy.js?v=20261107-3"></script>
 </body>
 </html>

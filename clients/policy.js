@@ -98,8 +98,9 @@ function buildStaticOptions() {
   fillSelect($("pf-cat2"), ["無", ...CATEGORIES], "無");
   document.querySelectorAll(".pf-bank-select").forEach((s) => fillSelect(s, [["", "請選擇銀行"], ...BANKS], ""));
   const y0 = new Date().getFullYear();
-  fillSelect($("pf-card-y"), [["", "年"], ...Array.from({ length: 12 }, (_, k) => String(y0 + k))], "");
-  fillSelect($("pf-card-m"), [["", "月"], ...Array.from({ length: 12 }, (_, k) => String(k + 1).padStart(2, "0"))], "");
+  // 跟卡片背面一樣顯示 MM / YY（年份存四碼西元）
+  fillSelect($("pf-card-y"), [["", "YY"], ...Array.from({ length: 12 }, (_, k) => [String(y0 + k), String(y0 + k).slice(2)])], "");
+  fillSelect($("pf-card-m"), [["", "MM"], ...Array.from({ length: 12 }, (_, k) => String(k + 1).padStart(2, "0"))], "");
 
   // 人員下拉：本人排第一，其他客戶在後面
   const others = allClients.filter((c) => c.id !== client.id).sort((a, b) => (a.name || "").localeCompare(b.name || "", "zh-Hant"));
