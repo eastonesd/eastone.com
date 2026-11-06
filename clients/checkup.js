@@ -17,6 +17,7 @@ const PHASES = [["duty", "人生責任"], ["before", "前｜診斷確定"], ["du
 document.addEventListener("DOMContentLoaded", async () => {
   await requireLogin("../");
   const id = (new URLSearchParams(location.search).get("id") || "").toUpperCase();
+  $("ck-pdf").href = `report.html?id=${encodeURIComponent(id)}`;
   try {
     const [all, , fx] = await Promise.all([clientList(), KB.load(), kbFetchFx()]);
     const insured = all.find((c) => c.id === id);

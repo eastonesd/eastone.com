@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>東石｜人生保障全景報告</title>
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/auth.css">
+<link rel="stylesheet" href="report.css">
+</head>
+<body>
+
+<!-- 畫面上的工具列（列印時不會出現） -->
+<div class="rp-toolbar" id="rp-toolbar">
+  <a class="rp-back" id="rp-back" href="index.html#filelist">← 返回</a>
+  <div class="rp-fields">
+    <label>業務員<input id="rp-agent-name" placeholder="姓名"></label>
+    <label>聯絡方式<input id="rp-agent-contact" placeholder="電話或 LINE"></label>
+  </div>
+  <button type="button" class="rp-print" id="rp-print" disabled>下載 PDF／列印</button>
+  <p class="rp-hint">按下後在列印視窗選「另存為 PDF」即可下載，選印表機就直接列印。紙張 A4、勾選「背景圖形」。第 11、12 頁的空白欄位可以直接點進去填寫後再列印。</p>
+</div>
+
+<main class="rp-pages" id="rp-pages">
+  <p class="rp-loading">報告產生中…</p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/auth.js"></script>
+<script src="data.js"></script>
+<script src="db.js"></script>
+<script src="../shared/kb.js"></script>
+<script src="report.js"></script>
+</body>
+</html>
