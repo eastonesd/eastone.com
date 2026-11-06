@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>東石系統｜新增／修改保單</title>
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="客戶管理">
+<link rel="stylesheet" href="../shared/site-header.css">
+<link rel="stylesheet" href="../shared/auth.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="policy.css">
+</head>
+<body>
+
+<div class="ghdr-wrap">
+  <div class="ghdr-brand">
+    <img class="ghdr-mark" src="../icons/logo.png" alt="東石系統">
+    <div>
+      <div class="ghdr-title">東石系統</div>
+      <div class="ghdr-sub">EASTONE SYSTEM</div>
+    </div>
+  </div>
+  <nav class="ghdr-nav">
+    <button onclick="location.href='../index.html'">理賠</button>
+    <button onclick="location.href='../index.html#endorse'">契變</button>
+    <button onclick="location.href='../market/index.html'">財經日報</button>
+    <button class="active" onclick="location.href='index.html'">客戶資料</button>
+    <button onclick="location.href='../policies/index.html'">產險管理</button>
+  </nav>
+</div>
+
+<header class="topbar">
+  <h1>新增／修改保單<small>POLICY ENTRY</small></h1>
+  <a class="pf-back" href="index.html#filelist">← 返回客戶資料</a>
+</header>
+
+<main class="pf-main">
+  <!-- 客戶與他的保單 -->
+  <section class="card pf-client">
+    <div class="pf-client-head">
+      <div>
+        <div class="pf-client-name" id="pf-client-name">讀取中…</div>
+        <div class="pf-client-meta" id="pf-client-meta"></div>
+      </div>
+      <button type="button" class="btn-primary pf-new-btn" id="pf-new">＋ 新增保單</button>
+    </div>
+    <div class="pf-chips" id="pf-chips"></div>
+  </section>
+
+  <form id="pf-form" autocomplete="off" novalidate>
+    <!-- 保單號碼 ＋ 折扣 -->
+    <section class="card pf-card">
+      <div class="pf-card-title"><span id="pf-mode">新增保單</span></div>
+      <div class="pf-topline">
+        <label class="pf-no">保單號碼
+          <input type="text" id="pf-no" inputmode="numeric" placeholder="0000000000-00" maxlength="13">
+        </label>
+        <div class="pf-discount" id="pf-discount">
+          <label class="pf-check"><input type="checkbox" id="pf-disc-on"> 保費折扣</label>
+          <div class="pf-disc-pct">
+            <input type="number" id="pf-disc-pct" value="1" min="0" max="100" step="0.1" disabled>
+            <span>%</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1 基本資料 -->
+    <section class="card pf-card">
+      <div class="pf-card-title">1　基本資料</div>
+      <div class="pf-grid2">
+        <div>
+          <label>要保人<select id="pf-applicant" class="pf-person"></select></label>
+          <label>被保人<select id="pf-insured" class="pf-person"></select></label>
+          <label>繳費人<select id="pf-payer" class="pf-person"></select></label>
+        </div>
+        <div>
+          <label>生效日<input type="date" id="pf-effective"></label>
+          <label>職業等級
+            <select id="pf-occ">
+              <option value="1" selected>1 級</option><option value="2">2 級</option><option value="3">3 級</option>
+              <option value="4">4 級</option><option value="5">5 級</option><option value="6">6 級</option>
+            </select>
+          </label>
+          <label>繳別
+            <select id="pf-mode-pay">
+              <option selected>年繳</option><option>半年繳</option><option>季繳</option><option>月繳</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 主約 -->
+    <section class="card pf-card">
+      <div class="pf-card-title">2　保單主約</div>
+      <div class="pf-grid2">
+        <div>
+          <label>保險公司<select id="pf-company"></select></label>
+          <label>幣別
+            <select id="pf-currency"><option selected>TWD</option><option>USD</option><option>AUD</option><option>CNY</option><option>EUR</option></select>
+          </label>
+        </div>
+        <div>
+          <div class="pf-row2">
+            <label class="pf-code">代號<input type="text" id="pf-main-code" placeholder="例 SDB" list="pf-code-list"></label>
+            <label>商品名稱<input type="text" id="pf-main-name" placeholder="輸入代號或名稱" list="pf-name-list"></label>
+          </div>
+          <div class="pf-row2">
+            <label>類別 1<select id="pf-cat1" class="pf-cat"></select></label>
+            <label>類別 2<select id="pf-cat2" class="pf-cat"></select></label>
+          </div>
+        </div>
+      </div>
+      <div class="pf-grid3">
+        <label>繳費年期<input type="text" id="pf-main-term" list="pf-term-list" placeholder="例 20年、75歲"></label>
+        <label>保額
+          <div class="pf-unit">
+            <input type="number" id="pf-main-sa" min="0" step="any" placeholder="0">
+            <select id="pf-main-sa-unit"><option>萬</option><option>元</option><option>單位</option><option>計劃</option></select>
+          </div>
+        </label>
+        <label>保費（元）<input type="number" id="pf-main-premium" min="0" step="1" placeholder="0" class="pf-premium"></label>
+      </div>
+      <p class="pf-note">保費暫時手動輸入；之後建好費率資料庫，會依性別、年期、職等、保額自動算出。</p>
+    </section>
+
+    <!-- 3 附約 -->
+    <section class="card pf-card">
+      <div class="pf-card-title">3　附加契約</div>
+      <div class="pf-grid3">
+        <label>附加人員<select id="pf-r-person" class="pf-person"></select></label>
+        <label>職業等級
+          <select id="pf-r-occ">
+            <option value="1" selected>1 級</option><option value="2">2 級</option><option value="3">3 級</option>
+            <option value="4">4 級</option><option value="5">5 級</option><option value="6">6 級</option>
+          </select>
+        </label>
+        <label>附約生效日<input type="date" id="pf-r-effective"></label>
+      </div>
+      <div class="pf-search">
+        <div class="pf-search-boxes">
+          <input type="text" class="pf-kw" placeholder="1"><input type="text" class="pf-kw" placeholder="2"><input type="text" class="pf-kw" placeholder="3">
+          <input type="text" class="pf-kw" placeholder="4"><input type="text" class="pf-kw" placeholder="5"><input type="text" class="pf-kw" placeholder="6">
+        </div>
+        <div class="pf-search-foot">
+          <span class="pf-note">請依各項附約輸入商品關鍵字、中文名稱或英文代號擇一輸入</span>
+          <button type="button" class="btn-primary pf-small" id="pf-r-search">查詢</button>
+        </div>
+        <div class="pf-results" id="pf-results" hidden>
+          <div class="pf-results-head">請先勾選商品，再按「加入」　<span id="pf-results-count"></span></div>
+          <table class="pf-table"><thead><tr><th>勾選</th><th>英文代號</th><th>附加契約</th></tr></thead><tbody id="pf-results-body"></tbody></table>
+          <div class="pf-actions-right"><button type="button" class="btn-primary pf-small" id="pf-r-add">加入</button></div>
+        </div>
+      </div>
+      <div class="pf-riders" id="pf-riders"></div>
+    </section>
+
+    <!-- 4 保單狀況 -->
+    <section class="card pf-card">
+      <div class="pf-card-title">4　保單狀況</div>
+      <div class="pf-grid2">
+        <label>保單狀況
+          <select id="pf-status">
+            <option selected>正常</option><option>躉繳</option><option>繳清</option><option>展期</option>
+            <option>緩繳</option><option>停繳</option><option>失效</option><option>解約</option>
+          </select>
+        </label>
+        <label id="pf-dividend-wrap" hidden>紅利給付
+          <select id="pf-dividend">
+            <option>抵繳保費</option><option>儲存生息</option><option>領取現金</option><option>買繳清保險</option>
+            <option>增額繳清</option><option>不分紅</option><option>躉繳增額</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="pf-sub">繳費管道</div>
+      <label>繳費方式
+        <select id="pf-channel">
+          <option value="自行繳費" selected>自行繳費</option>
+          <option value="帳戶扣款">帳戶扣款</option>
+          <option value="信用卡/金融卡">信用卡／金融卡</option>
+        </select>
+      </label>
+      <div class="pf-grid3" id="pf-ch-bank" hidden>
+        <label>銀行<select id="pf-bank" class="pf-bank-select"></select></label>
+        <label>分行<input type="text" id="pf-branch" placeholder="例 大安分行"></label>
+        <label>帳號<input type="text" id="pf-account" inputmode="numeric" placeholder="扣款帳號"></label>
+      </div>
+      <div class="pf-grid3" id="pf-ch-card" hidden>
+        <label>發卡銀行<select id="pf-card-bank" class="pf-bank-select"></select></label>
+        <label>到期年月
+          <div class="pf-unit">
+            <select id="pf-card-y"></select>
+            <select id="pf-card-m"></select>
+          </div>
+        </label>
+        <label>卡號<input type="text" id="pf-card-no" inputmode="numeric" placeholder="卡號"></label>
+      </div>
+
+      <div class="pf-sub">受益人</div>
+      <div id="pf-benes"></div>
+      <button type="button" class="btn-secondary pf-small pf-add" id="pf-bene-add">＋ 新增受益人</button>
+      <datalist id="pf-bene-list"></datalist>
+    </section>
+
+    <!-- 5 服務人員 -->
+    <section class="card pf-card">
+      <div class="pf-card-title">5　服務人員</div>
+      <div class="pf-grid3">
+        <label>姓名<input type="text" id="pf-agent-name"></label>
+        <label>登錄證字號<input type="text" id="pf-agent-license"></label>
+        <label>聯繫方式<input type="text" id="pf-agent-contact" placeholder="電話或 LINE"></label>
+      </div>
+    </section>
+
+    <!-- 合計與儲存 -->
+    <div class="pf-savebar">
+      <div class="pf-total">
+        <span>每期保費合計</span><strong id="pf-total">0</strong>
+        <em id="pf-total-disc"></em>
+      </div>
+      <div class="pf-save-btns">
+        <button type="button" class="btn-secondary" id="pf-delete" hidden>刪除此保單</button>
+        <button type="submit" class="btn-primary" id="pf-save">儲存保單</button>
+      </div>
+    </div>
+  </form>
+</main>
+
+<datalist id="pf-code-list"></datalist>
+<datalist id="pf-name-list"></datalist>
+<datalist id="pf-term-list">
+  <option value="躉繳"><option value="2年"><option value="6年"><option value="10年"><option value="15年">
+  <option value="20年"><option value="25年"><option value="30年"><option value="55歲"><option value="60歲">
+  <option value="65歲"><option value="75歲"><option value="85歲"><option value="99歲"><option value="1年（定期）">
+</datalist>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/auth.js"></script>
+<script src="data.js"></script>
+<script src="db.js"></script>
+<script src="policy.js"></script>
+</body>
+</html>

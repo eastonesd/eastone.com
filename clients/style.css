@@ -282,3 +282,14 @@ th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
 /* 檔案區：匯出備份／匯入復原按鈕列 */
 .backup-row { display: flex; gap: 10px; margin-bottom: 12px; }
 .backup-row .btn-secondary { flex: 1; width: auto; }
+
+/* 客戶卡片：保單號碼總表每列可點，進入修改保單 */
+.detail-policy-row { cursor: pointer; }
+.detail-policy-row:hover { background: var(--accent-soft); }
+/* 檔案區：刪除欄 */
+.delete-client-btn { font-size: .88rem; }
+/* 加了「刪除」欄之後，最窄的手機再收一點，五欄仍然擠得進卡片 */
+@media (max-width: 340px) {
+  #tab-filelist .card { padding-left: 10px; padding-right: 10px; }
+  .file-list-table th, .file-list-table td { padding: 9px 2px; font-size: .74rem; }
+}

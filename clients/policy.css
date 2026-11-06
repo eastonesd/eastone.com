@@ -1,0 +1,123 @@
+/* ============================================================
+   新增／修改保單（一頁完成）
+   沿用客戶資料頁的 style.css，這裡只放這頁專用的版面
+   ============================================================ */
+.pf-main { display: flex; flex-direction: column; gap: 16px; padding-bottom: 120px; }
+.pf-main .card { padding: 22px; }
+.pf-back { color: var(--accent); font-weight: 700; font-size: .88rem; text-decoration: none; }
+.pf-back:hover { color: var(--gold); }
+
+/* 客戶與保單清單 */
+.pf-client-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.pf-client-name { font-family: 'Noto Serif TC', serif; font-size: 1.3rem; font-weight: 900; color: var(--accent-deep); }
+.pf-client-meta { font-size: .85rem; color: var(--ink-soft); margin-top: 2px; }
+.pf-new-btn { width: auto; padding: 0 18px; flex: none; }
+.pf-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.pf-chip {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 12px;
+  cursor: pointer; font-family: inherit; color: var(--ink); text-align: left; max-width: 100%;
+}
+.pf-chip b { font-size: .9rem; color: var(--accent-deep); }
+.pf-chip span { font-size: .8rem; color: var(--ink-soft); }
+.pf-chip i { font-style: normal; font-size: .72rem; color: var(--gold); font-weight: 700; }
+.pf-chip:hover { border-color: var(--gold); }
+.pf-chip.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); background: var(--accent-soft); }
+
+/* 卡片標題 */
+.pf-card-title {
+  font-family: 'Noto Serif TC', serif; font-weight: 900; font-size: 1.05rem; color: var(--accent-deep);
+  margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--accent-soft);
+}
+.pf-sub { font-weight: 700; color: var(--accent); margin: 8px 0 10px; font-size: .92rem; }
+
+/* 版面格線 */
+.pf-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
+.pf-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 14px; }
+.pf-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.pf-row2 .pf-code { max-width: none; }
+.pf-row2:first-child { grid-template-columns: 0.8fr 1.6fr; }
+.pf-unit { display: flex; gap: 6px; }
+.pf-unit select { width: 96px; flex: none; }
+.pf-unit input { flex: 1; min-width: 0; }
+.pf-main label > input, .pf-main label > select, .pf-main label > .pf-unit { margin-top: 6px; }
+.pf-note { color: var(--ink-soft); font-size: .8rem; margin: 4px 0 0; }
+
+/* 保單號碼 ＋ 折扣 */
+.pf-topline { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.pf-no { flex: 1 1 260px; margin-bottom: 0; }
+.pf-no input { font-size: 1.15rem; letter-spacing: .06em; font-weight: 700; }
+.pf-invalid { border-color: var(--danger) !important; box-shadow: 0 0 0 3px rgba(162, 64, 45, .15) !important; }
+.pf-discount {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: #f0eee8; opacity: .7; transition: all .15s;
+}
+.pf-discount.on { background: #fff6dd; border-color: var(--gold); opacity: 1; }
+.pf-disc-pct { display: flex; align-items: center; gap: 4px; }
+.pf-disc-pct input { width: 76px; height: 40px; text-align: right; font-weight: 700; }
+.pf-disc-pct span { font-weight: 700; color: var(--ink-soft); }
+.pf-discount.on .pf-disc-pct input { color: var(--gold); border-color: var(--gold); }
+.pf-discount.on .pf-disc-pct span { color: var(--gold); }
+.pf-check { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 700; color: var(--ink); cursor: pointer; white-space: nowrap; }
+.pf-check input { width: 18px; height: 18px; margin: 0; }
+
+/* 附約查詢 */
+.pf-search { border: 1px dashed var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; background: #fcfbf7; }
+.pf-search-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pf-search-boxes input { height: 44px; }
+.pf-search-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; }
+.pf-small { width: auto !important; padding: 0 18px !important; height: 38px; flex: none; }
+.pf-results { margin-top: 14px; }
+.pf-results-head { font-weight: 700; font-size: .88rem; color: var(--accent); }
+.pf-table td input[type=checkbox] { width: 18px; height: 18px; }
+.pf-table td, .pf-table th { font-size: .88rem; }
+.pf-empty { color: #999; text-align: center; }
+.pf-actions-right { display: flex; justify-content: flex-end; margin-top: 10px; }
+.pf-rider { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 0; margin-bottom: 10px; background: #fff; }
+.pf-rider-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pf-rider-head b { color: var(--accent-deep); }
+.pf-rider-meta { font-size: .78rem; color: var(--ink-soft); margin: 2px 0 10px; }
+
+/* 受益人 */
+.pf-bene { display: grid; grid-template-columns: 80px 1fr 110px auto 32px; gap: 10px; align-items: end; margin-bottom: 6px; }
+.pf-bene label { margin-bottom: 10px; }
+.pf-bene .pf-check { margin-bottom: 24px; }
+.pf-bene .icon-btn { margin-bottom: 24px; }
+.pf-add { margin-top: 2px; }
+
+/* 下方固定的合計＋儲存 */
+.pf-savebar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 12px max(20px, calc((100vw - 860px) / 2)) calc(12px + env(safe-area-inset-bottom, 0px));
+  background: rgba(255, 253, 248, .96); border-top: 1px solid var(--line);
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, .06); backdrop-filter: blur(6px);
+}
+.pf-total { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pf-total span { font-size: .82rem; color: var(--ink-soft); }
+.pf-total strong { font-size: 1.35rem; color: var(--accent-deep); }
+.pf-total em { font-style: normal; font-size: .85rem; color: var(--gold); font-weight: 700; }
+.pf-save-btns { display: flex; gap: 8px; }
+.pf-save-btns button { width: auto; padding: 0 22px; height: 44px; }
+
+@media (max-width: 700px) {
+  .pf-grid2, .pf-grid3 { grid-template-columns: 1fr; }
+  .pf-search-boxes { grid-template-columns: repeat(2, 1fr); }
+  .pf-search-foot { flex-direction: column; align-items: stretch; }
+  .pf-search-foot .pf-small { width: 100% !important; }
+  .pf-bene { grid-template-columns: 70px 1fr 90px; }
+  .pf-bene .pf-bene-equal { grid-column: 1 / 3; margin-bottom: 12px; }
+  .pf-bene .icon-btn { margin-bottom: 12px; justify-self: end; }
+  .pf-main .card { padding: 16px; }
+  .pf-savebar { padding-left: 14px; padding-right: 14px; }
+  .pf-save-btns button { padding: 0 14px; }
+  .pf-client-head { flex-wrap: wrap; }
+}
+@media (max-width: 380px) {
+  .pf-total strong { font-size: 1.1rem; }
+}
+
+/* 有些元素本身設了 display（label、格線），要讓 hidden 屬性真的藏起來 */
+.pf-main [hidden] { display: none !important; }
+/* 提示訊息浮在下方合計列上面，不要蓋住 */
+.toast { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }

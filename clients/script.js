@@ -30,6 +30,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindBackup();
 
   addPolicyRow(); // 預設一列
+  // 從保單頁「← 返回客戶資料」回來時，直接打開檔案區
+  if (location.hash === "#filelist") document.querySelector('.tab-btn[data-tab="filelist"]').click();
   await refreshFileList();
   await refreshCodeList();
 
@@ -364,7 +366,8 @@ function collectPolicies() {
     const main_name = row.querySelector(".p-main-name").value.trim();
     const currency = row.querySelector(".p-currency").value;
     if (policy_no || main_code) {
-      policies.push({ policy_no, main_code, main_name, currency, total_premium: 0 });
+      const orig = row._orig || {};
+      policies.push({ ...orig, policy_no, main_code, main_name, currency, total_premium: orig.total_premium || 0 });
     }
   });
   return policies;
@@ -544,6 +547,7 @@ async function startEditClient(clientId) {
       addPolicyRow();
       const rows = document.querySelectorAll("#policy-tbody tr");
       const row = rows[rows.length - 1];
+      row._orig = p; // 保留詳細保單資料，存檔時不會被精靈蓋掉
       row.querySelector(".p-policy-no").value = p.policy_no || "";
       row.querySelector(".p-main-code").value = p.main_code || "";
       row.querySelector(".p-main-name").value = p.main_name || "";
@@ -625,16 +629,24 @@ async function refreshFileList() {
   const tbody = document.getElementById("file-list-body");
   tbody.innerHTML = "";
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="color:#999;text-align:center;">尚無資料</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="color:#999;text-align:center;">尚無資料</td></tr>`;
     return;
   }
   filtered.forEach((c) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${c.id}</td><td>${c.name}</td><td>${c.gender || ""}</td>
-      <td><span class="icon-btn edit-client-btn" data-id="${c.id}" style="color:var(--accent);">編輯資料</span></td>`;
+      <td><span class="icon-btn edit-client-btn" data-id="${c.id}" style="color:var(--accent);">編輯資料</span></td>
+      <td><span class="icon-btn delete-client-btn" data-id="${c.id}">刪除</span></td>`;
     tr.addEventListener("click", (e) => {
-      if (e.target.classList.contains("edit-client-btn")) return;
+      if (e.target.classList.contains("edit-client-btn") || e.target.classList.contains("delete-client-btn")) return;
       openDetail(c.id);
+    });
+    tr.querySelector(".delete-client-btn").addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!confirm(`確定要刪除客戶「${c.id} ${c.name}」嗎？此動作無法復原。`)) return;
+      await clientDelete(c.id);
+      showToast("已刪除");
+      refreshFileList();
     });
     tr.querySelector(".edit-client-btn").addEventListener("click", (e) => {
       e.stopPropagation();
@@ -673,7 +685,7 @@ async function openDetail(clientId) {
         <tbody>
           ${c.policies
             .map(
-              (p) => `<tr>
+              (p, i) => `<tr class="detail-policy-row" data-i="${i}" title="點一下修改這張保單">
                 <td>${p.policy_no || ""}</td>
                 <td>${p.main_code || ""}${p.main_name ? " " + p.main_name : ""}</td>
                 <td>${p.currency || "TWD"}</td>
@@ -708,23 +720,23 @@ async function openDetail(clientId) {
     <div class="detail-section-title">保單號碼總表</div>
     ${policiesHtml}
     <div class="wizard-nav" style="margin-top:20px;">
-      <button type="button" class="btn-primary" id="btn-edit-client">編輯資料</button>
-      <button type="button" class="btn-secondary" id="btn-delete-client">刪除此客戶</button>
+      <button type="button" class="btn-primary" id="btn-policy-client">新增／修改保單</button>
+      <button type="button" class="btn-secondary" id="btn-edit-client">編輯資料</button>
     </div>
   `;
+
+  const policyUrl = (i) => `policy.html?id=${encodeURIComponent(c.id)}${i == null ? "" : "&i=" + i}`;
+  document.getElementById("btn-policy-client").addEventListener("click", () => {
+    location.href = policyUrl(null);
+  });
+  document.querySelectorAll(".detail-policy-row").forEach((tr) =>
+    tr.addEventListener("click", () => (location.href = policyUrl(tr.dataset.i))));
 
   document.getElementById("btn-edit-client").addEventListener("click", () => {
     closeModal();
     startEditClient(c.id);
   });
 
-  document.getElementById("btn-delete-client").addEventListener("click", async () => {
-    if (!confirm(`確定要刪除客戶「${c.id} ${c.name}」嗎？此動作無法復原。`)) return;
-    await clientDelete(c.id);
-    showToast("已刪除");
-    closeModal();
-    refreshFileList();
-  });
 
   document.getElementById("detail-modal").hidden = false;
 }

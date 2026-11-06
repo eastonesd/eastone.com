@@ -102,7 +102,9 @@ function buildClientRecord(payload) {
     city: payload.city || '',
     district: payload.district || '',
     address_detail: payload.address_detail || '',
+    // 保單：保留詳細資料（life 等欄位），只更新精靈裡看得到的摘要欄位
     policies: (payload.policies || []).map((p) => ({
+      ...p,
       policy_no: p.policy_no || '',
       main_code: (p.main_code || '').toUpperCase(),
       main_name: p.main_name || '',
@@ -142,6 +144,19 @@ async function clientUpdate(id, payload) {
     .update({ data: record, updated_at: new Date().toISOString() })
     .eq('id', key);
   sbThrow(error, '更新客戶資料');
+  return record;
+}
+
+// 只更新某位客戶的保單清單（新增／修改保單頁使用）
+async function clientSavePolicies(id, policies) {
+  const key = (id || '').trim().toUpperCase();
+  const existing = await clientGet(key);
+  if (!existing) throw new Error('查無此客戶');
+  const record = { ...existing, policies, updated_at: nowStamp() };
+  const { error } = await sb.from('clients')
+    .update({ data: record, updated_at: new Date().toISOString() })
+    .eq('id', key);
+  sbThrow(error, '儲存保單');
   return record;
 }
 
