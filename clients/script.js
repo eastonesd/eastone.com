@@ -28,6 +28,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindCodeMaintenance();
   bindModal();
   bindBackup();
+  bindEraSwitch();
 
   addPolicyRow(); // 預設一列
   // 從保單頁「← 返回客戶資料」回來時，直接打開檔案區
@@ -223,7 +224,7 @@ function fillWheel(wheelEl, items) {
   });
 }
 
-// 年份滾輪專用：畫面顯示民國年（西元年 - 1911），但每個項目用 data-year 屬性
+// 年份滾輪專用：畫面依「西元／民國」切換顯示，但每個項目用 data-year 屬性
 // 保留真正的西元年，給星座／年齡計算與存檔使用，兩邊互不影響。
 function fillYearWheel(wheelEl, westernYears) {
   const track = wheelEl.querySelector(".wheel-track");
@@ -231,7 +232,7 @@ function fillYearWheel(wheelEl, westernYears) {
   westernYears.forEach((y) => {
     const div = document.createElement("div");
     div.className = "wheel-item";
-    div.textContent = `${y - 1911}`;
+    div.textContent = fmtYear(y);
     div.dataset.year = y;
     track.appendChild(div);
   });
@@ -629,16 +630,16 @@ async function refreshFileList() {
   const tbody = document.getElementById("file-list-body");
   tbody.innerHTML = "";
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="color:#999;text-align:center;">尚無資料</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="color:#999;text-align:center;">尚無資料</td></tr>`;
     return;
   }
   filtered.forEach((c) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${c.id}</td><td>${c.name}</td><td>${c.gender || ""}</td>
-      <td><span class="icon-btn edit-client-btn" data-id="${c.id}" style="color:var(--accent);">編輯資料</span></td>
       <td><span class="icon-btn delete-client-btn" data-id="${c.id}">刪除</span></td>`;
+    // 點整列打開客戶資料卡（編輯資料在資料卡裡）
     tr.addEventListener("click", (e) => {
-      if (e.target.classList.contains("edit-client-btn") || e.target.classList.contains("delete-client-btn")) return;
+      if (e.target.classList.contains("delete-client-btn")) return;
       openDetail(c.id);
     });
     tr.querySelector(".delete-client-btn").addEventListener("click", async (e) => {
@@ -647,10 +648,6 @@ async function refreshFileList() {
       await clientDelete(c.id);
       showToast("已刪除");
       refreshFileList();
-    });
-    tr.querySelector(".edit-client-btn").addEventListener("click", (e) => {
-      e.stopPropagation();
-      startEditClient(c.id);
     });
     tbody.appendChild(tr);
   });
@@ -668,75 +665,161 @@ function closeModal() {
   document.getElementById("detail-modal").hidden = true;
 }
 
+// ========================= 西元／民國切換 =========================
+function bindEraSwitch() {
+  const sw = document.getElementById("era-switch");
+  sw.checked = dateEra() === "roc";
+  syncEraLabels();
+  sw.addEventListener("change", () => {
+    setDateEra(sw.checked ? "roc" : "ad");
+    syncEraLabels();
+    // 生日滾輪的年份標籤換掉（實際值存在 data-year，不受影響）
+    document.querySelectorAll("#wheel-year .wheel-item").forEach((el) => (el.textContent = fmtYear(Number(el.dataset.year))));
+    // 資料卡開著的話重畫
+    if (!document.getElementById("detail-modal").hidden && currentDetailId) openDetail(currentDetailId);
+  });
+}
+function syncEraLabels() {
+  const roc = dateEra() === "roc";
+  document.querySelector(".era-toggle").classList.toggle("is-roc", roc);
+}
+
+// ========================= 保單目錄 =========================
+const CATALOG_KEY = "eastone.catalogExpanded";
+function catalogExpanded() {
+  try { return localStorage.getItem(CATALOG_KEY) === "1"; } catch { return false; }
+}
+const escHtml = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+const money = (n) => (Number(n) || 0).toLocaleString();
+const saText = (v, unit) => (v === "" || v == null ? "" : `${v}${unit || ""}`);
+
+function catalogCollapsed(policies) {
+  return `
+    <table>
+      <thead><tr><th>保單號碼</th><th>主約</th><th>幣別</th></tr></thead>
+      <tbody>
+        ${policies.map((p, i) => `<tr class="detail-policy-row" data-i="${i}" title="點一下修改這張保單">
+            <td>${escHtml(p.policy_no)}</td>
+            <td>${escHtml(p.main_code)}${p.main_name ? " " + escHtml(p.main_name) : ""}</td>
+            <td>${escHtml(p.currency || "TWD")}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>`;
+}
+
+function catalogExpandedHtml(policies) {
+  return `<div class="pc-list">${policies.map((p, i) => {
+    const L = p.life;
+    const M = (L && L.main) || {};
+    const cur = M.currency || p.currency || "TWD";
+    const mainMeta = L
+      ? [M.company, L.insured_name && `被保人 ${L.insured_name}`, L.effective_date && `生效 ${fmtDate(L.effective_date)}`,
+         L.pay_mode, M.term, saText(M.sum_assured, M.sa_unit) && `保額 ${saText(M.sum_assured, M.sa_unit)}`,
+         M.premium !== "" && M.premium != null && `保費 ${money(M.premium)}`].filter(Boolean)
+      : [];
+    const riders = (L && L.riders) || [];
+    const pct = L && L.discount && L.discount.on ? Number(L.discount.pct) || 0 : 0;
+    const total = Number(p.total_premium) || 0;
+    return `
+      <div class="pc-policy detail-policy-row" data-i="${i}" title="點一下修改這張保單">
+        <div class="pc-head">
+          <b class="pc-no">${escHtml(p.policy_no || "（未填號碼）")}</b>
+          ${L && L.status ? `<span class="pc-status${L.status === "正常" ? "" : " warn"}">${escHtml(L.status)}</span>` : ""}
+          ${L ? "" : `<span class="pc-todo">待補詳細資料</span>`}
+          <span class="pc-cur">${escHtml(cur)}</span>
+        </div>
+        <div class="pc-item pc-main">
+          <span class="pc-tag">主約</span>
+          <div><div class="pc-name">${escHtml([M.code || p.main_code, M.name || p.main_name].filter(Boolean).join(" ") || "—")}</div>
+          ${mainMeta.length ? `<div class="pc-meta">${mainMeta.map(escHtml).join("　")}</div>` : ""}</div>
+        </div>
+        ${riders.map((r) => {
+          const meta = [r.insured_name && `被保人 ${r.insured_name}`, r.term, saText(r.sum_assured, r.sa_unit) && `保額 ${saText(r.sum_assured, r.sa_unit)}`,
+            r.premium !== "" && r.premium != null && `保費 ${money(r.premium)}`].filter(Boolean);
+          return `<div class="pc-item pc-rider"><span class="pc-tag rider">附約</span>
+            <div><div class="pc-name">${escHtml([r.code, r.name].filter(Boolean).join(" "))}</div>
+            ${meta.length ? `<div class="pc-meta">${meta.map(escHtml).join("　")}</div>` : ""}</div></div>`;
+        }).join("")}
+        ${L ? `<div class="pc-total">每期保費合計 <b>${money(total)}</b>${pct ? `　折扣 ${pct}% 後 <b>${money(Math.round(total * (1 - pct / 100)))}</b>` : ""}</div>` : ""}
+      </div>`;
+  }).join("")}</div>`;
+}
+
+let currentDetailId = null;
+
 async function openDetail(clientId) {
   const c = await clientGet(clientId);
   if (!c) {
     showToast("查無此客戶");
     return;
   }
+  currentDetailId = c.id;
   const email = c.email_local ? `${c.email_local}@${c.email_domain || ""}` : "—";
   const fullAddress = [c.zip_code, c.city, c.district, c.address_detail].filter(Boolean).join(" ");
-
-  let policiesHtml = `<p style="color:#999;">尚無保單資料</p>`;
-  if (c.policies && c.policies.length) {
-    policiesHtml = `
-      <table>
-        <thead><tr><th>保單號碼</th><th>主約</th><th>幣別</th></tr></thead>
-        <tbody>
-          ${c.policies
-            .map(
-              (p, i) => `<tr class="detail-policy-row" data-i="${i}" title="點一下修改這張保單">
-                <td>${p.policy_no || ""}</td>
-                <td>${p.main_code || ""}${p.main_name ? " " + p.main_name : ""}</td>
-                <td>${p.currency || "TWD"}</td>
-              </tr>`
-            )
-            .join("")}
-        </tbody>
-      </table>`;
-  }
+  const policies = c.policies || [];
+  const expanded = catalogExpanded();
 
   document.getElementById("detail-content").innerHTML = `
     <div class="detail-row">
-      <div class="detail-cell"><span>客戶ID</span><strong>${c.id}</strong></div>
-      <div class="detail-cell"><span>姓名</span><strong>${c.name}</strong></div>
-      <div class="detail-cell"><span>性別</span><strong>${c.gender || "—"}</strong></div>
+      <div class="detail-cell"><span>客戶ID</span><strong>${escHtml(c.id)}</strong></div>
+      <div class="detail-cell"><span>姓名</span><strong>${escHtml(c.name)}</strong></div>
+      <div class="detail-cell"><span>性別</span><strong>${escHtml(c.gender || "—")}</strong></div>
     </div>
     <div class="detail-row">
-      <div class="detail-cell"><span>生日</span><strong>${c.birthday || "—"}</strong></div>
-      <div class="detail-cell"><span>星座</span><strong>${c.zodiac || "—"}</strong></div>
+      <div class="detail-cell"><span>生日</span><strong>${c.birthday ? fmtDate(c.birthday) : "—"}</strong></div>
+      <div class="detail-cell"><span>星座</span><strong>${escHtml(c.zodiac || "—")}</strong></div>
       <div class="detail-cell"><span>實際年齡</span><strong>${c.actual_age ?? "—"}</strong></div>
       <div class="detail-cell"><span>保險年齡</span><strong>${c.insurance_age ?? "—"}</strong></div>
     </div>
     <div class="detail-row">
-      <div class="detail-cell"><span>信箱</span><strong>${email}</strong></div>
-      <div class="detail-cell"><span>電話</span><strong>${c.phone || "—"}</strong></div>
+      <div class="detail-cell"><span>信箱</span><strong>${escHtml(email)}</strong></div>
+      <div class="detail-cell"><span>電話</span><strong>${escHtml(c.phone || "—")}</strong></div>
     </div>
     <div class="detail-row">
       <div class="detail-cell detail-full">
-        <span>地址</span><strong>${fullAddress || "—"}</strong>
+        <span>地址</span><strong>${escHtml(fullAddress || "—")}</strong>
       </div>
     </div>
-    <div class="detail-section-title">保單號碼總表</div>
-    ${policiesHtml}
-    <div class="wizard-nav" style="margin-top:20px;">
+    <div class="detail-section-title catalog-title">
+      <span>保單目錄${policies.length ? `（${policies.length}）` : ""}</span>
+      ${policies.length ? `<label class="catalog-toggle" title="收合／展開主附約內容">
+        <span class="catalog-state">${expanded ? "展開" : "收合"}</span>
+        <input type="checkbox" id="catalog-switch" class="switch-input"${expanded ? " checked" : ""}>
+        <span class="switch" aria-hidden="true"></span>
+      </label>` : ""}
+    </div>
+    <div id="catalog-body">${policies.length ? (expanded ? catalogExpandedHtml(policies) : catalogCollapsed(policies)) : `<p style="color:#999;">尚無保單資料</p>`}</div>
+    <div class="detail-actions">
       <button type="button" class="btn-primary" id="btn-policy-client">新增／修改保單</button>
       <button type="button" class="btn-secondary" id="btn-edit-client">編輯資料</button>
+      <button type="button" class="btn-secondary btn-checkup" id="btn-checkup">保單健診報告</button>
     </div>
   `;
 
   const policyUrl = (i) => `policy.html?id=${encodeURIComponent(c.id)}${i == null ? "" : "&i=" + i}`;
+  const bindRows = () => document.querySelectorAll("#catalog-body .detail-policy-row").forEach((el) =>
+    el.addEventListener("click", () => (location.href = policyUrl(el.dataset.i))));
+  bindRows();
+
+  const sw = document.getElementById("catalog-switch");
+  if (sw) sw.addEventListener("change", () => {
+    try { localStorage.setItem(CATALOG_KEY, sw.checked ? "1" : "0"); } catch { /* 記不住也沒關係 */ }
+    document.querySelector(".catalog-state").textContent = sw.checked ? "展開" : "收合";
+    document.getElementById("catalog-body").innerHTML = sw.checked ? catalogExpandedHtml(policies) : catalogCollapsed(policies);
+    bindRows();
+  });
+
   document.getElementById("btn-policy-client").addEventListener("click", () => {
     location.href = policyUrl(null);
   });
-  document.querySelectorAll(".detail-policy-row").forEach((tr) =>
-    tr.addEventListener("click", () => (location.href = policyUrl(tr.dataset.i))));
-
   document.getElementById("btn-edit-client").addEventListener("click", () => {
     closeModal();
     startEditClient(c.id);
   });
-
+  // 保單健診報告：功能規劃中，先放按鈕
+  document.getElementById("btn-checkup").addEventListener("click", () => {
+    showToast("保單健診報告規劃中，敬請期待");
+  });
 
   document.getElementById("detail-modal").hidden = false;
 }

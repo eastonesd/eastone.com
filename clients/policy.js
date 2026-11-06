@@ -105,7 +105,7 @@ function personName(id) {
 // ---------------- 上方：客戶與保單清單 ----------------
 function renderClient() {
   $("pf-client-name").textContent = `${client.name}`;
-  const meta = [client.id, client.gender, client.birthday, client.insurance_age != null ? `保險年齡 ${client.insurance_age}` : ""].filter(Boolean);
+  const meta = [client.id, client.gender, client.birthday && fmtDate(client.birthday), client.insurance_age != null ? `保險年齡 ${client.insurance_age}` : ""].filter(Boolean);
   $("pf-client-meta").textContent = meta.join("　");
   const list = client.policies || [];
   $("pf-chips").innerHTML = list.length

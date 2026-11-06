@@ -41,7 +41,7 @@
     </label>
     <div class="auth-msg" id="msg"></div>
     <button type="submit" class="auth-btn auth-btn-block" id="btnLogin">登入</button>
-    <p class="auth-note">客戶資料與產險管理需要登入才能使用。帳號由管理者建立，忘記密碼請聯絡管理者。</p>
+    <p class="auth-note">客戶資料與產險管理需要登入才能使用；登入後會回到你剛剛的頁面。帳號由管理者建立，忘記密碼請聯絡管理者。</p>
   </form>
 </main>
 
@@ -51,7 +51,8 @@
   // 只允許導回系統內的這兩頁，避免被拿來當跳轉到外部網站的工具
   function safeNext() {
     const next = new URLSearchParams(location.search).get('next') || '';
-    return /^(clients|policies)\/index\.html(#[\w-]*)?$/.test(next) ? next : 'clients/index.html';
+    // 系統內的頁面才導回去（可帶 ?id=… 與 #分頁），其他一律回首頁
+    return /^(index\.html|clients\/(index|policy)\.html|policies\/index\.html)(\?[\w=&%.-]*)?(#[\w-]*)?$/.test(next) ? next : 'index.html';
   }
 
   // 已經登入的話直接進去

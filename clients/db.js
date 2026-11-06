@@ -232,3 +232,23 @@ function calcInsuranceAge(y, m, d, todayDate) {
   if (daysSince > 182) return actualAge + 1;
   return actualAge;
 }
+
+// ============================================================
+// 日期顯示：西元／民國切換（設定記在這台裝置，預設民國）
+// 只影響畫面顯示；資料庫一律存西元 YYYY-MM-DD
+// ============================================================
+const ERA_KEY = 'eastone.dateEra';
+function dateEra() {
+  try { return localStorage.getItem(ERA_KEY) === 'ad' ? 'ad' : 'roc'; } catch { return 'roc'; }
+}
+function setDateEra(era) {
+  try { localStorage.setItem(ERA_KEY, era); } catch { /* 無痕模式記不住也沒關係 */ }
+}
+function fmtDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+  if (!m) return iso || '—';
+  return dateEra() === 'roc' ? `${Number(m[1]) - 1911}/${m[2]}/${m[3]}` : `${m[1]}-${m[2]}-${m[3]}`;
+}
+function fmtYear(y) {
+  return dateEra() === 'roc' ? `${y - 1911}` : `${y}`;
+}

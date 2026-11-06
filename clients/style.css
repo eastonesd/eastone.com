@@ -293,3 +293,62 @@ th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
   #tab-filelist .card { padding-left: 10px; padding-right: 10px; }
   .file-list-table th, .file-list-table td { padding: 9px 2px; font-size: .74rem; }
 }
+
+/* ---------- 開關按鈕（西元／民國、保單目錄收合／展開共用） ---------- */
+.switch-input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.switch {
+  position: relative; display: inline-block; width: 46px; height: 26px; flex: none;
+  border-radius: 999px; background: #C9C9C9; transition: background .2s; cursor: pointer;
+}
+.switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .2s;
+}
+.switch-input:checked + .switch { background: var(--gold); }
+.switch-input:checked + .switch::after { transform: translateX(20px); }
+.switch-input:focus-visible + .switch { box-shadow: 0 0 0 3px var(--accent-soft); }
+
+/* 頁籤下方的西元／民國切換 */
+.topbar-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.era-toggle {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0; cursor: pointer;
+  font-size: .8rem; font-weight: 700; color: var(--ink-soft); user-select: none;
+}
+.era-toggle .era-ad { color: var(--accent-deep); }
+.era-toggle .era-roc { color: #B5AE9C; }
+.era-toggle.is-roc .era-ad { color: #B5AE9C; }
+.era-toggle.is-roc .era-roc { color: var(--gold); }
+
+/* 客戶資料卡：保單目錄 */
+.catalog-title { display: flex; justify-content: space-between; align-items: center; }
+.catalog-toggle { display: inline-flex; align-items: center; gap: 8px; margin: 0; cursor: pointer; font-size: .78rem; color: var(--ink-soft); }
+.pc-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.pc-policy { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; background: #fff; }
+.pc-policy:hover { border-color: var(--gold); background: #FFFDF8; }
+.pc-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.pc-no { color: var(--accent-deep); font-size: .98rem; letter-spacing: .03em; }
+.pc-status { font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: #E3F1E6; color: #1E6B34; }
+.pc-status.warn { background: #F8E5E0; color: var(--danger); }
+.pc-todo { font-size: .72rem; font-weight: 700; color: var(--gold); }
+.pc-cur { margin-left: auto; font-size: .75rem; color: var(--ink-soft); }
+.pc-item { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; }
+.pc-rider { margin-left: 22px; padding-left: 12px; border-left: 3px solid var(--accent-soft); }
+.pc-tag {
+  flex: none; font-size: .7rem; font-weight: 700; padding: 2px 7px; border-radius: 6px;
+  background: var(--accent); color: #fff; margin-top: 1px;
+}
+.pc-tag.rider { background: var(--accent-soft); color: var(--accent); }
+.pc-name { font-weight: 700; font-size: .9rem; }
+.pc-meta { font-size: .78rem; color: var(--ink-soft); margin-top: 2px; line-height: 1.6; }
+.pc-total { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); font-size: .8rem; color: var(--ink-soft); text-align: right; }
+.pc-total b { color: var(--accent-deep); }
+
+/* 資料卡下方三個按鈕 */
+.detail-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+.detail-actions button { width: auto; min-height: 42px; padding: 0 8px; }
+.btn-checkup { color: var(--gold) !important; border-color: var(--gold) !important; background: #FFF8E6 !important; }
+@media (max-width: 480px) {
+  .detail-actions { grid-template-columns: 1fr 1fr; }
+  .detail-actions .btn-primary { grid-column: 1 / -1; }
+  .pc-rider { margin-left: 12px; }
+}

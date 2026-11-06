@@ -1,33 +1,51 @@
 /* ============================================================
-   登入相關樣式：頁首下方的帳號列、修改密碼視窗、登入頁
+   登入相關樣式：頁首右上角頭像選單、修改密碼視窗、登入頁
    （獨立檔案，不動 site-header.css）
    ============================================================ */
 
-.auth-bar {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 4px;
-  padding: 6px clamp(20px, 4vw, 56px);
-  background: #121D33;
-  color: #C9BFA6;
-  font-family: 'Noto Sans TC', sans-serif;
-  font-size: 12px;
-  flex-wrap: wrap;
+/* ---------- 頁首右上角頭像＋帳號選單 ---------- */
+.ghdr-right { display: flex; align-items: center; gap: 16px; }
+.ghdr-avatar {
+  width: 42px; height: 42px; flex: none; border-radius: 50%; cursor: pointer; padding: 0;
+  display: grid; place-items: center;
+  font: 900 18px/1 'Noto Serif TC', serif; color: #121D33;
+  background: linear-gradient(160deg, #F3D58A, #B8892B);
+  border: 2px solid #F6F3EC; box-shadow: 0 0 0 2px #B8892B, 0 2px 8px rgba(0, 0, 0, .35);
+  transition: transform .15s ease;
 }
-.auth-user { margin-right: 8px; letter-spacing: .03em; }
-.auth-link {
-  background: none;
-  border: none;
-  color: #E4C77E;
-  font: inherit;
-  cursor: pointer;
-  padding: 2px 8px;
-  border-left: 1px solid rgba(201, 191, 166, .35);
+.ghdr-avatar:hover { transform: scale(1.06); }
+.ghdr-avatar.is-guest { background: #121D33; color: #E4C77E; border-color: rgba(228, 199, 126, .7); box-shadow: none; }
+.ghdr-avatar svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.acct-menu {
+  position: fixed; z-index: 1000;
+  width: min(300px, calc(100vw - 24px));
+  background: #1E2A44; color: #F1F3F8; border-radius: 14px; padding: 8px 0;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .45); border: 1px solid rgba(255, 255, 255, .08);
+  font-family: 'Noto Sans TC', sans-serif; animation: acctIn .14s ease-out;
 }
-.auth-link:hover { color: #F6F3EC; text-decoration: underline; }
+@keyframes acctIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.acct-head { display: flex; align-items: center; gap: 14px; padding: 12px 18px 14px; }
+.acct-badge {
+  width: 46px; height: 46px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  font: 900 20px/1 'Noto Serif TC', serif; color: #121D33; background: linear-gradient(160deg, #F3D58A, #B8892B);
+}
+.acct-who { min-width: 0; }
+.acct-email { font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-sub { font-size: 12px; color: #9FB0D0; margin-top: 3px; }
+.acct-sep { height: 1px; background: rgba(255, 255, 255, .12); margin: 6px 0; }
+.acct-item {
+  display: flex; align-items: center; gap: 16px; width: 100%; padding: 11px 20px;
+  background: none; border: none; color: inherit; font: 500 15px 'Noto Sans TC', sans-serif; text-align: left; cursor: pointer;
+}
+.acct-item:hover, .acct-item:focus-visible { background: rgba(255, 255, 255, .08); outline: none; }
+.acct-item svg { width: 22px; height: 22px; flex: none; fill: none; stroke: #DCE3F1; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 手機：頁首是上下兩排（logo／導覽列），頭像放在 logo 那排的右邊 */
+@media (max-width: 560px) {
+  .ghdr-right { display: block; }
+  .ghdr-avatar { position: absolute; top: 15px; right: 14px; width: 40px; height: 40px; font-size: 17px; }
+}
 
 /* ---------- 卡片 / 表單（登入頁與修改密碼共用） ---------- */
 .auth-card {

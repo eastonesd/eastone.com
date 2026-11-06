@@ -34,11 +34,20 @@
 
 <header class="topbar">
   <h1>客戶個資管理<small>CLIENT PROFILE MANAGEMENT</small></h1>
-  <nav class="tabs">
-    <button class="tab-btn active" data-tab="wizard">＋ 新增客戶</button>
-    <button class="tab-btn" data-tab="filelist">📁 檔案區</button>
-    <button class="tab-btn" data-tab="codes">⚙ 保單代號維護</button>
-  </nav>
+  <div class="topbar-right">
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="wizard">＋ 新增客戶</button>
+      <button class="tab-btn" data-tab="filelist">📁 檔案區</button>
+      <button class="tab-btn" data-tab="codes">⚙ 保單代號維護</button>
+    </nav>
+    <!-- 日期顯示：西元／民國 -->
+    <label class="era-toggle" title="切換日期顯示">
+      <span class="era-ad">西元</span>
+      <input type="checkbox" id="era-switch" class="switch-input">
+      <span class="switch" aria-hidden="true"></span>
+      <span class="era-roc">民國</span>
+    </label>
+  </div>
 </header>
 
 <main>
@@ -171,7 +180,7 @@
       </div>
       <input type="text" id="search-box" placeholder="搜尋 ID 或姓名...">
       <table class="file-list-table">
-        <thead><tr><th>客戶ID</th><th>姓名</th><th>性別</th><th>編輯資料</th><th>刪除</th></tr></thead>
+        <thead><tr><th>客戶ID</th><th>姓名</th><th>性別</th><th>刪除</th></tr></thead>
         <tbody id="file-list-body"></tbody>
       </table>
     </div>
