@@ -73,6 +73,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   } catch (err) { console.warn("知識庫讀取失敗", err); }
 
+  eraDateInput("pf-effective");
+  eraDateInput("pf-r-effective");
   buildStaticOptions();
   bindForm();
   renderClient();
@@ -339,7 +341,7 @@ function renderRiders() {
         <div><b>${esc(r.code)}</b> ${esc(r.name)}</div>
         <button type="button" class="icon-btn pf-rider-del" title="移除">✕</button>
       </div>
-      <div class="pf-rider-meta">被保人 ${esc(r.insured_name)}　職等 ${esc(r.occ_class)} 級${r.effective_date ? "　生效 " + esc(r.effective_date) : ""}</div>
+      <div class="pf-rider-meta">被保人 ${esc(r.insured_name)}　職等 ${esc(r.occ_class)} 級${r.effective_date ? "　生效 " + esc(fmtDate(r.effective_date)) : ""}</div>
       ${kbProductOf(r.code) ? `<div class="pf-kb">${kbBadge(kbProductOf(r.code))}</div>` : ""}
       <div class="pf-grid4">
         <label>繳費年期<input type="text" data-f="term" list="pf-term-list" value="${esc(r.term)}" placeholder="例 20年"></label>
@@ -630,4 +632,81 @@ async function deletePolicy() {
   } catch (err) {
     alert("刪除失敗：" + (err && err.message ? err.message : err));
   }
+}
+
+// ---------------- 日期欄：跟著客戶資料頁的「西元／民國」切換 ----------------
+// 原本的 <input> 變成隱藏欄位，值一律存西元 YYYY-MM-DD（程式其他地方不用改）；
+// 畫面上另外放一個文字框，民國模式輸入 115/11/07 或 1151107，西元模式輸入 2026-11-07 或 20261107。
+function parseEraDate(text, era) {
+  const t = String(text || "").trim();
+  if (!t) return "";
+  let y, m, d;
+  const parts = t.split(/[^0-9]+/).filter(Boolean);
+  if (parts.length === 3) [y, m, d] = parts.map(Number);
+  else if (parts.length === 1 && /^\d{6,8}$/.test(parts[0])) {
+    const n = parts[0];
+    // 8 碼＝西元 YYYYMMDD；7 碼＝民國 YYYMMDD；6 碼＝民國 YYMMDD（民國 99 年以前）
+    [y, m, d] = [Number(n.slice(0, n.length - 4)), Number(n.slice(-4, -2)), Number(n.slice(-2))];
+  } else return null;
+  if (y < 1000) y += 1911;           // 民國年（輸入三碼以內的年份一律當民國）
+  else if (era === "roc" && y < 1912) return null;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (!m || !d || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+function eraDateInput(id) {
+  const hidden = $(id);
+  const era = dateEra();
+  hidden.type = "hidden";
+  const wrap = document.createElement("span");
+  wrap.className = "pf-date";
+  const text = document.createElement("input");
+  text.type = "text";
+  text.inputMode = "numeric";
+  text.autocomplete = "off";
+  text.placeholder = era === "roc" ? "例 115/11/07" : "例 2026-11-07";
+  text.title = era === "roc" ? "民國年月日，可直接打 1151107" : "西元年月日，可直接打 20261107";
+  const pick = document.createElement("input");     // 小月曆按鈕（用瀏覽器內建日期選擇器）
+  pick.type = "date";
+  pick.className = "pf-date-pick";
+  pick.tabIndex = -1;
+  pick.setAttribute("aria-label", "開啟月曆");
+  wrap.append(text, pick);
+  hidden.after(wrap);
+  const label = hidden.closest("label");
+  if (label && label.firstChild && label.firstChild.nodeType === 3) {
+    const tag = document.createElement("em");
+    tag.className = "pf-era-tag";
+    tag.textContent = era === "roc" ? "民國" : "西元";
+    label.insertBefore(tag, label.firstChild.nextSibling);
+  }
+
+  const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+  const show = () => {
+    const v = desc.get.call(hidden);
+    text.value = v ? fmtDate(v) : "";
+    pick.value = v || "";
+    text.classList.remove("pf-invalid");
+  };
+  // 程式設定 hidden.value 時，畫面一起更新
+  Object.defineProperty(hidden, "value", { get() { return desc.get.call(hidden); }, set(v) { desc.set.call(hidden, v); show(); } });
+  const commit = (iso) => {
+    if (iso === desc.get.call(hidden)) return;
+    desc.set.call(hidden, iso);
+    hidden.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+  text.addEventListener("input", () => {
+    const iso = parseEraDate(text.value, era);
+    text.classList.toggle("pf-invalid", iso === null && text.value.replace(/\D/g, "").length >= 6);
+    if (iso) commit(iso);
+  });
+  text.addEventListener("blur", () => {
+    const iso = parseEraDate(text.value, era);
+    if (iso === null) { text.classList.add("pf-invalid"); return; }
+    commit(iso);
+    show();
+  });
+  pick.addEventListener("change", () => { if (pick.value) { commit(pick.value); show(); } });
+  show();
 }

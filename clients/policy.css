@@ -139,3 +139,11 @@
 .pf-full { display: block; margin-top: 10px; }
 .pf-full input { width: 100%; }
 .pf-bene input:disabled { background: #F2EFE7; color: #8A8474; }
+
+/* 日期欄（西元／民國） */
+.pf-date { position: relative; display: flex; align-items: center; }
+.pf-date input[type="text"] { width: 100%; padding-right: 40px; }
+.pf-date-pick { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; padding: 0; border: 0; background: transparent; color: transparent; cursor: pointer; }
+.pf-date-pick::-webkit-datetime-edit { display: none; }
+.pf-date-pick::-webkit-calendar-picker-indicator { width: 22px; height: 22px; margin: 0; cursor: pointer; opacity: .7; }
+.pf-era-tag { font-style: normal; font-size: .72rem; font-weight: 700; color: var(--gold, #B8892B); margin-left: 6px; }
