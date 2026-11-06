@@ -78,6 +78,7 @@ async function openProduct(id) {
       <div><span>繳費年期</span><b>${esc((p.pay_terms || []).join("、") || "—")}</b></div>
       <div><span>費率型態</span><b>${RATE_MODE[p.rate_mode] || p.rate_mode}</b></div>
       ${p.assumed_rate != null ? `<div><span>預定利率</span><b>${p.assumed_rate}%</b></div>` : ""}
+      ${p.best_dividend_rate != null ? `<div><span>最可能紅利情境</span><b>${p.best_dividend_rate}%</b></div>` : ""}
       <div><span>狀態</span><b>${p.verified ? `已驗證${p.verified_at ? "（" + String(p.verified_at).slice(0, 10) + "）" : ""}` : "待驗證"}</b></div>
     </div>
 
@@ -163,6 +164,7 @@ function editProduct(p) {
       <label>季繳係數<input id="e-f-q" type="number" step="0.001" value="${p.modal_factors["季繳"]}"></label>
       <label>半年繳係數<input id="e-f-h" type="number" step="0.001" value="${p.modal_factors["半年繳"]}"></label>
       <label>預定利率（%）<input id="e-assumed" type="number" step="0.001" value="${nul(p.assumed_rate)}"></label>
+      <label>最可能紅利情境（%）<input id="e-bestdiv" type="number" step="0.01" value="${nul(p.best_dividend_rate)}" placeholder="分紅商品才填"></label>
       <label class="kb-wide">資料來源<input id="e-source" value="${esc(p.source)}"></label>
       <label class="kb-wide">條款重點提醒（一行一條，「內容｜條款」）<textarea id="e-notes" rows="5">${esc((p.notes || []).map((n) => n.text + (n.clause ? "｜" + n.clause : "")).join("\n"))}</textarea></label>
     </div>
@@ -222,7 +224,7 @@ async function saveProduct(p, isNew) {
     pay_terms: $("e-terms").value.split(/[,，、\s]+/).map((x) => x.trim()).filter(Boolean),
     rate_mode: $("e-ratemode").value,
     modal_factors: { 年繳: 1, 半年繳: Number($("e-f-h").value), 季繳: Number($("e-f-q").value), 月繳: Number($("e-f-m").value) },
-    assumed_rate: num($("e-assumed").value), source: $("e-source").value.trim(),
+    assumed_rate: num($("e-assumed").value), best_dividend_rate: num($("e-bestdiv").value), source: $("e-source").value.trim(),
     notes: $("e-notes").value.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const [text, clause] = l.split("｜"); return { text: text.trim(), clause: (clause || "").trim() }; }),
     verified: $("e-verified").checked, verified_at: $("e-verified").checked ? (p.verified_at || new Date().toISOString()) : null,
     updated_at: new Date().toISOString(),
