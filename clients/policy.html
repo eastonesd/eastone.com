@@ -116,17 +116,24 @@
           </div>
         </div>
       </div>
-      <div class="pf-grid3">
+      <div class="pf-kb" id="pf-main-kb" hidden></div>
+      <div class="pf-grid4">
         <label>繳費年期<input type="text" id="pf-main-term" list="pf-term-list" placeholder="例 20年、75歲"></label>
+        <label>保障期間<input type="text" id="pf-main-cover" list="pf-cover-list" placeholder="例 終身、95歲"></label>
         <label>保額
           <div class="pf-unit">
             <input type="number" id="pf-main-sa" min="0" step="any" placeholder="0">
-            <select id="pf-main-sa-unit"><option>萬</option><option>元</option><option>單位</option><option>計劃</option></select>
+            <select id="pf-main-sa-unit"><option>萬</option><option>元</option><option>單位</option><option>計劃</option><option>附加</option></select>
           </div>
         </label>
-        <label>保費（元）<input type="number" id="pf-main-premium" min="0" step="1" placeholder="0" class="pf-premium"></label>
+        <label>保費（元）
+          <div class="pf-unit">
+            <input type="number" id="pf-main-premium" min="0" step="1" placeholder="0" class="pf-premium">
+            <button type="button" class="btn-secondary pf-calc" id="pf-main-calc" title="依知識庫費率表試算">試算</button>
+          </div>
+        </label>
       </div>
-      <p class="pf-note">保費暫時手動輸入；之後建好費率資料庫，會依性別、年期、職等、保額自動算出。</p>
+      <p class="pf-note" id="pf-main-calc-note">商品已建入保單知識庫時，可按「試算」依被保人性別、投保年齡、繳費年期、繳別與保額算出保費。</p>
     </section>
 
     <!-- 3 附約 -->
@@ -234,6 +241,10 @@
 
 <datalist id="pf-code-list"></datalist>
 <datalist id="pf-name-list"></datalist>
+<datalist id="pf-cover-list">
+  <option value="終身"><option value="110歲"><option value="99歲"><option value="95歲"><option value="85歲">
+  <option value="75歲"><option value="65歲"><option value="20年"><option value="1年（定期）"><option value="繳費期滿">
+</datalist>
 <datalist id="pf-term-list">
   <option value="躉繳"><option value="2年"><option value="6年"><option value="10年"><option value="15年">
   <option value="20年"><option value="25年"><option value="30年"><option value="55歲"><option value="60歲">
@@ -247,6 +258,7 @@
 <script src="../shared/auth.js"></script>
 <script src="data.js"></script>
 <script src="db.js"></script>
+<script src="../shared/kb.js"></script>
 <script src="policy.js"></script>
 </body>
 </html>

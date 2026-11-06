@@ -1,0 +1,56 @@
+.kb-main { display: flex; flex-direction: column; gap: 16px; padding-bottom: 40px; }
+.kb-main .card { padding: 20px 22px; }
+.kb-role { font-size: .82rem; color: var(--ink-soft); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.kb-badge { font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.kb-badge.admin { background: #FFF6DD; color: var(--gold); }
+.kb-toolbar { display: flex; gap: 10px; margin-bottom: 12px; }
+.kb-toolbar input { flex: 1; }
+.kb-small { width: auto !important; padding: 0 16px !important; min-height: 40px; flex: none; }
+.kb-scroll { overflow-x: auto; }
+.kb-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.kb-table th { text-align: left; font-weight: 600; color: #6B6656; background: #F6F3EC; padding: 7px 8px; white-space: nowrap; }
+.kb-table td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.kb-table td.num { white-space: nowrap; text-align: right; font-weight: 700; color: var(--accent-deep); }
+.kb-list tbody tr { cursor: pointer; }
+.kb-list tbody tr:hover, .kb-list tbody tr.active { background: var(--accent-soft); }
+.kb-sub { font-size: .75rem; color: var(--ink-soft); }
+.kb-ok { color: #1E6B34; font-weight: 700; font-size: .8rem; }
+.kb-todo { color: var(--gold); font-weight: 700; font-size: .8rem; }
+.kb-empty { color: #999; font-size: .85rem; }
+.kb-detail-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.kb-detail-head h2 { margin: 2px 0; font-family: 'Noto Serif TC', serif; color: var(--accent-deep); }
+.kb-code { display: inline-block; background: var(--accent); color: #fff; font-weight: 700; padding: 2px 10px; border-radius: 6px; }
+.kb-actions { display: flex; gap: 8px; }
+.kb-facts { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+.kb-facts div { background: #F3F6FB; border-radius: 10px; padding: 8px 14px; }
+.kb-facts span { display: block; font-size: .72rem; color: var(--ink-soft); }
+.kb-facts b { color: var(--accent-deep); }
+.kb-detail h3 { font-size: 1rem; color: var(--accent-deep); margin: 20px 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--accent-soft); }
+.kb-detail h3 small { font-weight: 500; color: var(--ink-soft); font-size: .75rem; margin-left: 6px; }
+.kb-notes { margin: 0; padding-left: 18px; font-size: .86rem; line-height: 1.7; }
+.kb-notes i { font-style: normal; color: var(--accent); font-size: .72rem; margin-left: 6px; }
+.kb-rates summary { cursor: pointer; font-weight: 700; color: var(--accent); padding: 6px 0; }
+.kb-rate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px; font-size: .8rem; }
+.kb-rate-grid div { display: grid; grid-template-columns: 30px 1fr 1fr; gap: 6px; padding: 3px 6px; background: #FAFAF7; border-radius: 6px; }
+.kb-rate-grid span { color: var(--ink-soft); }
+.kb-rate-grid b { text-align: right; font-weight: 600; }
+.kb-inline { display: flex; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
+.kb-inline input { width: auto; flex: 1 1 140px; }
+.kb-source { margin-top: 16px; }
+.kb-form { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 14px; margin-top: 14px; }
+.kb-form label { margin-bottom: 10px; }
+.kb-form .kb-wide { grid-column: span 2; }
+.kb-form textarea, .kb-detail textarea { width: 100%; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; }
+.kb-edit-table input, .kb-edit-table select { min-width: 70px; height: 36px; padding: 0 6px; font-size: .82rem; }
+.kb-edit-table .e-cond { min-width: 180px; }
+.kb-edit-table input[type=checkbox] { min-width: 0; width: 18px; height: 18px; }
+.kb-pair { display: flex; gap: 4px; }
+.kb-pair input { min-width: 54px; width: 54px; }
+.kb-save-row { display: flex; align-items: center; gap: 10px; margin-top: 18px; flex-wrap: wrap; justify-content: flex-end; }
+.kb-check { display: flex; align-items: center; gap: 6px; margin: 0 auto 0 0; font-weight: 700; }
+.kb-check input { width: 18px; height: 18px; }
+.kb-danger { color: var(--danger) !important; border-color: var(--danger) !important; }
+@media (max-width: 760px) {
+  .kb-form { grid-template-columns: 1fr 1fr; }
+  .kb-detail-head { flex-direction: column; }
+}

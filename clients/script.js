@@ -816,9 +816,9 @@ async function openDetail(clientId) {
     closeModal();
     startEditClient(c.id);
   });
-  // 保單健診報告：功能規劃中，先放按鈕
+  // 保單健診報告：目前是試算版（以被保人為單位、跨客戶抓保單）
   document.getElementById("btn-checkup").addEventListener("click", () => {
-    showToast("保單健診報告規劃中，敬請期待");
+    location.href = `checkup.html?id=${encodeURIComponent(c.id)}`;
   });
 
   document.getElementById("detail-modal").hidden = false;

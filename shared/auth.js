@@ -46,6 +46,7 @@ const CONTACT_EMAIL = 'eastone.sd@gmail.com'; // 「聯絡我們」收信信箱
 const ICONS = {
   user: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="4.2"/><path d="M3.8 20.5c1.3-4 4.5-6 8.2-6s6.9 2 8.2 6"/></svg>',
   line: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.2-9 7.2 0 3.6 3.2 6.6 7.5 7.1l-.6 2.7 3.6-2.6c4.5-.5 7.5-3.5 7.5-7.2 0-4-4-7.2-9-7.2z"/></svg>',
+  book: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></svg>',
   key: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M21 12v2"/></svg>',
   chat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg>',
   mail: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>',
@@ -123,6 +124,7 @@ function toggleAccountMenu(btn) {
     <div class="acct-sep"></div>
     <button type="button" class="acct-item" data-act="line" role="menuitem">${ICONS.line}<span>LINE 提醒</span></button>
     <button type="button" class="acct-item" data-act="pw" role="menuitem">${ICONS.key}<span>修改密碼</span></button>
+    <a class="acct-item" role="menuitem" href="${AUTH_ROOT}kb/index.html">${ICONS.book}<span>保單知識庫</span></a>
     <div class="acct-sep"></div>
     <div class="acct-label">聯絡我們</div>
     <a class="acct-item" role="menuitem" target="_blank" rel="noopener"

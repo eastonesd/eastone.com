@@ -121,3 +121,16 @@
 .pf-main [hidden] { display: none !important; }
 /* 提示訊息浮在下方合計列上面，不要蓋住 */
 .toast { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+
+/* 四欄：繳費年期／保障期間／保額／保費 */
+.pf-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 14px; }
+@media (max-width: 900px) { .pf-grid4 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .pf-grid4 { grid-template-columns: 1fr; } }
+.pf-calc { width: auto !important; flex: none; padding: 0 12px !important; height: auto; min-height: 44px; font-size: .85rem; }
+/* 知識庫標籤 */
+.pf-kb { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 12px; padding: 8px 12px;
+  border-radius: 10px; background: #F3F6FB; border: 1px solid #DCE4F2; font-size: .8rem; color: var(--ink-soft); }
+.pf-kb a { color: var(--accent); font-weight: 700; text-decoration: none; }
+.pf-kb-tag { font-weight: 700; color: #1E6B34; background: #E3F1E6; padding: 2px 8px; border-radius: 999px; }
+.pf-kb-tag.todo { color: var(--gold); background: #FFF6DD; }
+.pf-rider .pf-kb { margin-top: 2px; }

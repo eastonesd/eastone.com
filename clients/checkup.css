@@ -1,0 +1,67 @@
+/* 保單健診（試算版） */
+.ck-main { display: flex; flex-direction: column; gap: 16px; padding-bottom: 40px; }
+.ck-main .card { padding: 20px 22px; }
+.ck-back { color: var(--accent); font-weight: 700; font-size: .88rem; text-decoration: none; }
+.ck-loading { text-align: center; color: var(--ink-soft); padding: 40px 0; }
+.ck-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.ck-name { font-family: 'Noto Serif TC', serif; font-size: 1.5rem; font-weight: 900; color: var(--accent-deep); }
+.ck-meta { font-size: .85rem; color: var(--ink-soft); margin-top: 2px; }
+.ck-kpis { display: flex; gap: 10px; flex-wrap: wrap; }
+.ck-kpis div { background: #F3F6FB; border-radius: 10px; padding: 8px 14px; min-width: 110px; }
+.ck-kpis span { display: block; font-size: .75rem; color: var(--ink-soft); }
+.ck-kpis b { font-size: 1.2rem; color: var(--accent-deep); }
+.ck-kpis em { display: block; font-style: normal; font-size: .75rem; color: var(--gold); font-weight: 700; }
+.ck-warn { border-left: 4px solid var(--gold); background: #FFFBF0; font-size: .88rem; display: flex; flex-direction: column; gap: 4px; }
+.ck-h2 { font-family: 'Noto Serif TC', serif; font-size: 1.1rem; font-weight: 900; color: var(--accent-deep); margin: 0 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--accent-soft); }
+.ck-h2 small { font-family: 'Noto Sans TC', sans-serif; font-weight: 500; font-size: .75rem; color: var(--ink-soft); margin-left: 8px; }
+.ck-policy { margin-bottom: 14px; }
+.ck-policy-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; font-size: .85rem; color: var(--ink-soft); }
+.ck-policy-head b { color: var(--accent-deep); font-size: 1rem; }
+.ck-policy-head a { margin-left: auto; color: var(--accent); font-weight: 700; text-decoration: none; }
+.ck-scroll { overflow-x: auto; }
+.ck-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.ck-table th { text-align: left; font-weight: 600; color: #6B6656; background: var(--paper, #F6F3EC); padding: 6px 8px; white-space: nowrap; }
+.ck-table td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ck-table .num { text-align: right; white-space: nowrap; }
+.ck-rider td:first-child, .ck-rider td:nth-child(2) { padding-left: 22px; }
+.ck-off { opacity: .55; }
+.ck-sub { margin-top: 3px; display: flex; gap: 4px; flex-wrap: wrap; }
+.ck-tag { font-size: .68rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.ck-tag.ok { background: #E3F1E6; color: #1E6B34; }
+.ck-tag.warn { background: #F8E5E0; color: var(--danger); }
+.ck-tag.gold { background: #FFF6DD; color: var(--gold); }
+.ck-premium { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: .85rem; color: var(--ink-soft); }
+.ck-premium b { color: var(--accent-deep); margin-left: 4px; }
+.ck-phases { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.ck-phase { background: #F3F6FB; border-radius: 12px; padding: 12px; }
+.ck-phase h4 { margin: 0 0 8px; color: var(--accent-deep); font-size: .95rem; }
+.ck-pv { display: flex; justify-content: space-between; gap: 8px; font-size: .8rem; padding: 4px 0; border-bottom: 1px dashed #DCE4F2; }
+.ck-pv b { color: var(--accent-deep); white-space: nowrap; }
+.ck-domain { margin-bottom: 14px; }
+.ck-domain h3 { font-size: .95rem; margin: 0 0 6px; color: #fff; background: var(--accent); padding: 6px 12px; border-radius: 8px; }
+.ck-grp { font-size: .8rem; font-weight: 700; color: var(--accent); margin: 8px 0 2px; text-decoration: underline; }
+.ck-val { border-bottom: 1px solid var(--line); }
+.ck-val summary { display: flex; justify-content: space-between; gap: 10px; padding: 7px 4px; cursor: pointer; font-size: .9rem; list-style: none; }
+.ck-val summary::-webkit-details-marker { display: none; }
+.ck-val summary b { color: var(--accent-deep); white-space: nowrap; }
+.ck-val summary small { font-weight: 500; color: var(--ink-soft); margin-left: 3px; font-size: .75rem; }
+.ck-val[open] { background: #FBFAF6; }
+.ck-src { display: flex; justify-content: space-between; gap: 10px; font-size: .78rem; padding: 2px 12px; color: var(--ink); }
+.ck-cond { font-size: .75rem; color: var(--ink-soft); padding: 0 12px 6px; }
+.ck-cond i, .ck-notes i { font-style: normal; margin-left: 6px; color: var(--accent); font-size: .72rem; }
+.ck-cond.warn { color: var(--danger); padding-top: 4px; }
+.ck-empty { color: #999; font-size: .85rem; }
+.ck-events { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 3px solid var(--accent-soft); }
+.ck-events li { position: relative; padding: 6px 0 10px 10px; font-size: .85rem; display: grid; grid-template-columns: auto auto 1fr; gap: 0 10px; }
+.ck-events li::before { content: ""; position: absolute; left: -21px; top: 10px; width: 11px; height: 11px; border-radius: 50%; background: var(--accent); }
+.ck-events .ck-ev-end::before { background: var(--danger); }
+.ck-events .ck-ev-change::before, .ck-events .ck-ev-start::before { background: var(--gold); }
+.ck-events span { color: var(--ink-soft); }
+.ck-notes { margin: 0; padding-left: 18px; font-size: .85rem; line-height: 1.7; }
+.ck-disclaimer { font-size: .75rem; color: var(--ink-soft); text-align: center; }
+@media (max-width: 760px) {
+  .ck-phases { grid-template-columns: 1fr 1fr; }
+  .ck-events li { grid-template-columns: auto 1fr; }
+  .ck-events li div { grid-column: 1 / -1; }
+}
+@media (max-width: 420px) { .ck-phases { grid-template-columns: 1fr; } }

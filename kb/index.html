@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>東石系統｜保單知識庫</title>
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="stylesheet" href="../shared/site-header.css">
+<link rel="stylesheet" href="../shared/auth.css">
+<link rel="stylesheet" href="../clients/style.css">
+<link rel="stylesheet" href="kb.css">
+</head>
+<body>
+
+<div class="ghdr-wrap">
+  <div class="ghdr-brand">
+    <img class="ghdr-mark" src="../icons/logo.png" alt="東石系統">
+    <div>
+      <div class="ghdr-title">東石系統</div>
+      <div class="ghdr-sub">EASTONE SYSTEM</div>
+    </div>
+  </div>
+  <nav class="ghdr-nav">
+    <button onclick="location.href='../index.html'">理賠</button>
+    <button onclick="location.href='../index.html#endorse'">契變</button>
+    <button onclick="location.href='../market/index.html'">財經日報</button>
+    <button onclick="location.href='../clients/index.html'">客戶資料</button>
+    <button onclick="location.href='../policies/index.html'">產險管理</button>
+  </nav>
+</div>
+
+<header class="topbar">
+  <h1>保單知識庫<small>PRODUCT KNOWLEDGE BASE</small></h1>
+  <div class="kb-role" id="kb-role"></div>
+</header>
+
+<main class="kb-main">
+  <section class="card kb-list-card">
+    <div class="kb-toolbar">
+      <input type="search" id="kb-search" placeholder="搜尋代號、名稱、公司">
+      <button type="button" class="btn-primary kb-small" id="kb-new" hidden>＋ 新增商品</button>
+    </div>
+    <div class="kb-list" id="kb-list">讀取中…</div>
+  </section>
+  <section class="card kb-detail" id="kb-detail" hidden></section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/auth.js"></script>
+<script src="../shared/kb.js"></script>
+<script src="kb.js"></script>
+</body>
+</html>

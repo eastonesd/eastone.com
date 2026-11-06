@@ -52,7 +52,7 @@
   function safeNext() {
     const next = new URLSearchParams(location.search).get('next') || '';
     // 系統內的頁面才導回去（可帶 ?id=… 與 #分頁），其他一律回首頁
-    return /^(index\.html|clients\/(index|policy)\.html|policies\/index\.html)(\?[\w=&%.-]*)?(#[\w-]*)?$/.test(next) ? next : 'index.html';
+    return /^(index\.html|clients\/(index|policy|checkup)\.html|policies\/index\.html|kb\/index\.html)(\?[\w=&%.-]*)?(#[\w-]*)?$/.test(next) ? next : 'index.html';
   }
 
   // 已經登入的話直接進去

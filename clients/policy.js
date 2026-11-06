@@ -14,14 +14,15 @@ const COMPANIES = [
 // 類別：之後保單健診會用到，先放常見分類
 const CATEGORIES = [
   "重大傷病", "壽險", "醫療", "實支實付", "癌症", "長期照顧", "失能扶助", "意外",
-  "利率變動", "分紅", "還本", "增額", "年金", "投資型", "儲蓄", "其他",
+  "利率變動", "分紅", "還本", "增額", "年金", "投資型", "儲蓄", "豁免", "其他",
 ];
 // 商品名稱出現這些字，就自動帶入類別 1（可以再手動改）
 const CAT_KEYWORDS = [
   ["重傷", "重大傷病"], ["長照", "長期照顧"], ["失智", "長期照顧"], ["實支", "實支實付"], ["醫療", "醫療"],
   ["防癌", "癌症"], ["癌", "癌症"], ["意外", "意外"], ["失能", "失能扶助"], ["年金", "年金"],
-  ["利變", "利率變動"], ["分紅", "分紅"], ["還本", "還本"], ["增額", "增額"], ["壽險", "壽險"],
+  ["利變", "利率變動"], ["分紅", "分紅"], ["還本", "還本"], ["增額", "增額"], ["壽險", "壽險"], ["豁免", "豁免"],
 ];
+const SA_UNITS = ["萬", "元", "單位", "計劃", "附加"];
 const BANKS = [
   "004 臺灣銀行", "005 土地銀行", "006 合作金庫", "007 第一銀行", "008 華南銀行", "009 彰化銀行",
   "011 上海商銀", "012 台北富邦", "013 國泰世華", "016 高雄銀行", "017 兆豐銀行", "048 王道銀行",
@@ -58,6 +59,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   [client, allClients, codes] = await Promise.all([clientGet(id), clientList(), codeList()]);
   if (!client) { alert("查無此客戶"); location.href = "index.html"; return; }
+  // 保單知識庫：讀不到（例如還沒建好）也不影響填表，只是不能自動帶入與試算
+  try {
+    await KB.load();
+    KB.products.forEach((p) => { if (!codes[p.code]) codes[p.code] = p.name; });
+  } catch (err) { console.warn("知識庫讀取失敗", err); }
 
   buildStaticOptions();
   bindForm();
@@ -143,13 +149,16 @@ function bindForm() {
     const c = e.target.value.trim().toUpperCase();
     e.target.value = c;
     if (codes[c]) { $("pf-main-name").value = codes[c]; guessCategory(codes[c]); }
+    applyKbMain(true);
   });
   $("pf-main-name").addEventListener("change", (e) => {
     const name = e.target.value.trim();
     const hit = Object.entries(codes).find(([, n]) => n === name);
     if (hit) $("pf-main-code").value = hit[0];
     guessCategory(name);
+    applyKbMain(true);
   });
+  $("pf-main-calc").addEventListener("click", calcMainPremium);
   document.querySelectorAll(".pf-cat").forEach((s) => s.addEventListener("change", syncDividend));
 
   $("pf-main-premium").addEventListener("input", updateTotal);
@@ -164,6 +173,49 @@ function bindForm() {
 
   $("pf-form").addEventListener("submit", (e) => { e.preventDefault(); savePolicy(); });
   $("pf-delete").addEventListener("click", deletePolicy);
+}
+
+// ---------------- 保單知識庫：自動帶入與保費試算 ----------------
+function kbProductOf(code) {
+  try { return KB.loaded ? KB.product(code) : null; } catch { return null; }
+}
+function kbBadge(product) {
+  if (!product) return "";
+  return `<span class="pf-kb-tag${product.verified ? "" : " todo"}">知識庫${product.verified ? " ✓ 已驗證" : "（待驗證）"}</span>
+    <span>${esc(product.company)}・${product.kind === "rider" ? "附約" : "主約"}・${product.nature === "wealth" ? "理財型" : "保障型"}・保障至 ${esc(product.coverage_to || "—")}</span>
+    <a href="../kb/index.html#${encodeURIComponent(product.code)}" target="_blank" rel="noopener">查看給付內容</a>`;
+}
+// fill=true：剛選了商品，把知識庫的資料帶進表單（之後還是可以手動改）
+function applyKbMain(fill) {
+  const product = kbProductOf($("pf-main-code").value);
+  $("pf-main-kb").hidden = !product;
+  $("pf-main-kb").innerHTML = kbBadge(product);
+  if (!product || !fill) return;
+  $("pf-main-name").value = product.name;
+  if (CATEGORIES.includes(product.category)) $("pf-cat1").value = product.category;
+  if (COMPANIES.includes(product.company)) $("pf-company").value = product.company;
+  if (product.coverage_to) $("pf-main-cover").value = product.coverage_to;
+  if (SA_UNITS.includes(product.unit)) $("pf-main-sa-unit").value = product.unit;
+  if (product.pay_terms && product.pay_terms.length === 1) $("pf-main-term").value = product.pay_terms[0];
+  syncDividend();
+}
+function personRecord(id) {
+  return allClients.find((x) => x.id === id) || (id === client.id ? client : null);
+}
+async function calcPremiumFor({ code, personId, effective, term, sa, saUnit }) {
+  const product = kbProductOf(code);
+  const person = personRecord(personId);
+  const issueAge = person ? kbInsuranceAge(person.birthday, effective) : null;
+  return kbCalcPremium(product, { sex: person && person.gender, issueAge, term, mode: $("pf-mode-pay").value, sa, saUnit });
+}
+async function calcMainPremium() {
+  const r = await calcPremiumFor({ code: $("pf-main-code").value, personId: $("pf-insured").value, effective: $("pf-effective").value,
+    term: $("pf-main-term").value.trim(), sa: $("pf-main-sa").value, saUnit: $("pf-main-sa-unit").value });
+  if (r.error) { showToast(r.error); return; }
+  $("pf-main-premium").value = r.modal;
+  if (!$("pf-main-term").value) $("pf-main-term").value = r.term;
+  $("pf-main-calc-note").textContent = `試算：費率 ${r.rate.toLocaleString()} × ${r.units} × ${$("pf-mode-pay").value} ${r.factor} ＝ ${r.modal.toLocaleString()} 元（未扣折扣）`;
+  updateTotal();
 }
 
 function syncDiscount() {
@@ -208,11 +260,16 @@ function addCheckedRiders() {
   const checked = [...document.querySelectorAll(".pf-hit:checked")];
   if (!checked.length) { showToast("請先勾選要加入的附約"); return; }
   const pid = $("pf-r-person").value;
-  checked.forEach((cb) => riders.push({
-    insured_id: pid, insured_name: personName(pid), occ_class: $("pf-r-occ").value,
-    effective_date: $("pf-r-effective").value, code: cb.dataset.code, name: codes[cb.dataset.code] || "",
-    term: "", sum_assured: "", sa_unit: "萬", premium: "",
-  }));
+  checked.forEach((cb) => {
+    const product = kbProductOf(cb.dataset.code);
+    riders.push({
+      insured_id: pid, insured_name: personName(pid), occ_class: $("pf-r-occ").value,
+      effective_date: $("pf-r-effective").value, code: cb.dataset.code, name: (product && product.name) || codes[cb.dataset.code] || "",
+      term: product && product.pay_terms && product.pay_terms.length === 1 ? product.pay_terms[0] : "",
+      coverage: (product && product.coverage_to) || "", sum_assured: product && product.unit === "附加" ? "1" : "",
+      sa_unit: product && SA_UNITS.includes(product.unit) ? product.unit : "萬", premium: "",
+    });
+  });
   $("pf-results").hidden = true;
   document.querySelectorAll(".pf-kw").forEach((k) => (k.value = ""));
   renderRiders();
@@ -229,15 +286,22 @@ function renderRiders() {
         <button type="button" class="icon-btn pf-rider-del" title="移除">✕</button>
       </div>
       <div class="pf-rider-meta">被保人 ${esc(r.insured_name)}　職等 ${esc(r.occ_class)} 級${r.effective_date ? "　生效 " + esc(r.effective_date) : ""}</div>
-      <div class="pf-grid3">
+      ${kbProductOf(r.code) ? `<div class="pf-kb">${kbBadge(kbProductOf(r.code))}</div>` : ""}
+      <div class="pf-grid4">
         <label>繳費年期<input type="text" data-f="term" list="pf-term-list" value="${esc(r.term)}" placeholder="例 20年"></label>
+        <label>保障期間<input type="text" data-f="coverage" list="pf-cover-list" value="${esc(r.coverage || "")}" placeholder="例 95歲"></label>
         <label>保額
           <div class="pf-unit">
             <input type="number" data-f="sum_assured" min="0" step="any" value="${esc(r.sum_assured)}" placeholder="0">
-            <select data-f="sa_unit">${["萬", "元", "單位", "計劃"].map((u) => `<option${u === r.sa_unit ? " selected" : ""}>${u}</option>`).join("")}</select>
+            <select data-f="sa_unit">${SA_UNITS.map((u) => `<option${u === r.sa_unit ? " selected" : ""}>${u}</option>`).join("")}</select>
           </div>
         </label>
-        <label>保費（元）<input type="number" data-f="premium" min="0" step="1" value="${esc(r.premium)}" placeholder="0" class="pf-premium"></label>
+        <label>保費（元）
+          <div class="pf-unit">
+            <input type="number" data-f="premium" min="0" step="1" value="${esc(r.premium)}" placeholder="0" class="pf-premium">
+            <button type="button" class="btn-secondary pf-calc pf-rider-calc" title="依知識庫費率表試算">試算</button>
+          </div>
+        </label>
       </div>
     </div>`).join("");
   box.querySelectorAll(".pf-rider").forEach((el) => {
@@ -247,6 +311,16 @@ function renderRiders() {
       if (inp.dataset.f === "premium") updateTotal();
     }));
     el.querySelector(".pf-rider-del").addEventListener("click", () => { riders.splice(i, 1); renderRiders(); });
+    el.querySelector(".pf-rider-calc").addEventListener("click", async () => {
+      const r = riders[i];
+      const res = await calcPremiumFor({ code: r.code, personId: r.insured_id, effective: r.effective_date || $("pf-effective").value,
+        term: r.term, sa: r.sum_assured, saUnit: r.sa_unit });
+      if (res.error) { showToast(res.error); return; }
+      r.premium = String(res.modal);
+      if (!r.term) r.term = res.term;
+      renderRiders();
+      showToast(`試算：費率 ${res.rate.toLocaleString()} × ${res.units} × ${res.factor} ＝ ${res.modal.toLocaleString()} 元`);
+    });
   });
   updateTotal();
 }
@@ -325,9 +399,11 @@ function fillForm(p) {
   $("pf-cat2").value = M.cat2 || "無";
   if (!p.life && $("pf-main-name").value) guessCategory($("pf-main-name").value); // 舊保單第一次補資料：依名稱猜類別
   $("pf-main-term").value = M.term || "";
+  $("pf-main-cover").value = M.coverage || "";
   $("pf-main-sa").value = M.sum_assured ?? "";
   $("pf-main-sa-unit").value = M.sa_unit || "萬";
   $("pf-main-premium").value = M.premium ?? "";
+  applyKbMain(false);
 
   setPerson("pf-r-person", L.insured_id);
   $("pf-r-occ").value = L.occ_class || "1";
@@ -399,7 +475,7 @@ function collectPolicy() {
       company: $("pf-company").value, currency: $("pf-currency").value,
       code: $("pf-main-code").value.trim().toUpperCase(), name: $("pf-main-name").value.trim(),
       cat1: $("pf-cat1").value, cat2: $("pf-cat2").value,
-      term: $("pf-main-term").value.trim(), sum_assured: $("pf-main-sa").value, sa_unit: $("pf-main-sa-unit").value,
+      term: $("pf-main-term").value.trim(), coverage: $("pf-main-cover").value.trim(), sum_assured: $("pf-main-sa").value, sa_unit: $("pf-main-sa-unit").value,
       premium: $("pf-main-premium").value,
     },
     riders: riders.map((r) => ({ ...r })),
