@@ -10,12 +10,17 @@ const state = {
   plate: '', vehicleType: '',
   hasCompulsory: false, compulsoryPolicyNo: '',
   hasVoluntary: false, voluntaryPolicyNo: '',
-  voluntaryItems: {}, // id -> {checked, amount}
+  volRows: {}, // 任意險每一列：rowId -> {checked, variant, amounts: {代號: 保額}}
+  legacyVoluntary: [], // 舊版才有、新清單已拿掉的任意險項目（原樣保留，不會因為編輯而消失）
   personalItems: {}, // id -> {checked, plans: []}
   insuredName: '',
   totalPremium: '',
   periodStart: { y: null, m: 1, d: 1 },
   periodEnd: { y: null, m: 1, d: 1 },
+  // 汽/機車：強制險與任意險各自的保期；任意險可勾「同強制險」
+  volStart: { y: null, m: 1, d: 1 },
+  volEnd: { y: null, m: 1, d: 1 },
+  volSameAsComp: true,
   license: { y: null, m: 1, d: 1 },
   mfg: { y: null, m: 1 },
   displacement: '', seatingCapacity: 2,
@@ -29,41 +34,84 @@ const state = {
 };
 
 const CATEGORIES = [
-  { id: 'vehicle', label: '車險管理', enabled: true },
+  { id: 'vehicle', label: '汽/機車保險', enabled: true },
   { id: 'personal', label: '個人保險', enabled: true },
-  { id: 'business', label: '企業保險', enabled: false },
 ];
 
 const VEHICLE_TYPES = ['汽車', '普重', '大重'];
 
-const VOLUNTARY_ITEMS = [
-  { id: '30G', name: '超額責任險 甲式', presets: ['300萬', '500萬', '1000萬'] },
-  { id: '30G1', name: '超額責任險 乙式(保險期間)', presets: ['300萬', '500萬', '1000萬'] },
-  { id: '30G2', name: '超額責任險 乙式(每一事故)', presets: ['300萬', '500萬', '1000萬'] },
-  { id: '27A', name: '慰問金保險', presets: ['5萬'] },
-  { id: '31', name: '第三人責任險-體傷', presets: ['每人100萬/每一事故200萬', '每人200萬/每一事故400萬', '每人300萬/每一事故600萬'] },
-  { id: '32', name: '第三人責任險-財損', presets: ['30萬', '50萬', '100萬', '200萬'] },
-  { id: '38', name: '刑事訴訟律師費用補償險', presets: ['5萬'] },
-  { id: '3B27', name: '機車第三人責任險-慰問金', presets: ['5萬'] },
-  { id: '3B31', name: '機車第三人責任險-傷害', presets: ['每人100萬/每一事故200萬', '每人200萬/每一事故400萬', '每人300萬/每一事故600萬'] },
-  { id: '3B32', name: '機車第三人責任險-財損', presets: ['30萬', '50萬', '100萬', '200萬'] },  
-  { id: '3FA', name: '機車第三人責任險-單一保額型', presets: ['500萬', '800萬', '1000萬'] },
-  { id: '50B', name: '駕駛人傷害險-實支實付', presets: ['5萬/200萬'] },
-  { id: '51A', name: '乘客體傷責任險', presets: ['每人100萬/每一事故100萬', '每人200萬/每一事故200萬'] },
-  { id: '58A', name: '交通事故傷害險-含住院日額', presets: ['100萬/1人', '200萬/1人'] },
-  { id: '58B', name: '交通事故傷害險-不含住院日額', presets: ['100萬/1人', '200萬/1人'] },
-  { id: '59', name: '單一事故駕駛人傷害險-機車', presets: ['20萬/200萬', '20萬/300萬'] },
-  { id: '6AA1', name: '租賃電池損失責任保險', presets: ['2.5萬', '3萬', '4萬', '5萬'] },
-  { id: '77C', name: '道路救援費用保險', presets: ['30公里/3萬', '50公里/5萬', '100公里/10萬'] },
-  { id: '83F1', name: '享安心家庭綜合保險-家庭財物被竊', presets: ['5000/50%/5萬', '10000/50%/10萬', '10000/100%/15萬'] },
-  { id: '83F2', name: '享安心家庭綜合保險-家庭日常生活責任', presets: ['50萬', '100萬', '150萬', '200萬'] },
-  { id: '0G', name: '機車火災事故險', presets: [], noAmount: true },
-  { id: '0J', name: '車體免追償', presets: [], noAmount: true },
-  { id: '0K', name: '交通費用附加險', presets: ['1000/天', '2000/天'] },
-  { id: '0L', name: '汽車限額車碰車對撞', presets: [], noAmount: true },
-  { id: '0X', name: '特定事故汽機車代車費用補償險', presets: [], noAmount: true },
-  { id: '18', name: '機車整車失竊損失險', presets: [], noAmount: true },
+// ------------------------------------------------------------
+// 任意險：每個代號的名稱與常用保額
+// old：舊版用過的名稱，讀舊資料時對得回來
+// ------------------------------------------------------------
+const P_BODY = ['每人100萬/每一事故200萬', '每人200萬/每一事故400萬', '每人300萬/每一事故600萬'];
+const P_PROP = ['30萬', '50萬', '100萬', '200萬'];
+const P_EXCESS = ['300萬', '500萬', '1000萬'];
+const P_PASSENGER = ['每人100萬/每一事故100萬', '每人200萬/每一事故200萬'];
+const VOL_CODES = {
+  '27A':      { name: '慰問金保險-乙型', presets: ['5萬'], old: ['慰問金保險'] },
+  '27A1':     { name: '慰問金保險-甲型', presets: ['5萬'] },
+  '31':       { name: '第三人責任險-體傷', presets: P_BODY },
+  '32':       { name: '第三人責任險-財損', presets: P_PROP },
+  '30G':      { name: '超額責任險-甲式', presets: P_EXCESS, old: ['超額責任險 甲式'] },
+  '30G1':     { name: '超額責任險-乙式(保險期間)', presets: P_EXCESS, old: ['超額責任險 乙式(保險期間)'] },
+  '30G2':     { name: '超額責任險-乙式(每一事故)', presets: P_EXCESS, old: ['超額責任險 乙式(每一事故)'] },
+  '3B27':     { name: '機車第三人責任-慰問金', presets: ['5萬'], old: ['機車第三人責任險-慰問金'] },
+  '3B31':     { name: '機車第三人責任-傷害', presets: P_BODY, old: ['機車第三人責任險-傷害'] },
+  '3B32':     { name: '機車第三人責任-財損', presets: P_PROP, old: ['機車第三人責任險-財損'] },
+  '3FA':      { name: '機車第三人責任保險-單一保額型', presets: ['500萬', '800萬', '1000萬'], old: ['機車第三人責任險-單一保額型'] },
+  '38':       { name: '刑事訴訟律師費用補償險', presets: ['5萬'] },
+  '50B':      { name: '駕傷實支', presets: ['5萬/200萬'], old: ['駕駛人傷害險-實支實付'] },
+  '59':       { name: '駕傷（機車單一事故）', presets: ['20萬/200萬', '20萬/300萬'], old: ['單一事故駕駛人傷害險-機車'] },
+  '51A':      { name: '乘客體傷責任險', presets: P_PASSENGER },
+  '51A+275A': { name: '乘客體傷責任險＋附加慰問金甲型', presets: P_PASSENGER },
+  '51A+275B': { name: '乘客體傷責任險＋附加慰問金乙型', presets: P_PASSENGER },
+  '77C':      { name: '道路救援費用險', presets: ['30公里/3萬', '50公里/5萬', '100公里/10萬'], old: ['道路救援費用保險'] },
+  '6AA1':     { name: '租賃電池損失責任保險', presets: ['2.5萬', '3萬', '4萬', '5萬'] },
+  '83F1':     { name: '享安心家庭綜合保險-家庭財物被竊', presets: ['5000/50%/5萬', '10000/50%/10萬', '10000/100%/15萬'] },
+  '83F2':     { name: '享安心家庭綜合保險-家庭日常生活責任', presets: ['50萬', '100萬', '150萬', '200萬'] },
+};
+// 畫面上的列（依這個順序顯示）
+//   variants：勾選後用下拉選其中一種
+//   bundle：勾選就是整組一起投保（不能拆開）
+//   group：同一組的任一項被勾起來時（且同組都還沒勾），其他項一併勾選；之後可以個別取消
+const VOL_ROWS = [
+  { row: '27', label: '慰問金保險', variants: ['27A', '27A1'], group: 'tp' },
+  { row: '31', codes: ['31'], group: 'tp' },
+  { row: '32', codes: ['32'], group: 'tp' },
+  { row: '30', label: '超額責任險', variants: ['30G', '30G1', '30G2'] },
+  { row: '3B', label: '機車第三人責任（慰問金＋傷害＋財損）', bundle: ['3B27', '3B31', '3B32'] },
+  { row: '3FA', codes: ['3FA'] },
+  { row: '38', codes: ['38'] },
+  { row: '50B', codes: ['50B'] },
+  { row: '59', codes: ['59'] },
+  { row: '51A', label: '乘客體傷責任險', variants: ['51A', '51A+275A', '51A+275B'] },
+  { row: '77C', codes: ['77C'] },
+  { row: '6AA1', codes: ['6AA1'] },
+  { row: '83', label: '享安心家庭綜合保險', variants: ['83F1', '83F2'] },
 ];
+// 這一列目前要投保的代號（變體列只算選中的那一個）
+function rowCodes(def, st) {
+  if (def.variants) return [st.variant || def.variants[0]];
+  return def.bundle || def.codes;
+}
+function rowOfCode(code) {
+  return VOL_ROWS.find(d => (d.variants || d.bundle || d.codes).includes(code));
+}
+function codeFromSaved(v) {
+  if (v.id && VOL_CODES[v.id]) return v.id;
+  return Object.keys(VOL_CODES).find(c => VOL_CODES[c].name === v.item || (VOL_CODES[c].old || []).includes(v.item)) || null;
+}
+// 目前勾選的任意險（給確認頁與存檔用）
+function selectedVoluntary() {
+  const out = [];
+  VOL_ROWS.forEach(def => {
+    const st = state.volRows[def.row];
+    if (!st || !st.checked) return;
+    rowCodes(def, st).forEach(code => out.push({ id: code, item: VOL_CODES[code].name, amount: (st.amounts || {})[code] || '' }));
+  });
+  return out;
+}
 
 const EMAIL_DOMAINS = ['gmail.com', 'yahoo.com.tw','kimo.com', 'outlook.com', 'hotmail.com', 'icloud.com', '其他'];
 
@@ -199,7 +247,7 @@ function stepCategory() {
     render() {
       const locked = !!state.editingId;
       return `
-        <div class="option-grid" id="f_category">
+        <div class="option-grid cat-grid" id="f_category">
           ${CATEGORIES.map(c => {
             const selected = state.category === c.id;
             const disabled = !c.enabled || locked;
@@ -333,70 +381,110 @@ function stepInsuranceTypes() {
 }
 
 function stepVoluntaryItems() {
+  const amountPicker = (code, cur) => {
+    const def = VOL_CODES[code];
+    const isCustom = cur && !def.presets.includes(cur);
+    return `
+      <div class="amount-row">
+        ${def.presets.map(p => `<div class="amount-chip ${cur === p ? 'selected' : ''}" data-code="${code}" data-val="${p}">${p}</div>`).join('')}
+        <div class="amount-chip ${isCustom ? 'selected' : ''}" data-code="${code}" data-val="__other__">其他</div>
+      </div>
+      <input type="text" class="amount-custom ${isCustom ? 'show' : ''}" data-code="${code}" placeholder="請輸入保額" value="${isCustom ? cur : ''}">`;
+  };
+  const rowState = (row) => (state.volRows[row] = state.volRows[row] || { checked: false, variant: '', amounts: {} });
+
   return {
     eyebrow: '任意險明細', title: '投保內容與保額',
     render() {
-      return VOLUNTARY_ITEMS.map(item => {
-        const cur = state.voluntaryItems[item.id] || { checked: false, amount: '' };
-        const isCustom = cur.checked && cur.amount && !item.presets.includes(cur.amount);
+      return VOL_ROWS.map(def => {
+        const st = rowState(def.row);
+        if (def.variants && !st.variant) st.variant = def.variants[0];
+        const title = def.label || VOL_CODES[def.codes[0]].name;
+        let detail;
+        if (def.variants) {
+          detail = `
+            <select class="vol-variant" data-row="${def.row}">
+              ${def.variants.map(c => `<option value="${c}" ${st.variant === c ? 'selected' : ''}>${c}　${VOL_CODES[c].name}</option>`).join('')}
+            </select>
+            <div class="vol-amount" data-row="${def.row}">${amountPicker(st.variant, st.amounts[st.variant])}</div>`;
+        } else if (def.bundle) {
+          detail = def.bundle.map(c => `
+            <div class="vol-sub"><div class="vol-sub-name">${c}　${VOL_CODES[c].name}</div>${amountPicker(c, st.amounts[c])}</div>`).join('');
+        } else {
+          detail = amountPicker(def.codes[0], st.amounts[def.codes[0]]);
+        }
         return `
-        <div class="check-row ${cur.checked ? 'checked' : ''}" id="row_${item.id}">
+        <div class="check-row vol-row ${st.checked ? 'checked' : ''}" id="vrow_${def.row}">
           <label class="label">
-          <input type="checkbox" class="v-chk" data-id="${item.id}" ${cur.checked ? 'checked' : ''}>
-          <p>${item.name}</P> </label>
-          ${!item.noAmount ? `
-          <div class="detail">
-            <div class="amount-row">
-              ${item.presets.map(p => `<div class="amount-chip ${cur.amount === p ? 'selected' : ''}" data-id="${item.id}" data-val="${p}">${p}</div>`).join('')}
-              <div class="amount-chip ${isCustom ? 'selected' : ''}" data-id="${item.id}" data-val="__other__">其他</div>
-            </div>
-            <input type="text" class="amount-custom ${isCustom ? 'show' : ''}" id="custom_${item.id}" placeholder="請輸入保額" value="${isCustom ? cur.amount : ''}">
-          </div>` : ''}
+            <input type="checkbox" class="v-chk" data-row="${def.row}" ${st.checked ? 'checked' : ''}>
+            <span class="vol-code">${def.row}</span><p>${title}</p>
+            ${def.bundle ? '<span class="vol-hint">三項綁定</span>' : ''}${def.group ? '<span class="vol-hint">27／31／32 一組</span>' : ''}
+          </label>
+          <div class="detail">${detail}</div>
         </div>`;
       }).join('');
     },
     afterRender(root) {
+      const setChecked = (row, on) => {
+        rowState(row).checked = on;
+        const el = root.querySelector(`#vrow_${row}`);
+        el.classList.toggle('checked', on);
+        el.querySelector('.v-chk').checked = on;
+      };
       root.querySelectorAll('.v-chk').forEach(chk => {
         chk.addEventListener('change', () => {
-          const id = chk.dataset.id;
-          if (!state.voluntaryItems[id]) state.voluntaryItems[id] = { checked: false, amount: '' };
-          state.voluntaryItems[id].checked = chk.checked;
-          root.querySelector(`#row_${id}`).classList.toggle('checked', chk.checked);
-        });
-      });
-      root.querySelectorAll('.amount-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-          const id = chip.dataset.id;
-          const row = root.querySelector(`#row_${id}`);
-          row.querySelectorAll('.amount-chip').forEach(c => c.classList.remove('selected'));
-          chip.classList.add('selected');
-          const customInput = root.querySelector(`#custom_${id}`);
-          if (chip.dataset.val === '__other__') {
-            customInput.classList.add('show');
-            state.voluntaryItems[id].amount = customInput.value.trim();
-            customInput.focus();
-          } else {
-            customInput.classList.remove('show');
-            state.voluntaryItems[id].amount = chip.dataset.val;
+          const def = VOL_ROWS.find(d => d.row === chk.dataset.row);
+          if (chk.checked && def.group) {
+            // 27／31／32：同組都還沒勾時，勾任何一個就三個一起勾；之後可以個別取消
+            const mates = VOL_ROWS.filter(d => d.group === def.group && d.row !== def.row);
+            if (mates.every(m => !rowState(m.row).checked)) mates.forEach(m => setChecked(m.row, true));
           }
+          setChecked(def.row, chk.checked);
         });
       });
-      root.querySelectorAll('.amount-custom').forEach(inp => {
-        inp.addEventListener('input', () => {
-          const id = inp.id.replace('custom_', '');
-          state.voluntaryItems[id].amount = inp.value.trim();
+      const wireAmounts = (scope) => {
+        scope.querySelectorAll('.amount-chip').forEach(chip => {
+          chip.addEventListener('click', () => {
+            const code = chip.dataset.code;
+            const st = rowState(rowOfCode(code).row);
+            chip.parentElement.querySelectorAll('.amount-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            const custom = chip.parentElement.nextElementSibling;
+            if (chip.dataset.val === '__other__') {
+              custom.classList.add('show');
+              st.amounts[code] = custom.value.trim();
+              custom.focus();
+            } else {
+              custom.classList.remove('show');
+              st.amounts[code] = chip.dataset.val;
+            }
+          });
+        });
+        scope.querySelectorAll('.amount-custom').forEach(inp => {
+          inp.addEventListener('input', () => {
+            rowState(rowOfCode(inp.dataset.code).row).amounts[inp.dataset.code] = inp.value.trim();
+          });
+        });
+      };
+      wireAmounts(root);
+      // 變體下拉（27／30／51A／83）：換選項時保額也跟著換；同一個保額在新選項裡也有的話就保留
+      root.querySelectorAll('.vol-variant').forEach(sel => {
+        sel.addEventListener('change', () => {
+          const st = rowState(sel.dataset.row);
+          const prev = st.amounts[st.variant];
+          st.variant = sel.value;
+          st.amounts = { [sel.value]: prev && VOL_CODES[sel.value].presets.includes(prev) ? prev : (st.amounts[sel.value] || '') };
+          const box = root.querySelector(`.vol-amount[data-row="${sel.dataset.row}"]`);
+          box.innerHTML = amountPicker(sel.value, st.amounts[sel.value]);
+          wireAmounts(box);
         });
       });
     },
     collect() {
-      const anyChecked = Object.values(state.voluntaryItems).some(v => v.checked);
-      if (!anyChecked) { alert('請至少勾選一項任意險投保內容'); return false; }
-      for (const item of VOLUNTARY_ITEMS) {
-        const v = state.voluntaryItems[item.id];
-        if (v && v.checked && !item.noAmount && !v.amount) {
-          alert(`請設定「${item.name}」的保額`); return false;
-        }
-      }
+      const picked = selectedVoluntary();
+      if (!picked.length && !state.legacyVoluntary.length) { alert('請至少勾選一項任意險投保內容'); return false; }
+      const missing = picked.find(v => !v.amount);
+      if (missing) { alert(`請設定「${missing.id} ${missing.item}」的保額`); return false; }
       return true;
     }
   };
@@ -564,33 +652,85 @@ function stepPremium() {
 }
 
 function stepPeriod() {
+  // 個人保險：一組起訖日。汽/機車：強制險、任意險各一組，任意險可勾「同強制險」
+  const vehicle = state.category === 'vehicle';
+  const showComp = !vehicle || state.hasCompulsory;
+  const showVol = vehicle && state.hasVoluntary;
+  const canSame = showComp && showVol;
+  const years = range(CURRENT_ROC_YEAR - 3, CURRENT_ROC_YEAR + 3).map(v => ({ label: `民國${v}`, value: v }));
+  const wheels = (el, obj, idp, yearDefault) => renderWheelGroup(el, [
+    { id: idp + 'y', caption: '年', items: years, initialValue: obj.y || yearDefault, onChange: v => obj.y = v },
+    { id: idp + 'm', caption: '月', items: range(1, 12).map(v => ({ label: v, value: v })), initialValue: obj.m, onChange: v => obj.m = v },
+    { id: idp + 'd', caption: '日', items: range(1, 31).map(v => ({ label: v, value: v })), initialValue: obj.d, onChange: v => obj.d = v },
+  ]);
   return {
-    eyebrow: '保險期間', title: '起保日與迄保日',
+    eyebrow: '保險期間', title: vehicle ? '強制險與任意險保期' : '起保日與迄保日',
     subtitle: '以滾輪選擇保險期間的起訖日期（民國年／月／日）',
     render() {
+      const compTitle = vehicle ? '<div class="period-title">強制險保期</div>' : '';
       return `
-        <div class="field"><label>起保日</label><div id="wheel_period_start"></div></div>
-        <div class="field"><label>迄保日</label><div id="wheel_period_end"></div></div>
+        ${showComp ? `
+        <div class="period-block">
+          ${compTitle}
+          <div class="field"><label>起保日</label><div id="wheel_period_start"></div></div>
+          <div class="field"><label>迄保日</label><div id="wheel_period_end"></div></div>
+        </div>` : ''}
+        ${showVol ? `
+        <div class="period-block">
+          <div class="period-title">任意險保期
+            ${canSame ? `<label class="same-check"><input type="checkbox" id="chk_same" ${state.volSameAsComp ? 'checked' : ''}> 同強制險</label>` : ''}
+          </div>
+          <div id="vol_wheels" ${canSame && state.volSameAsComp ? 'hidden' : ''}>
+            <div class="field"><label>起保日</label><div id="wheel_vol_start"></div></div>
+            <div class="field"><label>迄保日</label><div id="wheel_vol_end"></div></div>
+          </div>
+          ${canSame ? `<p class="step-sub same-note" ${state.volSameAsComp ? '' : 'hidden'}>任意險保期與強制險相同。</p>` : ''}
+        </div>` : ''}
       `;
     },
     afterRender(root) {
-      const years = range(CURRENT_ROC_YEAR - 3, CURRENT_ROC_YEAR + 3).map(v => ({ label: `民國${v}`, value: v }));
-      renderWheelGroup(root.querySelector('#wheel_period_start'), [
-        { id: 'psy', caption: '年', items: years, initialValue: state.periodStart.y || CURRENT_ROC_YEAR, onChange: v => state.periodStart.y = v },
-        { id: 'psm', caption: '月', items: range(1, 12).map(v => ({ label: v, value: v })), initialValue: state.periodStart.m, onChange: v => state.periodStart.m = v },
-        { id: 'psd', caption: '日', items: range(1, 31).map(v => ({ label: v, value: v })), initialValue: state.periodStart.d, onChange: v => state.periodStart.d = v },
-      ]);
-      renderWheelGroup(root.querySelector('#wheel_period_end'), [
-        { id: 'pey', caption: '年', items: years, initialValue: state.periodEnd.y || CURRENT_ROC_YEAR + 1, onChange: v => state.periodEnd.y = v },
-        { id: 'pem', caption: '月', items: range(1, 12).map(v => ({ label: v, value: v })), initialValue: state.periodEnd.m, onChange: v => state.periodEnd.m = v },
-        { id: 'ped', caption: '日', items: range(1, 31).map(v => ({ label: v, value: v })), initialValue: state.periodEnd.d, onChange: v => state.periodEnd.d = v },
-      ]);
+      if (showComp) {
+        wheels(root.querySelector('#wheel_period_start'), state.periodStart, 'ps', CURRENT_ROC_YEAR);
+        wheels(root.querySelector('#wheel_period_end'), state.periodEnd, 'pe', CURRENT_ROC_YEAR + 1);
+      }
+      if (showVol) {
+        const drawVol = () => {
+          wheels(root.querySelector('#wheel_vol_start'), state.volStart, 'vs', CURRENT_ROC_YEAR);
+          wheels(root.querySelector('#wheel_vol_end'), state.volEnd, 've', CURRENT_ROC_YEAR + 1);
+        };
+        drawVol();
+        const same = root.querySelector('#chk_same');
+        if (same) same.addEventListener('change', () => {
+          state.volSameAsComp = same.checked;
+          root.querySelector('#vol_wheels').hidden = same.checked;
+          root.querySelector('.same-note').hidden = !same.checked;
+          if (!same.checked) {
+            // 取消「同強制險」時，先帶入強制險的日期當起點再調整
+            if (!state.volStart.y) Object.assign(state.volStart, state.periodStart);
+            if (!state.volEnd.y) Object.assign(state.volEnd, state.periodEnd);
+            drawVol();
+          }
+        });
+      }
     },
     collect() {
-      const startIso = rocToIso(state.periodStart.y, state.periodStart.m, state.periodStart.d);
-      const endIso = rocToIso(state.periodEnd.y, state.periodEnd.m, state.periodEnd.d);
-      if (!startIso || !endIso) { alert('請設定起保日與迄保日'); return false; }
-      if (endIso <= startIso) { alert('迄保日必須晚於起保日'); return false; }
+      const check = (s, e, label) => {
+        const a = rocToIso(s.y, s.m, s.d), b = rocToIso(e.y, e.m, e.d);
+        if (!a || !b) { alert(`請設定${label}起保日與迄保日`); return false; }
+        if (b <= a) { alert(`${label}迄保日必須晚於起保日`); return false; }
+        return true;
+      };
+      if (showComp && !check(state.periodStart, state.periodEnd, vehicle ? '強制險' : '')) return false;
+      if (showVol) {
+        if (canSame && state.volSameAsComp) {
+          state.volStart = { ...state.periodStart };
+          state.volEnd = { ...state.periodEnd };
+        } else if (!check(state.volStart, state.volEnd, '任意險')) return false;
+        if (!showComp) { // 只有任意險：主要保期就是任意險保期
+          state.periodStart = { ...state.volStart };
+          state.periodEnd = { ...state.volEnd };
+        }
+      }
       return true;
     }
   };
@@ -772,6 +912,20 @@ function stepInsuredInfo() {
   };
 }
 
+const rocText = (o) => (o && o.y ? `民國${o.y}年${o.m}月${o.d}日` : '');
+function periodRows() {
+  const row = (k, v) => `<div class="row"><span class="k">${k}</span><span class="v">${v}</span></div>`;
+  if (state.category !== 'vehicle') return row('起保日', rocText(state.periodStart)) + row('迄保日', rocText(state.periodEnd));
+  let out = '';
+  if (state.hasCompulsory) out += row('強制險保期', `${rocText(state.periodStart)} ～ ${rocText(state.periodEnd)}`);
+  if (state.hasVoluntary) {
+    out += state.hasCompulsory && state.volSameAsComp
+      ? row('任意險保期', '同強制險')
+      : row('任意險保期', `${rocText(state.volStart)} ～ ${rocText(state.volEnd)}`);
+  }
+  return out;
+}
+
 function stepReview() {
   return {
     eyebrow: '確認建檔', title: '資料確認',
@@ -780,12 +934,9 @@ function stepReview() {
 
       let topBlock = '';
       if (state.category === 'vehicle') {
-        const voluntaryLines = Object.entries(state.voluntaryItems)
-          .filter(([, v]) => v.checked)
-          .map(([id, v]) => {
-            const def = VOLUNTARY_ITEMS.find(i => i.id === id);
-            return `<div class="row"><span class="k">${def.name}</span><span class="v">${def.noAmount ? '已投保' : v.amount}</span></div>`;
-          }).join('');
+        const voluntaryLines = selectedVoluntary()
+          .map(v => `<div class="row"><span class="k">${v.id}　${v.item}</span><span class="v">${v.amount}</span></div>`).join('')
+          + state.legacyVoluntary.map(v => `<div class="row"><span class="k">${v.item}（舊項目）</span><span class="v">${v.amount || '已投保'}</span></div>`).join('');
         topBlock = `
           <div class="grp-title">車輛與險種</div>
           <div class="row"><span class="k">車牌號碼</span><span class="v">${state.plate}</span></div>
@@ -831,8 +982,7 @@ function stepReview() {
           <div class="grp-title">保費與期間</div>
           <div class="row"><span class="k">被保人</span><span class="v">${state.insuredName}</span></div>
           <div class="row"><span class="k">總保費</span><span class="v">NT$ ${state.totalPremium}</span></div>
-          <div class="row"><span class="k">起保日</span><span class="v">民國${state.periodStart.y}年${state.periodStart.m}月${state.periodStart.d}日</span></div>
-          <div class="row"><span class="k">迄保日</span><span class="v">民國${state.periodEnd.y}年${state.periodEnd.m}月${state.periodEnd.d}日</span></div>
+          ${periodRows()}
           ${vehicleInfoBlock}
           <div class="grp-title">被保人資料</div>
           ${employmentBlock}
@@ -894,10 +1044,13 @@ function buildPayload() {
     compulsory_policy_no: state.compulsoryPolicyNo,
     has_voluntary: state.hasVoluntary,
     voluntary_policy_no: state.voluntaryPolicyNo,
-    voluntary_items: Object.entries(state.voluntaryItems).filter(([, v]) => v.checked).map(([id, v]) => {
-      const def = VOLUNTARY_ITEMS.find(i => i.id === id);
-      return { item: def.name, amount: def.noAmount ? null : v.amount };
-    }),
+    voluntary_items: state.hasVoluntary ? [...selectedVoluntary(), ...state.legacyVoluntary] : [],
+    // 強制險／任意險各自的保期（policy_start/end_date 仍是主要保期：有強制險就是強制險的）
+    compulsory_start_date: state.hasCompulsory ? rocToIso(state.periodStart.y, state.periodStart.m, state.periodStart.d) : null,
+    compulsory_end_date: state.hasCompulsory ? rocToIso(state.periodEnd.y, state.periodEnd.m, state.periodEnd.d) : null,
+    voluntary_start_date: state.hasVoluntary ? rocToIso(state.volStart.y, state.volStart.m, state.volStart.d) : null,
+    voluntary_end_date: state.hasVoluntary ? rocToIso(state.volEnd.y, state.volEnd.m, state.volEnd.d) : null,
+    voluntary_same_period: state.hasCompulsory && state.hasVoluntary ? state.volSameAsComp : null,
     vehicle_license_date: rocToIso(state.license.y, state.license.m, state.license.d),
     vehicle_manufacture_date: state.mfg.y ? `${state.mfg.y}-${pad2(state.mfg.m)}` : null,
     displacement: state.displacement,
@@ -1000,11 +1153,14 @@ function resetWizard() {
     plate: '', vehicleType: '',
     hasCompulsory: false, compulsoryPolicyNo: '',
     hasVoluntary: false, voluntaryPolicyNo: '',
-    voluntaryItems: {},
+    volRows: {}, legacyVoluntary: [],
     personalItems: {},
     insuredName: '', totalPremium: '',
     periodStart: { y: null, m: 1, d: 1 },
     periodEnd: { y: null, m: 1, d: 1 },
+    volStart: { y: null, m: 1, d: 1 },
+    volEnd: { y: null, m: 1, d: 1 },
+    volSameAsComp: true,
     license: { y: null, m: 1, d: 1 },
     mfg: { y: null, m: 1 },
     displacement: '', seatingCapacity: 2,
@@ -1037,11 +1193,11 @@ async function showList() {
   holder.innerHTML = `
     <div class="records-scroll">
     <table class="records">
-      <thead><tr><th>類別</th><th>摘要</th><th>被保人</th><th>編輯資料</th><th>刪除</th></tr></thead>
+      <thead><tr><th>類別</th><th>摘要</th><th>被保人</th><th>刪除</th></tr></thead>
       <tbody>
         ${rows.map(r => {
           const isPersonal = r.category === 'personal';
-          const categoryLabel = isPersonal ? '個人保險' : '車險';
+          const categoryLabel = isPersonal ? '個人保險' : '汽/機車';
           const summary = isPersonal
             ? ((r.personal_items || []).map(i => i.item).join('、') || '—')
             : (r.plate_number || '—');
@@ -1050,7 +1206,6 @@ async function showList() {
             <td>${categoryLabel}</td>
             <td class="records-sum" title="${summary}">${summary}</td>
             <td>${r.insured_name || ''}</td>
-            <td><span class="edit-btn" data-id="${r.id}">編輯資料</span></td>
             <td><span class="del-btn" data-id="${r.id}">刪除</span></td>
           </tr>`;
         }).join('')}
@@ -1059,12 +1214,6 @@ async function showList() {
     </div>`;
   holder.querySelectorAll('.record-row').forEach(row => {
     row.addEventListener('click', () => showDetail(row.dataset.id));
-  });
-  holder.querySelectorAll('.edit-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      startEdit(btn.dataset.id);
-    });
   });
   holder.querySelectorAll('.del-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
@@ -1123,11 +1272,21 @@ function loadStateFromRecord(r) {
 
   // 車險
   const mfgParts = r.vehicle_manufacture_date ? r.vehicle_manufacture_date.split('-') : [null, '1'];
-  const voluntaryItems = {};
+  // 任意險：依代號（或舊名稱）放回對應的列；新清單沒有的舊項目原樣保留
+  const volRows = {};
+  const legacyVoluntary = [];
   (r.voluntary_items || []).forEach(v => {
-    const def = VOLUNTARY_ITEMS.find(i => i.name === v.item);
-    if (def) voluntaryItems[def.id] = { checked: true, amount: v.amount || '' };
+    const code = codeFromSaved(v);
+    const def = code && rowOfCode(code);
+    if (!def) { legacyVoluntary.push(v); return; }
+    const st = (volRows[def.row] = volRows[def.row] || { checked: true, variant: '', amounts: {} });
+    if (def.variants) st.variant = code;
+    st.amounts[code] = v.amount || '';
   });
+  const compStart = isoToRoc(r.compulsory_start_date || r.policy_start_date);
+  const compEnd = isoToRoc(r.compulsory_end_date || r.policy_end_date);
+  const volStart = isoToRoc(r.voluntary_start_date || r.policy_start_date);
+  const volEnd = isoToRoc(r.voluntary_end_date || r.policy_end_date);
 
   Object.assign(state, common, {
     plate: r.plate_number || '',
@@ -1136,7 +1295,14 @@ function loadStateFromRecord(r) {
     compulsoryPolicyNo: r.compulsory_policy_no || '',
     hasVoluntary: !!r.has_voluntary,
     voluntaryPolicyNo: r.voluntary_policy_no || '',
-    voluntaryItems,
+    volRows, legacyVoluntary,
+    periodStart: compStart || { y: null, m: 1, d: 1 },
+    periodEnd: compEnd || { y: null, m: 1, d: 1 },
+    volStart: volStart || { y: null, m: 1, d: 1 },
+    volEnd: volEnd || { y: null, m: 1, d: 1 },
+    volSameAsComp: r.voluntary_same_period != null ? !!r.voluntary_same_period
+      : (r.voluntary_start_date || r.policy_start_date) === (r.compulsory_start_date || r.policy_start_date)
+        && (r.voluntary_end_date || r.policy_end_date) === (r.compulsory_end_date || r.policy_end_date),
     license: isoToRoc(r.vehicle_license_date) || { y: null, m: 1, d: 1 },
     mfg: { y: mfgParts[0] ? Number(mfgParts[0]) : null, m: mfgParts[1] ? Number(mfgParts[1]) : 1 },
     displacement: r.displacement || '',
@@ -1181,9 +1347,19 @@ function renderRecordDetail(r) {
   } else {
     const license = isoToRoc(r.vehicle_license_date);
     const mfg = r.vehicle_manufacture_date ? r.vehicle_manufacture_date.split('-') : null;
-    const voluntaryLines = (r.voluntary_items || []).map(v =>
-      `<div class="row"><span class="k">${v.item}</span><span class="v">${v.amount || '已投保'}</span></div>`
-    ).join('');
+    const voluntaryLines = (r.voluntary_items || []).map(v => {
+      const code = codeFromSaved(v);
+      const label = code ? `${code}　${VOL_CODES[code].name}` : v.item;
+      return `<div class="row"><span class="k">${label}</span><span class="v">${v.amount || '已投保'}</span></div>`;
+    }).join('');
+    const rt = (iso) => { const o = isoToRoc(iso); return o ? `民國${o.y}年${o.m}月${o.d}日` : ''; };
+    const twoPeriods = r.compulsory_end_date || r.voluntary_end_date;
+    const periodLines = twoPeriods ? `
+      ${r.has_compulsory ? `<div class="row"><span class="k">強制險保期</span><span class="v">${rt(r.compulsory_start_date)} ～ ${rt(r.compulsory_end_date)}</span></div>` : ''}
+      ${r.has_voluntary ? `<div class="row"><span class="k">任意險保期</span><span class="v">${r.has_compulsory && r.voluntary_same_period ? '同強制險' : `${rt(r.voluntary_start_date)} ～ ${rt(r.voluntary_end_date)}`}</span></div>` : ''}`
+      : `
+      <div class="row"><span class="k">起保日</span><span class="v">${start ? `民國${start.y}年${start.m}月${start.d}日` : ''}</span></div>
+      <div class="row"><span class="k">迄保日</span><span class="v">${end ? `民國${end.y}年${end.m}月${end.d}日` : ''}</span></div>`;
     topBlock = `
       <div class="grp-title">車輛與險種</div>
       <div class="row"><span class="k">車牌號碼</span><span class="v">${r.plate_number}</span></div>
@@ -1195,8 +1371,7 @@ function renderRecordDetail(r) {
       <div class="grp-title">保費與期間</div>
       <div class="row"><span class="k">被保人</span><span class="v">${r.insured_name || ''}</span></div>
       <div class="row"><span class="k">總保費</span><span class="v">NT$ ${r.total_premium || ''}</span></div>
-      <div class="row"><span class="k">起保日</span><span class="v">${start ? `民國${start.y}年${start.m}月${start.d}日` : ''}</span></div>
-      <div class="row"><span class="k">迄保日</span><span class="v">${end ? `民國${end.y}年${end.m}月${end.d}日` : ''}</span></div>
+      ${periodLines}
 
       <div class="grp-title">車籍資料</div>
       <div class="row"><span class="k">原發照日</span><span class="v">${license ? `民國${license.y}年${license.m}月${license.d}日` : ''}</span></div>
