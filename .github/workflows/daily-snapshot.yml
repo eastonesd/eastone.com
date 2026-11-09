@@ -1,4 +1,4 @@
-# 每天早上 8 點多（台北時間）拍一張財經日報截圖，放到 daily-report 分支，
+# 週一到週五早上 8 點多（台北時間）拍一張財經日報截圖（週六、日不拍不發；週一的圖就是上週五收盤），放到 daily-report 分支，
 # 9:00 的 LINE 推播會把它連同到期提醒一起傳給已綁定的使用者。
 # GitHub 的排程有時會延遲或漏跑，所以排了 4 次（08:05、08:20、08:35、08:50），
 # 另外 Supabase 會在 08:25 主動呼叫一次（workflow_dispatch）。
@@ -8,10 +8,10 @@ name: Daily market snapshot
 
 on:
   schedule:
-    - cron: "5 0 * * *"    # UTC 00:05 = 台北 08:05
-    - cron: "20 0 * * *"   # 08:20
-    - cron: "35 0 * * *"   # 08:35
-    - cron: "50 0 * * *"   # 08:50
+    - cron: "5 0 * * 1-5"    # UTC 00:05 = 台北 08:05
+    - cron: "20 0 * * 1-5"   # 08:20
+    - cron: "35 0 * * 1-5"   # 08:35
+    - cron: "50 0 * * 1-5"   # 08:50
   workflow_dispatch:        # 也可以在 GitHub 的 Actions 頁面手動按「Run workflow」
   push:
     branches: [main]
@@ -28,7 +28,8 @@ concurrency:
 
 jobs:
   snapshot:
-    runs-on: ubuntu-latest
+    # 固定 24.04：ubuntu-latest 換成 26.04 後 Playwright 1.56 不支援，2026-11-08 起截圖失敗
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Skip if today's screenshot already exists (scheduled runs only)
