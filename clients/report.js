@@ -166,7 +166,7 @@ function render() {
   // 封面
   const cover = `<section class="page cover">
     <div class="cv-top">
-      <div class="cv-brand"><img src="../icons/logo.png" alt=""><div><b>EASTONE</b><span>東石系統</span></div></div>
+      <div class="cv-brand"><img src="../icons/logo.png" alt=""><div><b>EASTONE</b><span>東石保險服務平台</span></div></div>
       <div class="cv-eyebrow">COVERAGE CHECK REPORT</div>
       <h1>保障內容健診報告</h1>
       <div class="cv-client">${esc(INSURED.name)} <small>${honorific(INSURED)}</small></div>

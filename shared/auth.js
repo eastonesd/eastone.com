@@ -119,7 +119,7 @@ function toggleAccountMenu(btn) {
   menu.innerHTML = `
     <div class="acct-head">
       <div class="acct-badge"></div>
-      <div class="acct-who"><div class="acct-email"></div><div class="acct-sub">東石系統帳號</div></div>
+      <div class="acct-who"><div class="acct-email"></div><div class="acct-sub">東石保險服務平台帳號</div></div>
     </div>
     <div class="acct-sep"></div>
     <button type="button" class="acct-item" data-act="line" role="menuitem">${ICONS.line}<span>LINE 提醒</span></button>
@@ -130,7 +130,7 @@ function toggleAccountMenu(btn) {
     <a class="acct-item" role="menuitem" target="_blank" rel="noopener"
        href="https://line.me/R/ti/p/${encodeURIComponent(typeof LINE_OA_ID !== 'undefined' ? LINE_OA_ID : '@686icngd')}">${ICONS.chat}<span>LINE 官方帳號</span></a>
     <a class="acct-item" role="menuitem"
-       href="mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('東石系統｜聯絡我們')}&body=${encodeURIComponent(`\n\n—\n帳號：${email}`)}">${ICONS.mail}<span>寄 Email 給我們</span></a>
+       href="mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('東石保險服務平台｜聯絡我們')}&body=${encodeURIComponent(`\n\n—\n帳號：${email}`)}">${ICONS.mail}<span>寄 Email 給我們</span></a>
     <div class="acct-sep"></div>
     <button type="button" class="acct-item" data-act="logout" role="menuitem">${ICONS.out}<span>登出</span></button>`;
   menu.querySelector('.acct-badge').textContent = btn.textContent;
@@ -220,7 +220,7 @@ function openLineDialog() {
     body.innerHTML = `
       <p class="line-status">尚未綁定</p>
       <ol class="line-steps">
-        <li>用手機 LINE 加入東石系統官方帳號好友<div>${addFriend}</div></li>
+        <li>用手機 LINE 加入東石保險服務平台官方帳號好友<div>${addFriend}</div></li>
         <li>按下方按鈕產生綁定碼（30 分鐘內有效）
           <div><button type="button" class="auth-btn" data-act="code">產生綁定碼</button></div>
           <div class="line-code-wrap" hidden>
