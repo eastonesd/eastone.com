@@ -23,6 +23,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     ? `<span class="kb-badge admin">管理員：可編輯</span>`
     : `<span class="kb-badge">唯讀</span> 發現資料有誤？請從右上角頭像「聯絡我們」告訴管理員`;
   $("kb-new").hidden = !isAdmin;
+  $("kb-ai").hidden = !isAdmin;
+  $("kb-ai").addEventListener("click", openImport);
   $("kb-new").addEventListener("click", () => editProduct(null));
   $("kb-search").addEventListener("input", renderList);
   try { await KB.load(); } catch (err) { $("kb-list").textContent = "讀取失敗：" + (err.message || err); return; }
@@ -134,8 +136,10 @@ async function reload(id) {
 }
 
 // ---------------- 管理員編輯 ----------------
-function editProduct(p) {
-  const isNew = !p;
+// opts.draft：AI 讀取的草稿 { rates: {term: [[age, m, f]]}, warnings: [], pdf: {url, name}, usage }
+function editProduct(p, opts = {}) {
+  const draft = opts.draft || null;
+  const isNew = !p || !p.id;
   p = p || { company: "富邦人壽", code: "", name: "", version: "", kind: "main", nature: "protection", category: "", unit: "萬",
     coverage_to: "", pay_terms: [], rate_mode: "level", currency: "TWD", modal_factors: { 年繳: 1, 半年繳: 0.52, 季繳: 0.262, 月繳: 0.088 },
     assumed_rate: null, notes: [], source: "", verified: false, benefits: [] };
@@ -145,8 +149,9 @@ function editProduct(p) {
   const box = $("kb-detail");
   box.hidden = false;
   box.innerHTML = `
-    <div class="kb-detail-head"><h2>${isNew ? "新增商品" : "編輯 " + esc(p.code)}</h2>
+    <div class="kb-detail-head"><h2>${draft ? "AI 讀取結果：" + esc(p.code || "（未讀到代號）") : isNew ? "新增商品" : "編輯 " + esc(p.code)}</h2>
       <div class="kb-actions"><button type="button" class="btn-secondary kb-small" id="kb-cancel">取消</button></div></div>
+    ${draft ? draftBanner(draft, isNew) : ""}
     <div class="kb-form">
       <label>保險公司<input id="e-company" value="${esc(p.company)}"></label>
       <label>商品代號<input id="e-code" value="${esc(p.code)}"></label>
@@ -174,22 +179,23 @@ function editProduct(p) {
       <tbody id="e-benefits">${p.benefits.map((b) => benefitRow(b, itemOpts, nul)).join("")}</tbody></table></div>
     <button type="button" class="btn-secondary kb-small" id="e-add-benefit">＋ 新增給付項目</button>
 
-    ${isNew ? "" : `<h3>費率表（貼上取代）</h3>
+    ${draft ? draftRatesHtml(draft) : isNew ? "" : `<h3>費率表（貼上取代）</h3>
     <div class="kb-inline"><input id="e-rate-term" placeholder="繳費年期，例 20年" value="${esc((p.pay_terms || [])[0] || "")}"></div>
     <textarea id="e-rate-text" rows="5" placeholder="每行：投保年齡 男 女（可直接從費率表 PDF 複製貼上）"></textarea>
     <button type="button" class="btn-secondary kb-small" id="e-rate-save">更新這個年期的費率表</button>`}
 
     <div class="kb-save-row">
       <label class="kb-check"><input type="checkbox" id="e-verified"${p.verified ? " checked" : ""}> 已核對條款，標為「已驗證」</label>
-      ${isNew ? "" : `<button type="button" class="btn-secondary kb-small kb-danger" id="e-delete">刪除商品</button>`}
+      ${isNew || draft ? "" : `<button type="button" class="btn-secondary kb-small kb-danger" id="e-delete">刪除商品</button>`}
       <button type="button" class="btn-primary kb-small" id="e-save">儲存</button>
     </div>`;
 
   $("kb-cancel").addEventListener("click", () => (isNew ? (box.hidden = true) : openProduct(p.id)));
+  if (draft) bindDraft(draft);
   $("e-add-benefit").addEventListener("click", () => $("e-benefits").insertAdjacentHTML("beforeend", benefitRow({ item_code: KB.items[0].code, amount: 0 }, itemOpts, nul)));
   $("e-benefits").addEventListener("click", (e) => { if (e.target.classList.contains("e-del")) e.target.closest("tr").remove(); });
-  $("e-save").addEventListener("click", () => saveProduct(p, isNew));
-  if (!isNew) {
+  $("e-save").addEventListener("click", () => saveProduct(p, isNew, draft));
+  if (!isNew && !draft) {
     $("e-delete").addEventListener("click", async () => {
       if (!confirm(`確定刪除 ${p.code} ${p.name}？給付內容與費率表會一起刪除。`)) return;
       const { error } = await sb.from("kb_products").delete().eq("id", p.id);
@@ -215,7 +221,7 @@ function benefitRow(b, itemOpts, nul) {
     <td><button type="button" class="icon-btn e-del" title="移除">✕</button></td></tr>`;
 }
 
-async function saveProduct(p, isNew) {
+async function saveProduct(p, isNew, draft) {
   const num = (v) => (v === "" || v == null ? null : Number(v));
   const rec = {
     company: $("e-company").value.trim(), code: $("e-code").value.trim().toUpperCase(), name: $("e-name").value.trim(),
@@ -252,8 +258,10 @@ async function saveProduct(p, isNew) {
       const { error: e3 } = await sb.from("kb_product_benefits").insert(rows.map((r) => ({ ...r, product_id: id })));
       sbThrow(e3, "儲存給付內容");
     }
+    const nRates = draft ? await saveDraftRates(id) : 0;
+    if (draft) delete KB._rates[id];
     await reload(id);
-    showToast("已儲存");
+    showToast(draft ? `已建檔${nRates ? `，含 ${nRates} 筆費率` : ""}` : "已儲存");
   } catch (err) {
     showToast(err.message || String(err));
   } finally { btn.disabled = false; }
