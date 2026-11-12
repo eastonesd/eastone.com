@@ -4,9 +4,6 @@
 
 const REFRESH_MS = 60 * 1000; // 60 秒
 
-// ?story=1：IG 限時動態版面（9:16，內容收在安全區），每日截圖用
-if (new URLSearchParams(location.search).has("story")) document.documentElement.classList.add("story");
-
 // 行情服務（四大指數 + 台幣匯率），公開資料、不需登入
 const MARKET_URL = "https://kocyedkngpxckixtudku.supabase.co/functions/v1/market-data";
 
