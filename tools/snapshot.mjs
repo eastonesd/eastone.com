@@ -1,6 +1,7 @@
 // ============================================================
 // 每日財經日報截圖（由 GitHub Actions 每天早上 08:35 台北時間執行）
-// 打開線上的財經日報頁面，等匯率、頭條、指數都載入後，拍一張手機尺寸的截圖。
+// 打開線上的財經日報頁面（IG 限時動態版面 ?story=1），等匯率、頭條、指數都載入後，拍一張 9:16 的截圖。
+// 尺寸 1080×1920，內容避開 IG 上方頭像列與下方回覆框，可以直接當限時動態發。
 // 輸出：<outDir>/market-YYYY-MM-DD.jpg（原圖）與 market-YYYY-MM-DD-preview.jpg（LINE 預覽用小圖）
 // 用法：node tools/snapshot.mjs <outDir>   （可用 SITE_URL 環境變數改網址）
 // ============================================================
@@ -18,13 +19,13 @@ const browser = await chromium.launch();
 try {
   const shoot = async (scale, file, quality) => {
     const ctx = await browser.newContext({
-      viewport: { width: 390, height: 844 },
+      viewport: { width: 360, height: 640 },   // 9:16
       deviceScaleFactor: scale,
       timezoneId: "Asia/Taipei",
       locale: "zh-TW",
     });
     const page = await ctx.newPage();
-    await page.goto(`${SITE_URL}?snapshot=${Date.now()}`, { waitUntil: "networkidle", timeout: 60_000 });
+    await page.goto(`${SITE_URL}?story=1&snapshot=${Date.now()}`, { waitUntil: "networkidle", timeout: 60_000 });
 
     // 等資料載入（最多 45 秒；某一區抓不到也照樣拍，不讓整張圖開天窗）
     const ready = await page
@@ -47,8 +48,8 @@ try {
     return ready;
   };
 
-  const ok = await shoot(2, `market-${today}.jpg`, 88);         // 780×1688，LINE 原圖（上限 10MB）
-  await shoot(1, `market-${today}-preview.jpg`, 75);             // 390×844，LINE 預覽圖（上限 1MB）
+  const ok = await shoot(3, `market-${today}.jpg`, 90);         // 1080×1920，IG 限時動態／LINE 原圖（上限 10MB）
+  await shoot(1, `market-${today}-preview.jpg`, 80);             // 360×640，LINE 預覽圖（上限 1MB）
   console.log(`done: ${today} (data complete: ${ok})`);
 } finally {
   await browser.close();

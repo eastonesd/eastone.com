@@ -294,3 +294,29 @@ body {
   margin: -0.2em 0.45em 0 0;
   box-shadow: 0 0 0 1.5px rgba(242, 193, 78, .8);
 }
+
+/* ---------- IG 限時動態版面（網址加 ?story=1） ----------
+   每日截圖用：畫面 9:16（截圖為 1080×1920）。
+   IG 上方約 13% 有頭像列、下方約 14% 有回覆框，內容全部收在中間的安全區；
+   背景照樣鋪滿整張，上下不會留黑邊。 */
+html.story {
+  --safe-top: 13vh;
+  --safe-bot: 15.5vh;
+  --vh: calc(1vh * 0.715);         /* 字級以「安全區高度」計算，而不是整個畫面 */
+}
+html.story body { padding: var(--safe-top) 0 var(--safe-bot); }
+html.story .home-link { display: none !important; }
+html.story .page {
+  padding: 0 16px;
+  justify-content: space-between;
+  gap: calc(var(--vh) * 2.2);
+}
+html.story .masthead { padding-top: calc(var(--vh) * 1); }
+html.story .card { --card-alpha: 0.62; }
+html.story .news-list { gap: calc(var(--vh) * 1.1); }
+html.story .footer {
+  background: none;
+  border-top: 0;
+  padding: calc(var(--vh) * 2.4) 12px 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .8);
+}
