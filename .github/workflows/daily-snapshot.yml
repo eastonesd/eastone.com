@@ -4,6 +4,8 @@
 # 另外 Supabase 會在 08:25 主動呼叫一次（workflow_dispatch）。
 # 排程觸發時如果今天的圖已經拍好就直接跳過，不會重複拍。
 # daily-report 分支只保留最近 7 天的圖，而且每次都整個重建，不會讓 repo 越來越大。
+# 影音版：用截圖＋音軌做一支 15 秒影片（只保留當天的），09:10 由 A.R.T.H.U.R. 傳到 Discord。
+#   音軌加密存在 tools/daily-track.m4a.enc，解密金鑰放在 GitHub 的 Secret「DAILY_TRACK_KEY」；沒設定就只拍圖。
 name: Daily market snapshot
 
 on:
@@ -66,6 +68,21 @@ jobs:
           cd /tmp/snap && node snapshot.mjs "$GITHUB_WORKSPACE/out"
           ls -la "$GITHUB_WORKSPACE/out"
 
+      - name: Make 15-second video (needs the DAILY_TRACK_KEY secret)
+        if: steps.check.outputs.skip != 'true'
+        env:
+          KEY: ${{ secrets.DAILY_TRACK_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then echo "還沒設定 DAILY_TRACK_KEY，這次不做影音版"; exit 0; fi
+          today=$(TZ=Asia/Taipei date +%F)
+          openssl enc -d -aes-256-cbc -pbkdf2 -pass env:KEY -in tools/daily-track.m4a.enc -out /tmp/track.m4a
+          command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null; }
+          # 靜態截圖＋原始音軌，剛好 15 秒，不加任何效果
+          ffmpeg -v error -y -loop 1 -framerate 30 -i "out/market-$today.jpg" -i /tmp/track.m4a -map 0:v -map 1:a -t 15 \
+            -c:v libx264 -preset veryfast -tune stillimage -crf 20 -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart "out/market-$today.mp4"
+          rm -f /tmp/track.m4a
+          ls -la out
+
       - name: Publish to daily-report branch (keep last 7 days)
         if: steps.check.outputs.skip != 'true'
         env:
@@ -82,7 +99,12 @@ jobs:
           done
           cp out/*.jpg pub/
           today=$(TZ=Asia/Taipei date +%F)
-          printf '{"date":"%s","image":"market-%s.jpg","preview":"market-%s-preview.jpg"}\n' "$today" "$today" "$today" > pub/latest.json
+          if [ -f "out/market-$today.mp4" ]; then
+            cp "out/market-$today.mp4" pub/
+            printf '{"date":"%s","image":"market-%s.jpg","preview":"market-%s-preview.jpg","video":"market-%s.mp4"}\n' "$today" "$today" "$today" "$today" > pub/latest.json
+          else
+            printf '{"date":"%s","image":"market-%s.jpg","preview":"market-%s-preview.jpg"}\n' "$today" "$today" "$today" > pub/latest.json
+          fi
           cd pub
           git init -q -b daily-report
           git config user.name "github-actions[bot]"
