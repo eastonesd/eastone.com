@@ -249,6 +249,56 @@ async function clientSavePolicies(id, policies) {
   return record;
 }
 
+// 只更新某位客戶的自訂群組（data.groups 字串陣列）
+async function clientSaveGroups(id, groups) {
+  const key = (id || '').trim().toUpperCase();
+  const existing = await clientGet(key);
+  if (!existing) throw new Error('查無此客戶');
+  const clean = [...new Set((groups || []).map((g) => String(g).trim()).filter(Boolean))];
+  const record = { ...existing, groups: clean, updated_at: nowStamp() };
+  const { error } = await sb.from('clients')
+    .update({ data: record, updated_at: new Date().toISOString() })
+    .eq('id', key);
+  sbThrow(error, '儲存群組');
+  return record;
+}
+
+// ---------- 同住址分組 ----------
+// 縣市＋區＋詳細地址正規化後當作同一戶的依據（全形轉半形、臺→台、去掉空白與標點）
+function addressKey(c) {
+  if (!c || !c.address_detail) return '';
+  const raw = `${c.city || ''}${c.district || ''}${c.address_detail || ''}`;
+  return raw
+    .replace(/[\uFF01-\uFF5E]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .replace(/臺/g, '台')
+    .replace(/[\s,，、.。\-－]/g, '')
+    .toUpperCase();
+}
+function addressText(c) {
+  return [c.city, c.district, c.address_detail].filter(Boolean).join('');
+}
+// { 地址key: [客戶...] }，只留兩人以上的
+function householdMap(clients) {
+  const map = new Map();
+  clients.forEach((c) => {
+    const k = addressKey(c);
+    if (!k) return;
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(c);
+  });
+  [...map.keys()].forEach((k) => { if (map.get(k).length < 2) map.delete(k); });
+  return map;
+}
+// { 群組名稱: [客戶...] }
+function groupMap(clients) {
+  const map = new Map();
+  clients.forEach((c) => (c.groups || []).forEach((g) => {
+    if (!map.has(g)) map.set(g, []);
+    map.get(g).push(c);
+  }));
+  return map;
+}
+
 async function clientDelete(id) {
   const { error } = await sb.from('clients').delete().eq('id', (id || '').toUpperCase());
   sbThrow(error, '刪除客戶');

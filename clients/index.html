@@ -9,10 +9,10 @@
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="客戶管理">
-<link rel="stylesheet" href="../shared/site-header.css?v=20261113-8">
-<link rel="stylesheet" href="../shared/auth.css?v=20261113-8">
-<link rel="stylesheet" href="picker.css?v=20261113-8">
-<link rel="stylesheet" href="style.css?v=20261113-8">
+<link rel="stylesheet" href="../shared/site-header.css?v=20261113-9">
+<link rel="stylesheet" href="../shared/auth.css?v=20261113-9">
+<link rel="stylesheet" href="picker.css?v=20261113-9">
+<link rel="stylesheet" href="style.css?v=20261113-9">
 </head>
 <body>
 
@@ -179,11 +179,17 @@
         <button type="button" class="btn-secondary" id="btnImportBackup">匯入復原</button>
         <input type="file" id="importFileInput" accept="application/json" style="display:none;">
       </div>
-      <input type="text" id="search-box" placeholder="搜尋 ID 或被保險人...">
-      <table class="file-list-table">
-        <thead><tr><th>客戶ID</th><th>被保險人</th><th>性別</th><th>刪除</th></tr></thead>
+      <div class="fl-views" role="tablist">
+        <button type="button" class="fl-view active" data-view="all">全部</button>
+        <button type="button" class="fl-view" data-view="house">同住址</button>
+        <button type="button" class="fl-view" data-view="group">群組</button>
+      </div>
+      <input type="text" id="search-box" placeholder="搜尋 ID、被保險人、地址或群組...">
+      <table class="file-list-table" id="fl-table">
+        <thead><tr><th>客戶ID</th><th>被保險人</th><th>性別</th><th>同住／群組</th><th>刪除</th></tr></thead>
         <tbody id="file-list-body"></tbody>
       </table>
+      <div id="fl-cards" class="fl-cards" hidden></div>
     </div>
   </section>
 
@@ -222,12 +228,12 @@
 <div id="toast" class="toast" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
-<script src="../shared/supabase-client.js?v=20261113-8"></script>
-<script src="../shared/auth.js?v=20261113-8"></script>
-<script src="../shared/migrate-local.js?v=20261113-8"></script>
-<script src="data.js?v=20261113-8"></script>
-<script src="db.js?v=20261113-8"></script>
-<script src="picker.js?v=20261113-8"></script>
-<script src="script.js?v=20261113-8"></script>
+<script src="../shared/supabase-client.js?v=20261113-9"></script>
+<script src="../shared/auth.js?v=20261113-9"></script>
+<script src="../shared/migrate-local.js?v=20261113-9"></script>
+<script src="data.js?v=20261113-9"></script>
+<script src="db.js?v=20261113-9"></script>
+<script src="picker.js?v=20261113-9"></script>
+<script src="script.js?v=20261113-9"></script>
 </body>
 </html>

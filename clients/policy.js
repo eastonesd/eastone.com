@@ -99,6 +99,25 @@ function buildStaticOptions() {
     : [{ label: "主約繳費年期", options: TERM_OPTIONS.main }];
   PICK_SOURCES["cover"] = () => COVER_OPTIONS;
   PICK_SOURCES["rider-term"] = () => [{ label: "附約繳費年期", options: TERM_OPTIONS.rider }];
+  PICK_SOURCES["bene-rel"] = () => BENE_RELATIONS;
+  // 受益人：先列跟被保人同住址、同群組的客戶，其他客戶打字才列出
+  PICK_SOURCES["bene"] = (input) => {
+    const insured = personRecord($("pf-insured").value) || client;
+    const hk = addressKey(insured);
+    const used = new Set([insured.id]);
+    const pick = (list) => list.filter((c) => c.name && !used.has(c.id)).map((c) => { used.add(c.id); return c.name; });
+    const house = hk ? pick(allClients.filter((c) => addressKey(c) === hk)) : [];
+    const myGroups = insured.groups || [];
+    const group = myGroups.length ? pick(allClients.filter((c) => (c.groups || []).some((g) => myGroups.includes(g)))) : [];
+    const kw = input.value.trim();
+    const others = kw ? pick(allClients.filter((c) => (c.name || "").includes(kw))).slice(0, 30) : [];
+    return [
+      house.length && { label: `同住址・${addressText(insured)}`, options: house },
+      group.length && { label: `同群組・${myGroups.join("、")}`, options: group },
+      others.length && { label: `其他客戶（符合「${kw}」）`, options: others },
+      !kw && { label: "其他客戶：直接打名字搜尋", options: [] },
+    ].filter(Boolean);
+  };
   document.querySelectorAll(".pf-bank-select").forEach((s) => fillSelect(s, [["", "請選擇銀行"], ...BANKS], ""));
   const y0 = new Date().getFullYear();
   // 跟卡片背面一樣顯示 MM / YY（年份存四碼西元）
@@ -516,8 +535,8 @@ function addBene(b = {}) {
   row.innerHTML = `
     <label class="pf-bene-order">順位<select>${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<option${String(n) === String(order) ? " selected" : ""}>${n}</option>`).join("")}</select></label>
     <label class="pf-bene-type">類型<select><option value="legal"${legal ? " selected" : ""}>法定繼承人</option><option value="named"${legal ? "" : " selected"}>指定受益人</option></select></label>
-    <label class="pf-bene-name">受益人<input type="text" list="pf-bene-list" value="${legal ? "" : esc(b.name)}" placeholder="${legal ? "法定繼承人" : "選擇或輸入姓名"}"${legal ? " disabled" : ""}></label>
-    <label class="pf-bene-rel">關係<input type="text" list="pf-rel-list" value="${legal ? "" : esc(b.relation || "")}" placeholder="${legal ? "—" : "例 配偶"}"${legal ? " disabled" : ""}></label>
+    <label class="pf-bene-name">受益人<input type="text" data-pick="bene" autocomplete="off" value="${legal ? "" : esc(b.name)}" placeholder="${legal ? "法定繼承人" : "選擇或輸入姓名"}"${legal ? " disabled" : ""}></label>
+    <label class="pf-bene-rel">關係<input type="text" data-pick="bene-rel" autocomplete="off" value="${legal ? "" : esc(b.relation || "")}" placeholder="${legal ? "—" : "例 配偶"}"${legal ? " disabled" : ""}></label>
     <label class="pf-bene-ratio">比例 %<input type="number" min="0" max="100" step="any" value="${esc(b.ratio)}"${b.equal ? " disabled" : ""}></label>
     <label class="pf-check pf-bene-equal"><input type="checkbox"${b.equal ? " checked" : ""}> 均分</label>
     <button type="button" class="icon-btn pf-bene-del" title="移除">✕</button>`;

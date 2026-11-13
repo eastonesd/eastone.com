@@ -643,6 +643,7 @@ async function startEditClient(clientId) {
 // ========================= 檔案區 =========================
 function bindFileList() {
   document.getElementById("search-box").addEventListener("input", refreshFileList);
+  document.querySelectorAll(".fl-view").forEach((b) => b.addEventListener("click", () => { flView = b.dataset.view; refreshFileList(); }));
 }
 
 // ========================= 匯出備份 / 匯入復原 =========================
@@ -693,27 +694,42 @@ function bindBackup() {
   });
 }
 
+let flView = "all";          // 檔案區顯示方式：all 全部／house 同住址／group 群組
+let flClients = [];          // 最近一次讀到的客戶清單（資料卡的同住家人、群組選項會用到）
+
+function flMatch(c, kw) {
+  if (!kw) return true;
+  return c.id.toLowerCase().includes(kw) || (c.name || "").toLowerCase().includes(kw)
+    || addressText(c).toLowerCase().includes(kw) || (c.groups || []).some((g) => g.toLowerCase().includes(kw));
+}
+
 async function refreshFileList() {
   const clients = await clientList();
+  flClients = clients;
   const keyword = document.getElementById("search-box").value.trim().toLowerCase();
+  document.querySelectorAll(".fl-view").forEach((b) => b.classList.toggle("active", b.dataset.view === flView));
+  document.getElementById("fl-table").hidden = flView !== "all";
+  document.getElementById("fl-cards").hidden = flView === "all";
+  const houses = householdMap(clients);
+  if (flView === "house") return renderHouseCards(houses, keyword);
+  if (flView === "group") return renderGroupCards(clients, keyword);
 
-  const filtered = clients.filter(
-    (c) =>
-      !keyword ||
-      c.id.toLowerCase().includes(keyword) ||
-      (c.name || "").toLowerCase().includes(keyword)
-  );
-
+  const filtered = clients.filter((c) => flMatch(c, keyword));
   const tbody = document.getElementById("file-list-body");
   tbody.innerHTML = "";
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="color:#999;text-align:center;">尚無資料</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="color:#999;text-align:center;">尚無資料</td></tr>`;
     return;
   }
   filtered.forEach((c) => {
+    const house = houses.get(addressKey(c));
+    const tags = [
+      house ? `<span class="fl-tag house" title="${escHtml(addressText(c))}">同住 ${house.length} 人</span>` : "",
+      ...(c.groups || []).map((g) => `<span class="fl-tag">${escHtml(g)}</span>`),
+    ].join("");
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${c.id}</td><td>${c.name}</td><td>${c.gender || ""}</td>
-      <td><span class="icon-btn delete-client-btn" data-id="${c.id}">刪除</span></td>`;
+    tr.innerHTML = `<td>${escHtml(c.id)}</td><td>${escHtml(c.name)}</td><td>${escHtml(c.gender || "")}</td><td class="fl-tags">${tags}</td>
+      <td><span class="icon-btn delete-client-btn" data-id="${escHtml(c.id)}">刪除</span></td>`;
     // 點整列打開客戶資料卡（編輯資料在資料卡裡）
     tr.addEventListener("click", (e) => {
       if (e.target.classList.contains("delete-client-btn")) return;
@@ -728,6 +744,85 @@ async function refreshFileList() {
     });
     tbody.appendChild(tr);
   });
+}
+
+function memberChip(c) {
+  const age = c.insurance_age != null ? `${c.insurance_age} 歲` : "";
+  const n = (c.policies || []).length;
+  return `<button type="button" class="fl-member" data-id="${escHtml(c.id)}">
+    <b>${escHtml(c.name)}</b><span>${escHtml([c.gender, age].filter(Boolean).join("・"))}</span>
+    <em>${n ? `${n} 張保單` : "無保單"}</em></button>`;
+}
+function bindMemberChips(box) {
+  box.querySelectorAll(".fl-member").forEach((b) => b.addEventListener("click", () => openDetail(b.dataset.id)));
+}
+
+function renderHouseCards(houses, kw) {
+  const box = document.getElementById("fl-cards");
+  const list = [...houses.values()].filter((m) => !kw || m.some((c) => flMatch(c, kw)))
+    .sort((a, b) => b.length - a.length);
+  if (!list.length) {
+    box.innerHTML = `<p class="fl-empty">${kw ? "找不到符合的同住名單" : "目前沒有兩人以上住在同一個地址。客戶資料的地址要填得一樣才會分在一起。"}</p>`;
+    return;
+  }
+  box.innerHTML = list.map((m, i) => `
+    <div class="fl-card">
+      <div class="fl-card-head">
+        <div><span class="fl-card-kicker">同住址・${m.length} 人</span><b>${escHtml(addressText(m[0]))}</b></div>
+        <button type="button" class="btn-secondary fl-btn fl-make-group" data-i="${i}">設為群組</button>
+      </div>
+      <div class="fl-members">${m.map(memberChip).join("")}</div>
+    </div>`).join("");
+  bindMemberChips(box);
+  box.querySelectorAll(".fl-make-group").forEach((b) => b.addEventListener("click", async () => {
+    const m = list[+b.dataset.i];
+    const surname = (m[0].name || "").slice(0, 1);
+    const name = (prompt("群組名稱", surname ? `${surname}家` : "") || "").trim();
+    if (!name) return;
+    for (const c of m) await clientSaveGroups(c.id, [...(c.groups || []), name]);
+    showToast(`已建立群組「${name}」（${m.length} 人）`);
+    refreshFileList();
+  }));
+}
+
+function renderGroupCards(clients, kw) {
+  const box = document.getElementById("fl-cards");
+  const groups = [...groupMap(clients).entries()]
+    .filter(([g, m]) => !kw || g.toLowerCase().includes(kw) || m.some((c) => flMatch(c, kw)))
+    .sort((a, b) => a[0].localeCompare(b[0], "zh-Hant"));
+  const head = `<p class="fl-hint">在客戶資料卡的「群組」欄加入，或到「同住址」按「設為群組」。同一人可以在多個群組。</p>`;
+  if (!groups.length) {
+    box.innerHTML = head + `<p class="fl-empty">${kw ? "找不到符合的群組" : "還沒有自訂群組。"}</p>`;
+    return;
+  }
+  box.innerHTML = head + groups.map(([g, m]) => `
+    <div class="fl-card">
+      <div class="fl-card-head">
+        <div><span class="fl-card-kicker">群組・${m.length} 人</span><b>${escHtml(g)}</b></div>
+        <span>
+          <button type="button" class="link-btn fl-rename" data-g="${escHtml(g)}">改名</button>
+          <button type="button" class="icon-btn fl-ungroup" data-g="${escHtml(g)}">解散</button>
+        </span>
+      </div>
+      <div class="fl-members">${m.map(memberChip).join("")}</div>
+    </div>`).join("");
+  bindMemberChips(box);
+  const members = (g) => clients.filter((c) => (c.groups || []).includes(g));
+  box.querySelectorAll(".fl-rename").forEach((b) => b.addEventListener("click", async () => {
+    const g = b.dataset.g;
+    const name = (prompt("新的群組名稱", g) || "").trim();
+    if (!name || name === g) return;
+    for (const c of members(g)) await clientSaveGroups(c.id, (c.groups || []).map((x) => (x === g ? name : x)));
+    showToast(`已改名為「${name}」`);
+    refreshFileList();
+  }));
+  box.querySelectorAll(".fl-ungroup").forEach((b) => b.addEventListener("click", async () => {
+    const g = b.dataset.g;
+    if (!confirm(`解散群組「${g}」？客戶資料不會被刪除，只是不再分在這一組。`)) return;
+    for (const c of members(g)) await clientSaveGroups(c.id, (c.groups || []).filter((x) => x !== g));
+    showToast(`已解散「${g}」`);
+    refreshFileList();
+  }));
 }
 
 // ========================= 詳細資料 Modal =========================
@@ -835,6 +930,9 @@ async function openDetail(clientId) {
   const fullAddress = [c.zip_code, c.city, c.district, c.address_detail].filter(Boolean).join(" ");
   const policies = c.policies || [];
   const expanded = catalogExpanded();
+  if (!flClients.length) flClients = await clientList();
+  const hk = addressKey(c);
+  const housemates = hk ? flClients.filter((x) => x.id !== c.id && addressKey(x) === hk) : [];
 
   document.getElementById("detail-content").innerHTML = `
     <div class="detail-row">
@@ -855,6 +953,21 @@ async function openDetail(clientId) {
     <div class="detail-row">
       <div class="detail-cell detail-full">
         <span>地址</span><strong>${escHtml(fullAddress || "—")}</strong>
+      </div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-cell detail-full">
+        <span>同住家人</span>
+        <div class="dt-chips" id="dt-house">${housemates.length ? housemates.map((h) => `<button type="button" class="dt-person" data-id="${escHtml(h.id)}">${escHtml(h.name)}</button>`).join("") : `<em class="dt-none">${c.address_detail ? "沒有其他客戶住同一個地址" : "未填地址"}</em>`}</div>
+      </div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-cell detail-full">
+        <span>群組</span>
+        <div class="dt-chips" id="dt-groups">
+          ${(c.groups || []).map((g) => `<span class="dt-group">${escHtml(g)}<button type="button" data-g="${escHtml(g)}" title="移出群組">✕</button></span>`).join("")}
+          <input type="text" id="dt-group-input" data-pick="client-group" placeholder="＋ 加入群組" autocomplete="off">
+        </div>
       </div>
     </div>
     <div class="detail-section-title catalog-title">
@@ -889,6 +1002,29 @@ async function openDetail(clientId) {
   document.getElementById("btn-policy-client").addEventListener("click", () => {
     location.href = policyUrl(null);
   });
+  // 同住家人：點名字直接打開他的資料卡
+  document.querySelectorAll("#dt-house .dt-person").forEach((b) => b.addEventListener("click", () => openDetail(b.dataset.id)));
+  // 群組：選既有群組或打新名稱按 Enter
+  PICK_SOURCES["client-group"] = () => [...groupMap(flClients).keys()].filter((g) => !(c.groups || []).includes(g)).sort((a, b) => a.localeCompare(b, "zh-Hant"));
+  const saveGroups = async (groups, msg) => {
+    const rec = await clientSaveGroups(c.id, groups);
+    const i = flClients.findIndex((x) => x.id === c.id);
+    if (i >= 0) flClients[i] = rec;
+    showToast(msg);
+    openDetail(c.id);
+    if (document.getElementById("tab-filelist").classList.contains("active")) refreshFileList();
+  };
+  const gi = document.getElementById("dt-group-input");
+  const addGroup = () => {
+    const g = gi.value.trim();
+    if (!g || (c.groups || []).includes(g)) return;
+    if (window.closePicker) window.closePicker();
+    saveGroups([...(c.groups || []), g], `已加入群組「${g}」`);
+  };
+  gi.addEventListener("change", addGroup);
+  gi.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addGroup(); } });
+  document.querySelectorAll("#dt-groups .dt-group button").forEach((b) => b.addEventListener("click", () =>
+    saveGroups((c.groups || []).filter((g) => g !== b.dataset.g), `已移出「${b.dataset.g}」`)));
   document.getElementById("btn-edit-client").addEventListener("click", () => {
     closeModal();
     startEditClient(c.id);
