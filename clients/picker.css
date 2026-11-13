@@ -1,0 +1,44 @@
+/* 點選面板：東石配色（深藍 + 金） */
+.pick-panel {
+  position: absolute; z-index: 1000;
+  background: var(--card, #FFFDF8);
+  border: 1px solid var(--line, #D8D0BC);
+  border-top: 3px solid var(--gold, #B8892B);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(18, 29, 51, .18);
+  padding: 12px 12px 10px;
+  max-height: 70vh; overflow-y: auto;
+  animation: pick-in .12s ease-out;
+}
+@keyframes pick-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.pick-label {
+  font-size: .74rem; font-weight: 700; letter-spacing: .08em;
+  color: var(--gold, #B8892B); margin: 4px 2px 6px;
+}
+.pick-label:not(:first-child) { margin-top: 12px; }
+.pick-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.pick-chip {
+  appearance: none; cursor: pointer;
+  font: inherit; font-size: .92rem; line-height: 1;
+  padding: 9px 14px; border-radius: 999px;
+  border: 1px solid var(--line, #D8D0BC);
+  background: #fff; color: var(--accent, #1B2A4A);
+  transition: background .12s, border-color .12s, color .12s;
+}
+.pick-chip:hover { border-color: var(--gold, #B8892B); background: #FFF6DD; color: var(--accent-deep, #121D33); }
+.pick-chip.on {
+  background: var(--accent, #1B2A4A); border-color: var(--accent, #1B2A4A);
+  color: #F3DFA8; font-weight: 700;
+}
+.pick-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line, #D8D0BC);
+}
+.pick-clear {
+  appearance: none; cursor: pointer; border: 0; background: none;
+  font: inherit; font-size: .82rem; color: var(--danger, #A2402D); padding: 2px 4px;
+}
+.pick-hint { font-size: .74rem; color: var(--ink-soft, #6B6656); }
+input.pick-open { border-color: var(--gold, #B8892B) !important; box-shadow: 0 0 0 3px rgba(184, 137, 43, .15); }
+input[data-pick] { cursor: pointer; }
+input[data-pick]:disabled { cursor: default; background: var(--accent-soft, #EDE8DC); color: var(--accent, #1B2A4A); font-weight: 700; opacity: 1; }

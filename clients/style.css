@@ -212,7 +212,7 @@ th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
 .file-list-table tbody tr:hover { background: var(--accent-soft); }
 
 .hint { color: var(--ink-soft); font-size: .88rem; margin-top: 0; }
-.code-add-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+.code-add-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; }
 
 .icon-btn {
   background: none; border: none; cursor: pointer; color: var(--danger); font-size: .95rem;
@@ -360,6 +360,13 @@ th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
 .code-table tr.fam-more td { border-top-color: transparent; }
 .code-table tr.fam-first td { border-top: 1px solid rgba(0,0,0,.12); }
 .code-auto { margin-left: 6px; font-size: .72rem; font-weight: 700; color: var(--gold); background: #FFF6DD; padding: 1px 7px; border-radius: 999px; }
+.code-table tr.fam-toggle { cursor: pointer; }
+.code-table tr.fam-toggle:hover td { background: #FFF8E6; }
+.code-table tr.fam-toggle.open td { background: var(--accent-soft); }
+.code-table tr.fam-more td { background: #FCFAF4; font-size: .92em; }
+.fam-caret { display: inline-block; width: 1.1em; color: var(--gold); font-weight: 700; }
+.fam-latest { color: var(--ink-soft); font-size: .9em; }
+.fam-hint { font-size: .8rem; color: var(--gold); font-weight: 700; }
 .fam-count { margin-left: 6px; font-size: .78rem; color: var(--gold); font-weight: 700; }
 .code-acts { white-space: nowrap; text-align: right; }
 .link-btn { background: none; border: 0; color: var(--accent-deep); cursor: pointer; font-size: .9rem; margin-right: 10px; font-family: inherit; }

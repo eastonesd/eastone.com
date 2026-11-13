@@ -142,7 +142,21 @@ async function kbCalcPremium(product, { sex, issueAge, term, mode, sa, saUnit })
 }
 
 // ---------------- 保障計算 ----------------
-const KB_WEALTH_CATS = ['分紅', '利率變動', '年金', '投資型', '儲蓄', '增額', '還本', '利變', '投資U', '增額壽險', '還本壽險', '養老保險'];
+const KB_WEALTH_CATS = ['分紅', '利率變動', '年金', '投資型', '儲蓄', '增額', '還本', '利變', '投資U', '增額壽險', '還本壽險', '養老保險', '利變年金', '利變即期年金'];
+
+// 豁免附約「同主約繳費期滿日」：換算成從附約生效起算還要繳幾年（主約繳費期滿日 − 附約生效日）
+function kbWaiverTerm(allClients, L, M, r) {
+  if (!/^同主約/.test(String(r.term || ''))) return null;
+  const mainInsured = allClients.find((x) => x.id === L.insured_id);
+  const mainAge = mainInsured ? kbInsuranceAge(mainInsured.birthday, L.effective_date) : null;
+  const mainPay = mainAge == null ? null : kbPayYears(M.term, mainAge);
+  if (mainPay == null) return '';
+  const start = new Date(r.effective_date || L.effective_date);
+  const mainStart = new Date(L.effective_date);
+  if (isNaN(start) || isNaN(mainStart)) return `${mainPay}年`;
+  const elapsed = Math.floor((start - mainStart) / (365.2425 * 864e5));
+  return `${Math.max(0, mainPay - Math.max(0, elapsed))}年`;
+}
 
 // 把所有客戶的保單攤平成「契約」清單，只取被保人是 insuredId 的主約／附約
 function kbCollectContracts(allClients, insuredId) {
@@ -166,8 +180,9 @@ function kbCollectContracts(allClients, insuredId) {
       term: M.term, coverage: M.coverage || '', sa: M.sum_assured, saUnit: M.sa_unit, premium: Number(M.premium) || 0 });
     (L.riders || []).forEach((r) => {
       if ((r.insured_id || L.insured_id) !== insuredId) return;
+      const waiver = kbWaiverTerm(allClients, L, M, r);
       out.push({ ...base, kind: 'rider', code: r.code, name: r.name, cat1: r.cat1 || '', cat2: r.cat2 || '', effective: r.effective_date || L.effective_date,
-        term: r.term, coverage: r.coverage || '', sa: r.sum_assured, saUnit: r.sa_unit, premium: Number(r.premium) || 0 });
+        term: waiver || r.term, coverage: waiver || r.coverage || '', sa: r.sum_assured, saUnit: r.sa_unit, premium: Number(r.premium) || 0 });
     });
   }));
   return out;

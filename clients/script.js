@@ -157,13 +157,15 @@ async function refreshCodeList() {
   renderCodeList();
 }
 
+const codeOpen = new Set();   // 保單資料庫：展開中的險種代號（版本列）
+
 function renderCodeList() {
   const label = codeKind === "rider" ? "附約" : "主約";
   const other = codeKind === "rider" ? "主約" : "附約";
   document.querySelectorAll(".code-kind").forEach((b) => b.classList.toggle("active", b.dataset.kind === codeKind));
   document.getElementById("btn-add-code").textContent = `新增/更新${label}`;
   const rows = codeRowsCache.filter((r) => r.kind === codeKind);
-  // 依商品（去掉版本數字的代號）分組
+  // 依險種（去掉版本數字的代號）分組；多個版本的只顯示一列，點開才看到各版本
   const fams = new Map();
   rows.forEach((r) => { const f = codeFamily(r.code); if (!fams.has(f)) fams.set(f, []); fams.get(f).push(r); });
   const tbody = document.getElementById("code-list-body");
@@ -172,31 +174,57 @@ function renderCodeList() {
     tbody.innerHTML = `<tr><td colspan="6" class="code-empty">還沒有${label}代號，請在上方新增。</td></tr>`;
     return;
   }
+  const catCells = (r) => `<td>${escHtml(r.cat1 || "—")}</td><td>${escHtml(r.cat2 || "")}</td>`;
+  const auto = (r) => (r.auto_created ? `<span class="code-auto" title="登打保單時自動建立，可抽查">自動建立</span>` : "");
+  const acts = (r) => `<td class="code-acts"><button type="button" class="link-btn" data-move>改為${other}</button><button type="button" class="icon-btn" data-del>刪除</button></td>`;
+  const bindActs = (tr, r) => {
+    tr.querySelector("[data-del]").addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!confirm(`確定刪除代號 ${r.code}？`)) return;
+      await codeDelete(r.code);
+      showToast(`已刪除代號 ${r.code}`);
+      refreshCodeList();
+    });
+    tr.querySelector("[data-move]").addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await codeAdd(r.code, r.name, codeKind === "rider" ? "main" : "rider");
+      showToast(`${r.code} 已改為${other}`);
+      refreshCodeList();
+    });
+  };
   fams.forEach((list, fam) => {
-    list.forEach((r, i) => {
+    if (list.length === 1) {
+      const r = list[0];
       const tr = document.createElement("tr");
-      tr.className = i === 0 ? "fam-first" : "fam-more";
-      tr.innerHTML = `<td>${i === 0 ? `<b>${escHtml(fam)}</b>${list.length > 1 ? `<span class="fam-count">${list.length} 版</span>` : ""}` : ""}</td>
-        <td>${escHtml(r.code)}</td><td>${escHtml(r.name)}${r.auto_created ? `<span class="code-auto" title="登打保單時自動建立，可抽查">自動建立</span>` : ""}</td>
-        <td>${escHtml(r.cat1 || "—")}</td><td>${escHtml(r.cat2 || "")}</td>
-        <td class="code-acts"><button type="button" class="link-btn" data-move>改為${other}</button><button type="button" class="icon-btn" data-del>刪除</button></td>`;
-      tr.querySelector("[data-del]").addEventListener("click", async () => {
-        if (!confirm(`確定刪除代號 ${r.code}？`)) return;
-        await codeDelete(r.code);
-        showToast(`已刪除代號 ${r.code}`);
-        refreshCodeList();
-      });
-      tr.querySelector("[data-move]").addEventListener("click", async () => {
-        await codeAdd(r.code, r.name, codeKind === "rider" ? "main" : "rider");
-        showToast(`${r.code} 已改為${other}`);
-        refreshCodeList();
-      });
+      tr.className = "fam-first";
+      tr.innerHTML = `<td><b>${escHtml(fam)}</b></td><td>${escHtml(r.code)}</td><td>${escHtml(r.name)}${auto(r)}</td>${catCells(r)}${acts(r)}`;
+      bindActs(tr, r);
+      tbody.appendChild(tr);
+      return;
+    }
+    const latest = list[list.length - 1];
+    const open = codeOpen.has(fam);
+    const head = document.createElement("tr");
+    head.className = "fam-first fam-toggle" + (open ? " open" : "");
+    head.innerHTML = `<td><span class="fam-caret">${open ? "▾" : "▸"}</span><b>${escHtml(fam)}</b><span class="fam-count">${list.length} 版</span></td>
+      <td class="fam-latest">最新 ${escHtml(latest.code)}</td><td>${escHtml(latest.name)}${list.some((r) => r.auto_created) ? `<span class="code-auto">含自動建立</span>` : ""}</td>${catCells(latest)}
+      <td class="code-acts"><span class="fam-hint">${open ? "收合" : "展開版本"}</span></td>`;
+    head.addEventListener("click", () => { if (open) codeOpen.delete(fam); else codeOpen.add(fam); renderCodeList(); });
+    tbody.appendChild(head);
+    if (!open) return;
+    list.forEach((r) => {
+      const tr = document.createElement("tr");
+      tr.className = "fam-more";
+      tr.innerHTML = `<td></td><td>${escHtml(r.code)}</td><td>${escHtml(r.name)}${auto(r)}</td>${catCells(r)}${acts(r)}`;
+      bindActs(tr, r);
       tbody.appendChild(tr);
     });
   });
 }
 
 function bindCodeMaintenance() {
+  // 類別欄：依目前是主約或附約，顯示各自的類別
+  PICK_SOURCES["code-cat"] = () => CAT_LISTS[codeKind === "rider" ? "rider" : "main"];
   document.querySelectorAll(".code-kind").forEach((b) => b.addEventListener("click", () => {
     codeKind = b.dataset.kind;
     renderCodeList();
@@ -204,16 +232,19 @@ function bindCodeMaintenance() {
   document.getElementById("btn-add-code").addEventListener("click", async () => {
     const code = document.getElementById("code-input").value.trim().toUpperCase();
     const name = document.getElementById("code-name-input").value.trim();
-    const catText = document.getElementById("code-cat-input").value.trim();
+    const c1 = document.getElementById("code-cat-input").value.trim();
+    const c2 = document.getElementById("code-cat2-input").value.trim();
     if (!code || !name) {
       showToast("請輸入代號與險種名稱");
       return;
     }
     // 類別留白：已有代號就保留原本的類別
-    await codeAdd(code, name, codeKind, catText ? splitCategory(catText) : null);
+    const cats = !c1 ? null : c2 ? { cat1: splitCategory(c1, codeKind).cat1, cat2: splitCategory(c2, codeKind).cat1 } : splitCategory(c1, codeKind);
+    await codeAdd(code, name, codeKind, cats);
     document.getElementById("code-input").value = "";
     document.getElementById("code-name-input").value = "";
     document.getElementById("code-cat-input").value = "";
+    document.getElementById("code-cat2-input").value = "";
     showToast(`已儲存${codeKind === "rider" ? "附約" : "主約"}代號 ${code}`);
     refreshCodeList();
   });

@@ -9,10 +9,11 @@
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="客戶管理">
-<link rel="stylesheet" href="../shared/site-header.css?v=20261113-4">
-<link rel="stylesheet" href="../shared/auth.css?v=20261113-4">
-<link rel="stylesheet" href="style.css?v=20261113-4">
-<link rel="stylesheet" href="policy.css?v=20261113-4">
+<link rel="stylesheet" href="../shared/site-header.css?v=20261113-5">
+<link rel="stylesheet" href="../shared/auth.css?v=20261113-5">
+<link rel="stylesheet" href="style.css?v=20261113-5">
+<link rel="stylesheet" href="picker.css?v=20261113-5">
+<link rel="stylesheet" href="policy.css?v=20261113-5">
 </head>
 <body>
 
@@ -28,14 +29,14 @@
     <button onclick="location.href='../index.html'">理賠</button>
     <button onclick="location.href='../index.html#endorse'">契變</button>
     <button onclick="location.href='../market/index.html'">財經日報</button>
-    <button class="active" onclick="location.href='index.html'">客戶資料</button>
+    <button class="active" onclick="location.href='index.html'">人壽管理</button>
     <button onclick="location.href='../policies/index.html'">產險管理</button>
   </nav>
 </div>
 
 <header class="topbar">
   <h1>新增／修改保單<small>POLICY ENTRY</small></h1>
-  <a class="pf-back" href="index.html#filelist">← 返回客戶資料</a>
+  <a class="pf-back" href="index.html#filelist">← 返回人壽管理</a>
 </header>
 
 <main class="pf-main">
@@ -109,14 +110,14 @@
       </div>
       <div class="pf-main-row2">
         <label>險種名稱<input type="text" id="pf-main-name" placeholder="輸入代號或名稱" list="pf-name-list"></label>
-        <label>主要類別<input type="text" id="pf-cat1" class="pf-cat" list="pf-cat1-list" placeholder="例 終身醫療"></label>
-        <label>次要類別<input type="text" id="pf-cat2" class="pf-cat" list="pf-cat2-list" placeholder="沒有可留白"></label>
-        <datalist id="pf-cat1-list"></datalist><datalist id="pf-cat2-list"></datalist>
+        <label>主要類別<input type="text" id="pf-cat1" class="pf-cat" data-pick="main-cat" placeholder="點選或輸入" autocomplete="off"></label>
+        <label>次要類別<input type="text" id="pf-cat2" class="pf-cat" data-pick="main-cat" placeholder="沒有可留白" autocomplete="off"></label>
       </div>
+      <p class="pf-newcode" id="pf-main-new" hidden></p>
       <div class="pf-kb" id="pf-main-kb" hidden></div>
       <div class="pf-grid4">
-        <label>繳費年期<input type="text" id="pf-main-term" list="pf-term-list" placeholder="例 20年、75歲"></label>
-        <label>保障期間<input type="text" id="pf-main-cover" list="pf-cover-list" placeholder="例 終身、95歲"></label>
+        <label>繳費年期<input type="text" id="pf-main-term" data-pick="main-term" placeholder="點選或輸入" autocomplete="off"></label>
+        <label>保障期間<input type="text" id="pf-main-cover" data-pick="cover" placeholder="點選或輸入" autocomplete="off"></label>
         <label>保額
           <div class="pf-unit">
             <input type="number" id="pf-main-sa" min="0" step="any" placeholder="0">
@@ -161,11 +162,12 @@
           <div class="pf-actions-right"><button type="button" class="btn-primary pf-small" id="pf-r-add">加入</button></div>
         </div>
         <div class="pf-newrider" id="pf-newrider" hidden>
-          <div class="pf-results-head">代號表裡還沒有這個附約：填好下面三欄就能直接加入，儲存保單時會自動建檔</div>
-          <div class="pf-grid3">
+          <div class="pf-results-head">保單資料庫裡還沒有這個附約：填好下面欄位就能直接加入，儲存保單時會自動建檔</div>
+          <div class="pf-grid4">
             <label>險種代號<input type="text" id="pf-nr-code" placeholder="例 HSZ" autocomplete="off"></label>
             <label>險種名稱<input type="text" id="pf-nr-name" placeholder="例 鑫安實在"></label>
-            <label>險種類別<input type="text" id="pf-nr-cat" list="pf-nrcat-list" placeholder="例 終身住院醫療"><datalist id="pf-nrcat-list"></datalist></label>
+            <label>主要類別<input type="text" id="pf-nr-cat" data-pick="rider-cat" placeholder="點選或輸入" autocomplete="off"></label>
+            <label>次要類別<input type="text" id="pf-nr-cat2" data-pick="rider-cat" placeholder="沒有可留白" autocomplete="off"></label>
           </div>
           <p class="pf-note" id="pf-nr-split"></p>
           <div class="pf-actions-right"><button type="button" class="btn-primary pf-small" id="pf-nr-add">加入新附約</button></div>
@@ -250,24 +252,16 @@
 
 <datalist id="pf-code-list"></datalist>
 <datalist id="pf-name-list"></datalist>
-<datalist id="pf-cover-list">
-  <option value="終身"><option value="110歲"><option value="99歲"><option value="95歲"><option value="85歲">
-  <option value="75歲"><option value="65歲"><option value="20年"><option value="1年（定期）"><option value="繳費期滿">
-</datalist>
-<datalist id="pf-term-list">
-  <option value="躉繳"><option value="2年"><option value="3年"><option value="6年"><option value="8年"><option value="10年"><option value="15年">
-  <option value="20年"><option value="25年"><option value="30年"><option value="55歲"><option value="60歲">
-  <option value="65歲"><option value="75歲"><option value="85歲"><option value="95歲"><option value="1年（定期）">
-</datalist>
 
 <div id="toast" class="toast" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
-<script src="../shared/supabase-client.js?v=20261113-4"></script>
-<script src="../shared/auth.js?v=20261113-4"></script>
-<script src="data.js?v=20261113-4"></script>
-<script src="db.js?v=20261113-4"></script>
-<script src="../shared/kb.js?v=20261113-4"></script>
-<script src="policy.js?v=20261113-4"></script>
+<script src="../shared/supabase-client.js?v=20261113-5"></script>
+<script src="../shared/auth.js?v=20261113-5"></script>
+<script src="data.js?v=20261113-5"></script>
+<script src="db.js?v=20261113-5"></script>
+<script src="../shared/kb.js?v=20261113-5"></script>
+<script src="picker.js?v=20261113-5"></script>
+<script src="policy.js?v=20261113-5"></script>
 </body>
 </html>
