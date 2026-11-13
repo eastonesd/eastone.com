@@ -44,10 +44,10 @@ async function seedInsuranceCodesIfEmpty() {
   sbThrow(e2, '建立預設保單代號');
 }
 
-// 保單代號列：[{ code, name, kind: 'main' | 'rider' }]
+// 保單代號列：[{ code, name, kind: 'main' | 'rider', cat1, cat2, auto_created }]
 async function codeRows() {
-  const rows = await fetchAllRows('insurance_codes', 'code,name,kind', '讀取保單代號');
-  rows.forEach((r) => { r.kind = r.kind === 'rider' ? 'rider' : 'main'; });
+  const rows = await fetchAllRows('insurance_codes', 'code,name,kind,cat1,cat2,auto_created', '讀取保單代號');
+  rows.forEach((r) => { r.kind = r.kind === 'rider' ? 'rider' : 'main'; r.cat1 = r.cat1 || ''; r.cat2 = r.cat2 || ''; });
   rows.sort((a, b) => (a.code < b.code ? -1 : 1));
   return rows;
 }
@@ -64,9 +64,42 @@ function codeFamily(code) {
   return /[A-Z]\d$/.test(c) ? c.slice(0, -1) : c;
 }
 
-async function codeAdd(code, name, kind = 'main') {
-  const { error } = await sb.from('insurance_codes').upsert({ code, name, kind }, { onConflict: 'code' });
+// cats 省略時保留原本的類別（例如「改為主約／附約」只改 kind）
+async function codeAdd(code, name, kind = 'main', cats = null, autoCreated = false) {
+  const row = { code, name, kind };
+  if (cats) { row.cat1 = cats.cat1 || ''; row.cat2 = cats.cat2 || ''; }
+  if (autoCreated) row.auto_created = true;
+  const { error } = await sb.from('insurance_codes').upsert(row, { onConflict: 'code' });
   sbThrow(error, '儲存保單代號');
+}
+
+// ---------- 險種類別：主要／次要 ----------
+const CAT1_LIST = [
+  '壽險', '小額終老保險', '增額壽險', '還本壽險', '養老保險', '分紅', '利變', '投資U', '意外險',
+  '定期醫療', '終身醫療', '防癌', '重疾', '重傷', '特傷', '長照', '失智', '失能', '豁免', '其他',
+];
+const CAT2_LIST = [
+  '終身', '定期', '實支實付', '住院', '手術', '還本', '壽險', '增額壽險', '還本壽險', '養老保險',
+  '特傷', '即期年金 乙型', '年金 甲型', '甲型', '國際',
+];
+// 打一個類別（原本寫在險種名稱後面的那段），拆成主要／次要；沒有規則就原文當主要類別
+const CAT_SPLIT_RULES = {
+  '兒童意外險': ['意外險', ''], '利變': ['利變', '壽險'], '利變增額': ['利變', '增額壽險'], '利變還本': ['利變', '還本壽險'],
+  '還本壽險85': ['還本壽險', ''], '終身實支': ['終身醫療', '實支實付'], '還本終身醫療': ['終身醫療', '還本'], '終身住院醫療': ['終身醫療', '住院'],
+  '分紅增額': ['分紅', '增額壽險'], '分紅壽險': ['分紅', '壽險'], '分紅養老': ['分紅', '養老保險'], '定期醫療': ['定期醫療', ''],
+  '終身長照': ['長照', '終身'], '定期長照': ['長照', '定期'], '高齡實支': ['終身醫療', '實支實付'], '終身手術': ['終身醫療', '手術'],
+  '終身失智': ['失智', '終身'], '失能照護': ['失能', ''], '終身重疾': ['重疾', '終身'], '定期重疾': ['重疾', '定期'],
+  '終身重傷': ['重傷', '終身'], '定期重傷': ['重傷', '定期'], '還本重傷': ['重傷', '還本'], '終身特傷': ['特傷', '終身'],
+  '定期特傷': ['特傷', '定期'], '重疾特傷終身': ['重疾', '特傷'], '重大傷病': ['重傷', ''], '定期防癌': ['防癌', ''],
+  '終身健康附約': ['防癌', ''], '平準壽險': ['壽險', ''], '定期壽險': ['壽險', '定期'], '小額終老': ['小額終老保險', ''],
+  '豁免保費附約': ['豁免', ''], '增額': ['增額壽險', ''], '還本': ['還本壽險', ''],
+  '利變即期年金 乙型': ['利變', '即期年金 乙型'], '利變年金 甲型': ['利變', '年金 甲型'], '利變 國際': ['利變', '國際'],
+};
+function splitCategory(text) {
+  const t = String(text || '').trim().replace(/\s+/g, ' ');
+  if (!t) return { cat1: '', cat2: '' };
+  const r = CAT_SPLIT_RULES[t];
+  return r ? { cat1: r[0], cat2: r[1] } : { cat1: t, cat2: '' };
 }
 
 async function codeDelete(code) {

@@ -142,7 +142,7 @@ async function kbCalcPremium(product, { sex, issueAge, term, mode, sa, saUnit })
 }
 
 // ---------------- 保障計算 ----------------
-const KB_WEALTH_CATS = ['分紅', '利率變動', '年金', '投資型', '儲蓄', '增額', '還本'];
+const KB_WEALTH_CATS = ['分紅', '利率變動', '年金', '投資型', '儲蓄', '增額', '還本', '利變', '投資U', '增額壽險', '還本壽險', '養老保險'];
 
 // 把所有客戶的保單攤平成「契約」清單，只取被保人是 insuredId 的主約／附約
 function kbCollectContracts(allClients, insuredId) {
@@ -166,7 +166,7 @@ function kbCollectContracts(allClients, insuredId) {
       term: M.term, coverage: M.coverage || '', sa: M.sum_assured, saUnit: M.sa_unit, premium: Number(M.premium) || 0 });
     (L.riders || []).forEach((r) => {
       if ((r.insured_id || L.insured_id) !== insuredId) return;
-      out.push({ ...base, kind: 'rider', code: r.code, name: r.name, effective: r.effective_date || L.effective_date,
+      out.push({ ...base, kind: 'rider', code: r.code, name: r.name, cat1: r.cat1 || '', cat2: r.cat2 || '', effective: r.effective_date || L.effective_date,
         term: r.term, coverage: r.coverage || '', sa: r.sum_assured, saUnit: r.sa_unit, premium: Number(r.premium) || 0 });
     });
   }));

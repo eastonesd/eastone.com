@@ -22,11 +22,11 @@ const ATLAS = [
 ];
 // 保費配置（第 3 頁）：商品類別 → 分類
 const PREMIUM_GROUPS = [
-  { key: "life", name: "壽險與責任", color: "#1B2A4A", cats: ["壽險"] },
-  { key: "medical", name: "醫療", color: "#3E6FA8", cats: ["醫療", "實支實付"] },
-  { key: "critical", name: "重大疾病・重大傷病・特定傷病", color: "#B8892B", cats: ["重大傷病", "重大疾病", "特定傷病", "癌症"] },
-  { key: "accident", name: "意外", color: "#6E8FB5", cats: ["意外"] },
-  { key: "ltc", name: "失能長照", color: "#8C6A2A", cats: ["失能扶助", "長期照顧"] },
+  { key: "life", name: "壽險與責任", color: "#1B2A4A", cats: ["壽險", "小額終老保險"] },
+  { key: "medical", name: "醫療", color: "#3E6FA8", cats: ["醫療", "實支實付", "定期醫療", "終身醫療"] },
+  { key: "critical", name: "重大疾病・重大傷病・特定傷病", color: "#B8892B", cats: ["重大傷病", "重大疾病", "特定傷病", "癌症", "重疾", "重傷", "特傷", "防癌"] },
+  { key: "accident", name: "意外", color: "#6E8FB5", cats: ["意外", "意外險"] },
+  { key: "ltc", name: "失能長照", color: "#8C6A2A", cats: ["失能扶助", "長期照顧", "長照", "失智", "失能"] },
   { key: "wealth", name: "理財", color: "#C9B27A", cats: [] },
   { key: "other", name: "複合／未拆分", color: "#B7B2A6", cats: [] },
 ];

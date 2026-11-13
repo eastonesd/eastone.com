@@ -73,6 +73,11 @@
 .pf-table td, .pf-table th { font-size: .88rem; }
 .pf-empty { color: #999; text-align: center; }
 .pf-actions-right { display: flex; justify-content: flex-end; margin-top: 10px; }
+.pf-newrider { margin-top: 14px; padding: 12px 14px; border: 1px dashed var(--gold); border-radius: 10px; background: #FFFBEF; }
+.pf-newrider .pf-grid3 { margin-top: 8px; }
+#pf-nr-split { margin: 4px 0 0; color: var(--accent-deep); font-weight: 700; }
+.pf-rider-cat { margin-left: 8px; font-size: .74rem; color: var(--ink-soft); background: #EEF2F8; padding: 2px 8px; border-radius: 999px; }
+.pf-rider-new { margin-left: 6px; font-size: .74rem; font-weight: 700; color: var(--gold); background: #FFF6DD; padding: 2px 8px; border-radius: 999px; }
 .pf-rider { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 0; margin-bottom: 10px; background: #fff; }
 .pf-rider-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .pf-rider-head b { color: var(--accent-deep); }

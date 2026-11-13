@@ -169,7 +169,7 @@ function renderCodeList() {
   const tbody = document.getElementById("code-list-body");
   tbody.innerHTML = "";
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="code-empty">還沒有${label}代號，請在上方新增。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="code-empty">還沒有${label}代號，請在上方新增。</td></tr>`;
     return;
   }
   fams.forEach((list, fam) => {
@@ -177,7 +177,8 @@ function renderCodeList() {
       const tr = document.createElement("tr");
       tr.className = i === 0 ? "fam-first" : "fam-more";
       tr.innerHTML = `<td>${i === 0 ? `<b>${escHtml(fam)}</b>${list.length > 1 ? `<span class="fam-count">${list.length} 版</span>` : ""}` : ""}</td>
-        <td>${escHtml(r.code)}</td><td>${escHtml(r.name)}</td>
+        <td>${escHtml(r.code)}</td><td>${escHtml(r.name)}${r.auto_created ? `<span class="code-auto" title="登打保單時自動建立，可抽查">自動建立</span>` : ""}</td>
+        <td>${escHtml(r.cat1 || "—")}</td><td>${escHtml(r.cat2 || "")}</td>
         <td class="code-acts"><button type="button" class="link-btn" data-move>改為${other}</button><button type="button" class="icon-btn" data-del>刪除</button></td>`;
       tr.querySelector("[data-del]").addEventListener("click", async () => {
         if (!confirm(`確定刪除代號 ${r.code}？`)) return;
@@ -203,13 +204,16 @@ function bindCodeMaintenance() {
   document.getElementById("btn-add-code").addEventListener("click", async () => {
     const code = document.getElementById("code-input").value.trim().toUpperCase();
     const name = document.getElementById("code-name-input").value.trim();
+    const catText = document.getElementById("code-cat-input").value.trim();
     if (!code || !name) {
       showToast("請輸入代號與險種名稱");
       return;
     }
-    await codeAdd(code, name, codeKind);
+    // 類別留白：已有代號就保留原本的類別
+    await codeAdd(code, name, codeKind, catText ? splitCategory(catText) : null);
     document.getElementById("code-input").value = "";
     document.getElementById("code-name-input").value = "";
+    document.getElementById("code-cat-input").value = "";
     showToast(`已儲存${codeKind === "rider" ? "附約" : "主約"}代號 ${code}`);
     refreshCodeList();
   });

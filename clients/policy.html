@@ -9,10 +9,10 @@
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="客戶管理">
-<link rel="stylesheet" href="../shared/site-header.css?v=20261107-4">
-<link rel="stylesheet" href="../shared/auth.css?v=20261107-4">
-<link rel="stylesheet" href="style.css?v=20261107-4">
-<link rel="stylesheet" href="policy.css?v=20261107-4">
+<link rel="stylesheet" href="../shared/site-header.css?v=20261113-1">
+<link rel="stylesheet" href="../shared/auth.css?v=20261113-1">
+<link rel="stylesheet" href="style.css?v=20261113-1">
+<link rel="stylesheet" href="policy.css?v=20261113-1">
 </head>
 <body>
 
@@ -100,17 +100,18 @@
       <div class="pf-card-title">2　保單主約</div>
       <div class="pf-main-row1">
         <label>保險公司<select id="pf-company"></select></label>
-        <label class="pf-code">商品<input type="text" id="pf-main-family" placeholder="例 IAT" list="pf-code-list" autocomplete="off"></label>
-        <label>版本<select id="pf-main-ver"><option value="">先選商品</option></select></label>
+        <label class="pf-code">險種代號<input type="text" id="pf-main-family" placeholder="例 IAT" list="pf-code-list" autocomplete="off"></label>
+        <label>版本<select id="pf-main-ver"><option value="">先選險種代號</option></select></label>
         <label>幣別
           <select id="pf-currency"><option selected>TWD</option><option>USD</option><option>AUD</option><option>CNY</option><option>EUR</option></select>
         </label>
         <input type="hidden" id="pf-main-code">
       </div>
       <div class="pf-main-row2">
-        <label>商品名稱<input type="text" id="pf-main-name" placeholder="輸入代號或名稱" list="pf-name-list"></label>
-        <label>類別 1<select id="pf-cat1" class="pf-cat"></select></label>
-        <label>類別 2<select id="pf-cat2" class="pf-cat"></select></label>
+        <label>險種名稱<input type="text" id="pf-main-name" placeholder="輸入代號或名稱" list="pf-name-list"></label>
+        <label>主要類別<input type="text" id="pf-cat1" class="pf-cat" list="pf-cat1-list" placeholder="例 終身醫療"></label>
+        <label>次要類別<input type="text" id="pf-cat2" class="pf-cat" list="pf-cat2-list" placeholder="沒有可留白"></label>
+        <datalist id="pf-cat1-list"></datalist><datalist id="pf-cat2-list"></datalist>
       </div>
       <div class="pf-kb" id="pf-main-kb" hidden></div>
       <div class="pf-grid4">
@@ -151,13 +152,23 @@
           <input type="text" class="pf-kw" placeholder="4"><input type="text" class="pf-kw" placeholder="5"><input type="text" class="pf-kw" placeholder="6">
         </div>
         <div class="pf-search-foot">
-          <span class="pf-note">請依各項附約輸入商品關鍵字、中文名稱或英文代號擇一輸入</span>
+          <span class="pf-note">請依各項附約輸入險種關鍵字、中文名稱或險種代號擇一輸入</span>
           <button type="button" class="btn-primary pf-small" id="pf-r-search">查詢</button>
         </div>
         <div class="pf-results" id="pf-results" hidden>
-          <div class="pf-results-head">請先勾選商品，再按「加入」　<span id="pf-results-count"></span></div>
-          <table class="pf-table"><thead><tr><th>勾選</th><th>英文代號</th><th>附加契約</th></tr></thead><tbody id="pf-results-body"></tbody></table>
+          <div class="pf-results-head">請先勾選附約，再按「加入」　<span id="pf-results-count"></span></div>
+          <table class="pf-table"><thead><tr><th>勾選</th><th>險種代號</th><th>附加契約</th></tr></thead><tbody id="pf-results-body"></tbody></table>
           <div class="pf-actions-right"><button type="button" class="btn-primary pf-small" id="pf-r-add">加入</button></div>
+        </div>
+        <div class="pf-newrider" id="pf-newrider" hidden>
+          <div class="pf-results-head">代號表裡還沒有這個附約：填好下面三欄就能直接加入，儲存保單時會自動建檔</div>
+          <div class="pf-grid3">
+            <label>險種代號<input type="text" id="pf-nr-code" placeholder="例 HSZ" autocomplete="off"></label>
+            <label>險種名稱<input type="text" id="pf-nr-name" placeholder="例 鑫安實在"></label>
+            <label>險種類別<input type="text" id="pf-nr-cat" list="pf-nrcat-list" placeholder="例 終身住院醫療"><datalist id="pf-nrcat-list"></datalist></label>
+          </div>
+          <p class="pf-note" id="pf-nr-split"></p>
+          <div class="pf-actions-right"><button type="button" class="btn-primary pf-small" id="pf-nr-add">加入新附約</button></div>
         </div>
       </div>
       <div class="pf-riders" id="pf-riders"></div>
@@ -252,11 +263,11 @@
 <div id="toast" class="toast" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
-<script src="../shared/supabase-client.js?v=20261107-4"></script>
-<script src="../shared/auth.js?v=20261107-4"></script>
-<script src="data.js?v=20261107-4"></script>
-<script src="db.js?v=20261107-4"></script>
-<script src="../shared/kb.js?v=20261107-4"></script>
-<script src="policy.js?v=20261107-4"></script>
+<script src="../shared/supabase-client.js?v=20261113-1"></script>
+<script src="../shared/auth.js?v=20261113-1"></script>
+<script src="data.js?v=20261113-1"></script>
+<script src="db.js?v=20261113-1"></script>
+<script src="../shared/kb.js?v=20261113-1"></script>
+<script src="policy.js?v=20261113-1"></script>
 </body>
 </html>

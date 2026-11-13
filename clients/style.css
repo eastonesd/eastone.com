@@ -359,6 +359,7 @@ th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
 .code-kind.active { background: var(--accent-deep); color: #fff; }
 .code-table tr.fam-more td { border-top-color: transparent; }
 .code-table tr.fam-first td { border-top: 1px solid rgba(0,0,0,.12); }
+.code-auto { margin-left: 6px; font-size: .72rem; font-weight: 700; color: var(--gold); background: #FFF6DD; padding: 1px 7px; border-radius: 999px; }
 .fam-count { margin-left: 6px; font-size: .78rem; color: var(--gold); font-weight: 700; }
 .code-acts { white-space: nowrap; text-align: right; }
 .link-btn { background: none; border: 0; color: var(--accent-deep); cursor: pointer; font-size: .9rem; margin-right: 10px; font-family: inherit; }
