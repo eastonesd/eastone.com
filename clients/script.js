@@ -439,7 +439,7 @@ function validateStep(step) {
     const id = document.getElementById("f-id").value.trim();
     const name = document.getElementById("f-name").value.trim();
     if (!id || !name) {
-      showToast("請輸入客戶ID與姓名");
+      showToast("請輸入客戶ID與被保險人");
       return false;
     }
   }
@@ -806,7 +806,7 @@ async function openDetail(clientId) {
   document.getElementById("detail-content").innerHTML = `
     <div class="detail-row">
       <div class="detail-cell"><span>客戶ID</span><strong>${escHtml(c.id)}</strong></div>
-      <div class="detail-cell"><span>姓名</span><strong>${escHtml(c.name)}</strong></div>
+      <div class="detail-cell"><span>被保險人</span><strong>${escHtml(c.name)}</strong></div>
       <div class="detail-cell"><span>性別</span><strong>${escHtml(c.gender || "—")}</strong></div>
     </div>
     <div class="detail-row">

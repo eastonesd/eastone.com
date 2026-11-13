@@ -682,6 +682,10 @@ async function savePolicy() {
     return;
   }
   if (!p.main_code && !p.main_name) { $("pf-main-family").focus(); showToast("請填主約代號或商品名稱"); return; }
+  // 保單歸在被保險人的資料卡：被保人是另一位客戶時，存到他的卡上
+  const insuredId = p.life.insured_id;
+  const moveTo = insuredId && insuredId !== client.id && allClients.some((c) => c.id === insuredId) ? insuredId : null;
+  if (moveTo) { await savePolicyToInsured(p, moveTo); return; }
   const list = [...(client.policies || [])];
   const dup = list.findIndex((x, i) => i !== editIndex && x.policy_no === p.policy_no);
   if (dup >= 0) { showToast("這個保單號碼已經存在"); return; }
@@ -703,6 +707,31 @@ async function savePolicy() {
   } catch (err) {
     alert("儲存失敗：" + (err && err.message ? err.message : err));
   } finally {
+    btn.disabled = false;
+  }
+}
+
+async function savePolicyToInsured(p, targetId) {
+  const btn = $("pf-save");
+  btn.disabled = true;
+  const newRiders = riders.filter((r) => r._new);
+  try {
+    const target = await clientGet(targetId);
+    const tlist = [...((target && target.policies) || [])];
+    const at = tlist.findIndex((x) => x.policy_no === p.policy_no);
+    if (at >= 0 && !confirm(`${target.name} 的資料卡已有保單 ${p.policy_no}，要用這次的內容覆蓋嗎？`)) { btn.disabled = false; return; }
+    if (at >= 0) tlist[at] = { ...tlist[at], ...p }; else tlist.push(p);
+    await clientSavePolicies(targetId, tlist);
+    // 原本存在這張卡上的，搬走後從這裡移除
+    if (editIndex !== null) client = await clientSavePolicies(client.id, client.policies.filter((_, i) => i !== editIndex));
+    try { localStorage.setItem(AGENT_KEY, JSON.stringify(p.life.agent)); } catch { /* 無痕模式存不了也沒關係 */ }
+    try { await autoCreateRiderCodes(newRiders); }
+    catch (err) { alert("保單已儲存，但附約代號自動建檔失敗：" + (err && err.message ? err.message : err)); }
+    const idx = at >= 0 ? at : tlist.length - 1;
+    alert(`被保險人是 ${target.name}，這張保單已存到 ${target.name} 的資料卡。`);
+    location.href = `policy.html?id=${encodeURIComponent(targetId)}&i=${idx}`;
+  } catch (err) {
+    alert("儲存失敗：" + (err && err.message ? err.message : err));
     btn.disabled = false;
   }
 }
