@@ -346,11 +346,11 @@ function applyKbMain(fill) {
 function personRecord(id) {
   return allClients.find((x) => x.id === id) || (id === client.id ? client : null);
 }
-async function calcPremiumFor({ code, personId, effective, term, sa, saUnit, occ }) {
-  const product = kbProductOf(code, effective);
+async function calcPremiumFor({ code, personId, effective, term, sa, saUnit, occ, plan, product }) {
+  product = product || kbProductOf(code, effective);
   const person = personRecord(personId);
   const issueAge = person ? kbInsuranceAge(person.birthday, effective) : null;
-  return kbCalcPremium(product, { sex: person && person.gender, issueAge, term, mode: $("pf-mode-pay").value, sa, saUnit, occ });
+  return kbCalcPremium(product, { sex: person && person.gender, issueAge, term, mode: $("pf-mode-pay").value, sa, saUnit, occ, plan });
 }
 async function calcMainPremium() {
   const r = await calcPremiumFor({ code: $("pf-main-code").value, personId: $("pf-insured").value, effective: $("pf-effective").value,
@@ -515,6 +515,7 @@ function renderRiders() {
       </div>
       <div class="pf-rider-meta">被保人 ${esc(r.insured_name)}　職等
         <select class="pf-rider-occ" data-f="occ_class">${["1", "2", "3", "4", "5", "6"].map((n) => `<option value="${n}"${String(r.occ_class || "1") === n ? " selected" : ""}>${n} 級</option>`).join("")}</select>
+        ${(() => { const pl = (kbProductOf(r.code, r.effective_date) || {}).plans || []; return pl.length ? `　型別 <select class="pf-rider-occ" data-f="plan">${pl.map((x) => `<option${x === (r.plan || pl[0]) ? " selected" : ""}>${esc(x)}</option>`).join("")}</select>` : ""; })()}
         ${r.effective_date ? "　生效 " + esc(fmtDate(r.effective_date)) : ""}</div>
       ${kbProductOf(r.code, r.effective_date) ? `<div class="pf-kb">${kbBadge(kbProductOf(r.code, r.effective_date))}</div>` : ""}
       <div class="pf-grid4">
@@ -543,15 +544,15 @@ function renderRiders() {
     el.querySelectorAll("[data-f]").forEach((inp) => inp.addEventListener("input", () => {
       riders[i][inp.dataset.f] = inp.value;
       if (inp.dataset.f === "premium") updateTotal();
-      if (["premium", "sum_assured", "sa_unit", "occ_class"].includes(inp.dataset.f)) showOccHint(el, i);
+      if (["premium", "sum_assured", "sa_unit", "occ_class", "plan"].includes(inp.dataset.f)) showOccHint(el, i);
     }));
-    el.querySelector(".pf-rider-occ").addEventListener("change", (e) => { riders[i].occ_class = e.target.value; showOccHint(el, i); });
+    el.querySelectorAll(".pf-rider-occ").forEach((sel) => sel.addEventListener("change", (e) => { riders[i][sel.dataset.f] = e.target.value; showOccHint(el, i); }));
     showOccHint(el, i);
     el.querySelector(".pf-rider-del").addEventListener("click", () => { riders.splice(i, 1); renderRiders(); });
     el.querySelector(".pf-rider-calc").addEventListener("click", async () => {
       const r = riders[i];
       const res = await calcPremiumFor({ code: r.code, personId: r.insured_id, effective: r.effective_date || $("pf-effective").value,
-        term: r.term, sa: r.sum_assured, saUnit: r.sa_unit, occ: r.occ_class });
+        term: r.term, sa: r.sum_assured, saUnit: r.sa_unit, occ: r.occ_class, plan: r.plan });
       if (res.error) { showToast(res.error); return; }
       r.premium = String(res.modal);
       if (!r.term) r.term = res.term;
@@ -568,20 +569,26 @@ async function occFromPremium(r) {
   const premium = Number(r.premium);
   if (!KB.loaded || !(premium > 0)) return null;
   const at = r.effective_date || $("pf-effective").value;
-  const versions = KB.products.filter((p) => p.code.toUpperCase() === String(r.code).toUpperCase() && p.rate_mode === "occ");
+  const OCC_MODES = ["occ", "occ_age", "occ_tier"];
+  const versions = KB.products.filter((p) => p.code.toUpperCase() === String(r.code).toUpperCase() && OCC_MODES.includes(p.rate_mode));
   if (!versions.length) return null;
   const current = KB.product(r.code, undefined, at);
   versions.sort((a, b) => (a === current ? -1 : b === current ? 1 : String(b.sale_from || "").localeCompare(String(a.sale_from || ""))));
-  const units = kbUnits(versions[0], r.sum_assured, r.sa_unit);
-  if (!units) return { error: "填了保額（單位數）才能回推職業等級" };
-  const factor = (versions[0].modal_factors || {})[$("pf-mode-pay").value || "年繳"] ?? 1;
-  const perUnit = premium / units / factor;
+  if (!kbUnits(versions[0], r.sum_assured, r.sa_unit)) return { error: "填了保額才能回推職業等級" };
+  // 各版本 × 職業 1～6 級（× 型別）逐一試算，跟填的保費相差 1 元內就算對到
   const hits = [];
+  let perUnit = null;
   for (const p of versions) {
-    const rows = await KB.rates(p.id);
-    rows.filter((x) => Math.abs(Number(x.rate) - perUnit) <= 0.5).forEach((x) => hits.push({ occ: String(x.age), rate: Number(x.rate), product: p, current: p === current }));
+    for (const plan of (p.plans && p.plans.length ? p.plans : [r.plan])) {
+      for (let lv = 1; lv <= 6; lv++) {
+        const res = await calcPremiumFor({ code: r.code, product: p, personId: r.insured_id, effective: at, term: r.term, sa: r.sum_assured, saUnit: r.sa_unit, occ: lv, plan });
+        if (res.error) continue;
+        if (perUnit == null) perUnit = premium / res.units / res.factor;
+        if (Math.abs(res.modal - premium) <= 1) hits.push({ occ: String(lv), rate: res.rate, plan: res.plan, product: p, current: p === current });
+      }
+    }
   }
-  return { perUnit, hits };
+  return { perUnit: perUnit || 0, hits };
 }
 const versionLabel = (p) => (p.sale_from ? `${Number(p.sale_from.slice(0, 4)) - 1911}.${p.sale_from.slice(5, 7)} 起的版本` : p.version);
 async function showOccHint(el, i) {
@@ -593,17 +600,17 @@ async function showOccHint(el, i) {
   if (res.error) { box.className = "pf-occhint muted"; box.textContent = res.error; return; }
   if (!res.hits.length) {
     box.className = "pf-occhint warn";
-    box.textContent = `每單位 ${Math.round(res.perUnit * 10) / 10} 元，對不到任何職業等級的費率，請確認保額或保費`;
+    box.textContent = `保費對不到任何職業等級的費率，請確認保額、保費或型別`;
     return;
   }
   const best = res.hits[0];
   const same = best.occ === String(r.occ_class || "1");
   const note = best.current ? "" : "（生效時版本對不到，這是用其他版本的費率對到的，可能是續保後改用新費率）";
   box.className = "pf-occhint" + (same ? " ok" : "");
-  box.innerHTML = `依保費回推：<b>職業 ${best.occ} 級</b>，每單位 ${best.rate} 元・${esc(versionLabel(best.product))}${note}
+  box.innerHTML = `依保費回推：<b>職業 ${best.occ} 級</b>${best.plan && best.plan !== "不分" ? "（" + esc(best.plan) + "）" : ""}・${esc(versionLabel(best.product))}${note}
     ${same ? "　✓ 與目前職等相符" : `<button type="button" class="link-btn pf-occ-apply">改成 ${best.occ} 級</button>`}`;
   const btn = box.querySelector(".pf-occ-apply");
-  if (btn) btn.addEventListener("click", () => { r.occ_class = best.occ; renderRiders(); showToast(`已改成職業 ${best.occ} 級`); });
+  if (btn) btn.addEventListener("click", () => { r.occ_class = best.occ; if (best.plan && best.plan !== "不分") r.plan = best.plan; renderRiders(); showToast(`已改成職業 ${best.occ} 級`); });
 }
 
 // ---------------- 受益人 ----------------

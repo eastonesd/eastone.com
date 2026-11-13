@@ -7,7 +7,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const NATURE = { protection: "保障型", wealth: "理財型" };
 const KIND = { main: "主約", rider: "附約" };
-const RATE_MODE = { level: "平準（依投保年齡）", attained: "逐年調整（依到達年齡）", occ: "依職業等級", none: "無費率表" };
+const RATE_MODE = { level: "平準（依投保年齡）", attained: "逐年調整（依到達年齡）", occ: "依職業等級", occ_age: "依職業等級＋年齡段", occ_tier: "依職業等級（前 3 萬＋每加 1 萬）", none: "無費率表" };
 let isAdmin = false;
 let canVerify = false;   // 管理員或稽核員：可以在商品頁直接標「已驗證」
 let current = null; // 目前打開的商品 id
@@ -103,7 +103,13 @@ async function openProduct(id) {
     ${(p.notes || []).length ? `<ul class="kb-notes">${p.notes.map((n) => `<li>${esc(n.text)}${n.clause ? `<i>${esc(n.clause)}</i>` : ""}</li>`).join("")}</ul>` : `<p class="kb-empty">—</p>`}
 
     <h3>費率表 <small>年繳、每 1 ${esc(p.unit)}${p.currency && p.currency !== "TWD" ? "（" + esc(p.currency) + "）" : ""}；半年 ×${p.modal_factors["半年繳"]}、季 ×${p.modal_factors["季繳"]}、月 ×${p.modal_factors["月繳"]}</small></h3>
-    ${p.rate_mode === "occ" ? (rates.length
+    ${["occ_age", "occ_tier"].includes(p.rate_mode) ? (rates.length
+      ? (() => { const keys = [...new Set(rates.map((r) => (r.sex !== "不分" ? r.sex + "・" : "") + r.term))];
+          return `<div class="kb-scroll"><table class="kb-table"><thead><tr><th>${p.rate_mode === "occ_age" ? "年齡段" : "級距"}</th>${[1, 2, 3, 4, 5, 6].map((n) => `<th>${n} 級</th>`).join("")}</tr></thead><tbody>
+          ${keys.map((k) => `<tr><td>${esc(k)}</td>${[1, 2, 3, 4, 5, 6].map((n) => { const r = rates.find((x) => (x.sex !== "不分" ? x.sex + "・" : "") + x.term === k && x.age === n); return `<td class="num">${r ? Number(r.rate).toLocaleString() : "—"}</td>`; }).join("")}</tr>`).join("")}
+          </tbody></table></div>`; })()
+      : `<p class="kb-empty">尚未建立費率表</p>`)
+    : p.rate_mode === "occ" ? (rates.length
       ? `<div class="kb-rate-grid">${[...rates].sort((a, b) => a.age - b.age).map((r) => `<div><span>${r.age} 級</span><b>${Number(r.rate).toLocaleString()}</b></div>`).join("")}</div><p class="kb-sub">每格：職業等級｜年繳費率</p>`
       : `<p class="kb-empty">尚未建立費率表</p>`)
     : terms.length ? terms.map((t) => {

@@ -131,9 +131,39 @@ function kbUnits(product, sa, saUnit) {
 }
 
 // 依費率表試算保費（未扣折扣）
-async function kbCalcPremium(product, { sex, issueAge, term, mode, sa, saUnit, occ }) {
+async function kbCalcPremium(product, { sex, issueAge, term, mode, sa, saUnit, occ, plan }) {
   if (!product) return { error: '知識庫沒有這個商品' };
   if (product.rate_mode === 'none') return { error: '這個商品的保費無法用費率表直接試算' };
+  // 依職業等級＋年齡分段（意外險，例 ADE、ADG）：費率表 age＝職業等級，term＝年齡段（0-14／15／16+），每萬元
+  if (product.rate_mode === 'occ_age') {
+    const units = kbUnits(product, sa, saUnit);
+    if (!units) return { error: '請先填保額' };
+    if (issueAge == null) return { error: '缺少被保人生日或生效日' };
+    const lv = Number(occ) || 1;
+    const band = issueAge <= 14 ? '0-14' : issueAge === 15 ? '15' : '16+';
+    const rows = await KB.rates(product.id);
+    const row = rows.find((r) => r.age === lv && r.term === band);
+    if (!row) return { error: `費率表查無：${band} 歲／職業 ${lv} 級（14 歲以下限 1 級）` };
+    const factor = (product.modal_factors || {})[mode || '年繳'] ?? 1;
+    const annual = Number(row.rate) * units;
+    return { annual: Math.round(annual), modal: Math.round(annual * factor), rate: Number(row.rate), units, term: term || (product.pay_terms || [])[0] || '', factor };
+  }
+  // 依職業等級分段計價（意外醫療附加條款，例 OMR、TMR）：前 3 萬一個價、每加 1 萬另計；
+  // 費率表 age＝職業等級，term＝「前3萬」／「每加1萬」，sex＝型別（一般型／健保型；不分型別存「不分」）
+  if (product.rate_mode === 'occ_tier') {
+    const units = kbUnits(product, sa, saUnit);
+    if (!units) return { error: '請先填保額（萬元）' };
+    const lv = Number(occ) || 1;
+    const rows = await KB.rates(product.id);
+    const kinds = [...new Set(rows.map((r) => r.sex))];
+    const kind = kinds.includes(plan) ? plan : kinds.includes('一般型') ? '一般型' : kinds[0];
+    const base = rows.find((r) => r.age === lv && r.sex === kind && r.term === '前3萬');
+    const add = rows.find((r) => r.age === lv && r.sex === kind && r.term === '每加1萬');
+    if (!base || !add) return { error: `費率表查無：職業 ${lv} 級${kind !== '不分' ? '／' + kind : ''}` };
+    const factor = (product.modal_factors || {})[mode || '年繳'] ?? 1;
+    const annual = Number(base.rate) + Math.max(0, units - 3) * Number(add.rate);
+    return { annual: Math.round(annual), modal: Math.round(annual * factor), rate: Number(base.rate), units, term: term || (product.pay_terms || [])[0] || '', factor, plan: kind };
+  }
   // 依職業等級計價（不分性別年齡）：費率表 age 欄存職業等級 1～6
   if (product.rate_mode === 'occ') {
     const units = kbUnits(product, sa, saUnit);
