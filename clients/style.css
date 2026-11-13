@@ -212,7 +212,16 @@ th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
 .file-list-table tbody tr:hover { background: var(--accent-soft); }
 
 .hint { color: var(--ink-soft); font-size: .88rem; margin-top: 0; }
-.code-add-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; }
+.code-add-row {
+  display: grid; grid-template-columns: 1fr 1.6fr 1fr 1fr auto;
+  align-items: center; gap: 10px; margin-bottom: 18px;
+}
+.code-add-row input { width: 100%; min-width: 0; margin: 0; }
+.code-add-row #btn-add-code { width: auto; margin: 0; align-self: stretch; white-space: nowrap; padding-left: 20px; padding-right: 20px; }
+@media (max-width: 760px) {
+  .code-add-row { grid-template-columns: 1fr 1fr; }
+  .code-add-row #btn-add-code { grid-column: 1 / -1; width: 100%; }
+}
 
 .icon-btn {
   background: none; border: none; cursor: pointer; color: var(--danger); font-size: .95rem;
