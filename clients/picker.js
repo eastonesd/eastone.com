@@ -1,7 +1,8 @@
 // ============================================================
 // 一次看到全部選項的點選面板（取代瀏覽器內建的滾輪下拉）
 // 用法：<input data-pick="來源名稱">，再到 PICK_SOURCES[來源名稱] = (input) => 選項
-// 選項可以是字串陣列，或 [{ label: "分組標題", options: [...] }]
+// 選項可以是字串陣列，或 [{ label: "分組標題", options: [...], layout: "list" }]
+// 單一選項可以是字串，或 { value, label, sub }（label 粗體、sub 小字；layout "list" 時排成卡片格）
 // 欄位仍然可以直接打字；點選項會填入並觸發 input / change
 // ============================================================
 const PICK_SOURCES = {};
@@ -29,7 +30,8 @@ const PICK_SOURCES = {};
   function place() {
     if (!panel || !current) return;
     const r = current.getBoundingClientRect();
-    const w = Math.min(Math.max(r.width, 320), window.innerWidth - 24);
+    const wide = panel.querySelector('.pick-list') ? 560 : 320;   // 卡片格清單給寬一點，一排能放 3～4 張
+    const w = Math.min(Math.max(r.width, wide), window.innerWidth - 24);
     let left = r.left + window.scrollX;
     left = Math.min(left, window.scrollX + window.innerWidth - w - 12);
     panel.style.width = `${w}px`;
@@ -46,9 +48,10 @@ const PICK_SOURCES = {};
     if (!panel || !current) return;
     const value = current.value.trim();
     const groups = groupsOf(current);
+    const norm = (o) => (typeof o === "string" ? { value: o, label: o } : o);
     panel.innerHTML = groups.map((g) => `
       ${g.label ? `<div class="pick-label">${escp(g.label)}</div>` : ""}
-      <div class="pick-grid">${g.options.map((o) => `<button type="button" class="pick-chip${o === value ? " on" : ""}" data-v="${escp(o)}">${escp(o)}</button>`).join("")}</div>`).join("")
+      ${g.options.length ? `<div class="${g.layout === "list" ? "pick-list" : "pick-grid"}">${g.options.map(norm).map((o) => `<button type="button" class="pick-chip${o.sub ? " two" : ""}${o.value === value ? " on" : ""}" data-v="${escp(o.value)}">${o.sub ? `<b>${escp(o.label)}</b><small>${escp(o.sub)}</small>` : escp(o.label)}</button>`).join("")}</div>` : ""}`).join("")
       + `<div class="pick-foot">${value ? `<button type="button" class="pick-clear">清除</button>` : "<span></span>"}<span class="pick-hint">沒有的選項可以直接打字</span></div>`;
     place();
   }

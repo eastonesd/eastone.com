@@ -140,8 +140,26 @@ function buildStaticOptions() {
   // 主約：同一商品的各版本整合成一個商品（IAT、IAT1、IAT2 → IAT）
   const mains = Object.entries(codes).filter(([c]) => codeKinds[c] !== "rider");
   const fams = mainFamilies();
-  $("pf-code-list").innerHTML = [...fams.entries()].map(([f, list]) => `<option value="${esc(f)}">${esc(codes[list[list.length - 1]])}${list.length > 1 ? `（${list.length} 版）` : ""}</option>`).join("");
-  $("pf-name-list").innerHTML = mains.map(([c, n]) => `<option value="${esc(n)}">${esc(c)}</option>`).join("");
+  // 險種代號／險種名稱：點選面板，打字即時篩選（代號、名稱、類別都能搜），最多列 40 筆
+  const famList = [...fams.entries()].map(([f, list]) => {
+    const latest = list[list.length - 1];
+    const cat = codeCats[latest] ? [codeCats[latest].cat1, codeCats[latest].cat2].filter(Boolean).join("／") : "";
+    return { fam: f, latest, name: codes[latest] || "", versions: list.length, cat };
+  }).sort((a, b) => a.fam.localeCompare(b.fam));
+  const match = (x, kw) => !kw || x.fam.includes(kw.toUpperCase()) || x.name.includes(kw) || x.cat.includes(kw);
+  PICK_SOURCES["main-code"] = (input) => {
+    const kw = input.value.trim();
+    const hit = famList.filter((x) => match(x, kw));
+    return [{ label: kw ? `符合「${kw}」・${hit.length} 筆${hit.length > 40 ? "（只列前 40 筆，再多打幾個字）" : ""}` : `主約險種・共 ${famList.length} 筆，打字可篩選`, layout: "list",
+      options: hit.slice(0, 40).map((x) => ({ value: x.fam, label: x.fam, sub: `${x.name}${x.versions > 1 ? `・${x.versions} 版` : ""}` })) }];
+  };
+  PICK_SOURCES["main-name"] = (input) => {
+    const kw = input.value.trim();
+    const seen = new Set();
+    const hit = famList.filter((x) => match(x, kw) && x.name && !seen.has(x.name) && seen.add(x.name));
+    return [{ label: kw ? `符合「${kw}」・${hit.length} 筆${hit.length > 40 ? "（只列前 40 筆）" : ""}` : "主約險種名稱，打字可篩選", layout: "list",
+      options: hit.slice(0, 40).map((x) => ({ value: x.name, label: x.name, sub: `${x.fam}${x.cat ? "・" + x.cat : ""}` })) }];
+  };
   $("pf-rel-list").innerHTML = BENE_RELATIONS.map((n) => `<option value="${n}">`).join("");
   $("pf-bene-list").innerHTML = [...new Set(allClients.map((c) => c.name).filter(Boolean))].map((n) => `<option value="${esc(n)}">`).join("");
 }
@@ -160,7 +178,7 @@ function mainFamilies() {
 // 依商品欄填出版本選單；pick 指定要選哪一版，沒指定就選最新版
 function fillVersions(typed, pick) {
   const sel = $("pf-main-ver");
-  if (!typed) { sel.innerHTML = `<option value="">先選商品</option>`; return; }
+  if (!typed) { sel.innerHTML = `<option value="">先選險種代號</option>`; return; }
   const fam = mainFamilies().get(typed) || mainFamilies().get(codeFamily(typed)) || [];
   const list = fam.length ? [...fam] : [typed];
   if (pick && !list.includes(pick)) list.push(pick);
@@ -272,7 +290,8 @@ function bindForm() {
   $("pf-main-ver").addEventListener("change", onMainCode);
   $("pf-main-name").addEventListener("change", (e) => {
     const name = e.target.value.trim();
-    const hit = Object.entries(codes).find(([c, n]) => n === name && codeKinds[c] !== "rider") || Object.entries(codes).find(([, n]) => n === name);
+    const all = Object.entries(codes).filter(([c, n]) => n === name && codeKinds[c] !== "rider");
+    const hit = all[all.length - 1] || Object.entries(codes).find(([, n]) => n === name);
     if (hit) setMainCode(hit[0]);
     if (hit && codeCats[hit[0]]) setCats(codeCats[hit[0]]); else guessCategory(name);
     applyKbMain(true);

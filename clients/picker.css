@@ -42,3 +42,11 @@
 input.pick-open { border-color: var(--gold, #B8892B) !important; box-shadow: 0 0 0 3px rgba(184, 137, 43, .15); }
 input[data-pick] { cursor: pointer; }
 input[data-pick]:disabled { cursor: default; background: var(--accent-soft, #EDE8DC); color: var(--accent, #1B2A4A); font-weight: 700; opacity: 1; }
+
+/* 卡片格：險種代號、險種名稱這類要同時看代號與名稱的清單 */
+.pick-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.pick-chip.two { display: grid; gap: 3px; text-align: left; border-radius: 10px; padding: 9px 12px; line-height: 1.25; }
+.pick-chip.two b { font-size: .95rem; color: var(--accent, #1B2A4A); }
+.pick-chip.two small { font-size: .78rem; color: var(--ink-soft, #6B6656); }
+.pick-chip.two:hover b { color: var(--accent-deep, #121D33); }
+.pick-chip.two.on b, .pick-chip.two.on small { color: #F3DFA8; }
