@@ -9,6 +9,7 @@ const NATURE = { protection: "保障型", wealth: "理財型" };
 const KIND = { main: "主約", rider: "附約" };
 const RATE_MODE = { level: "平準（依投保年齡）", attained: "逐年調整（依到達年齡）", occ: "依職業等級", none: "無費率表" };
 let isAdmin = false;
+let canVerify = false;   // 管理員或稽核員：可以在商品頁直接標「已驗證」
 let current = null; // 目前打開的商品 id
 
 function showToast(msg) {
@@ -19,9 +20,14 @@ function showToast(msg) {
 document.addEventListener("DOMContentLoaded", async () => {
   const user = await requireLogin("../");
   isAdmin = (user.email || "").toLowerCase() === ADMIN_EMAIL;
+  let role = isAdmin ? "admin" : "viewer";
+  try { const { data } = await sb.rpc("kb_my_role"); if (data) role = data; } catch { /* 讀不到就照 email 判斷 */ }
+  canVerify = role === "admin" || role === "auditor";
   $("kb-role").innerHTML = isAdmin
     ? `<span class="kb-badge admin">管理員：可編輯</span>`
-    : `<span class="kb-badge">唯讀</span> 發現資料有誤？請從右上角頭像「聯絡我們」告訴管理員`;
+    : role === "auditor"
+      ? `<span class="kb-badge auditor">稽核員：可驗證條款</span> 核對內容無誤後，在商品頁最下方按「已核對條款，標為已驗證」；內容有誤請告訴管理員`
+      : `<span class="kb-badge">唯讀</span> 發現資料有誤？請從右上角頭像「聯絡我們」告訴管理員`;
   $("kb-new").hidden = !isAdmin;
   $("kb-ai").hidden = !isAdmin;
   $("kb-ai").addEventListener("click", openImport);
@@ -113,8 +119,21 @@ async function openProduct(id) {
         ${p.declared.map((d) => `<tr><td>${esc(String(d.month).slice(0, 7))}</td><td>${d.rate}%</td></tr>`).join("")}</tbody></table></div>` : `<p class="kb-empty">尚未登錄</p>`}
       ${isAdmin ? `<div class="kb-inline"><input type="month" id="kb-dr-month"><input type="number" id="kb-dr-rate" step="0.001" placeholder="%"><button type="button" class="btn-secondary kb-small" id="kb-dr-add">登錄本月利率</button></div>` : ""}` : ""}
 
-    <p class="kb-sub kb-source">資料來源：${esc(p.source || "—")}</p>`;
+    <div class="kb-foot">
+      <p class="kb-sub kb-source">資料來源：${esc(p.source || "—")}</p>
+      ${canVerify ? (p.verified
+        ? `<div class="kb-verify done"><span>✓ 已驗證${p.verified_at ? "（" + esc(String(p.verified_at).slice(0, 10)) + (p.verified_by ? "・" + esc(p.verified_by.split("@")[0]) : "") + "）" : ""}</span><button type="button" class="link-btn" id="kb-unverify">取消驗證</button></div>`
+        : `<button type="button" class="btn-primary kb-verify-btn" id="kb-verify">已核對條款，標為「已驗證」</button>`) : ""}
+    </div>`;
   $("kb-close").addEventListener("click", () => { box.hidden = true; current = null; renderList(); });
+  const setVerified = async (v) => {
+    const { error } = await sb.rpc("kb_set_verified", { p_id: p.id, p_verified: v });
+    if (error) { showToast("更新失敗：" + error.message); return; }
+    await reload(p.id);
+    showToast(v ? "已標為已驗證" : "已改回待驗證");
+  };
+  if ($("kb-verify")) $("kb-verify").addEventListener("click", () => setVerified(true));
+  if ($("kb-unverify")) $("kb-unverify").addEventListener("click", () => { if (confirm("改回「待驗證」？")) setVerified(false); });
   if (isAdmin) {
     $("kb-edit").addEventListener("click", () => editProduct(p));
     const add = $("kb-dr-add");
@@ -189,7 +208,7 @@ function editProduct(p, opts = {}) {
     <button type="button" class="btn-secondary kb-small" id="e-rate-save">更新這個年期的費率表</button>`}
 
     <div class="kb-save-row">
-      <label class="kb-check"><input type="checkbox" id="e-verified"${p.verified ? " checked" : ""}> 已核對條款，標為「已驗證」</label>
+      <p class="kb-sub">驗證狀態請在商品頁最下方切換。</p>
       ${isNew || draft ? "" : `<button type="button" class="btn-secondary kb-small kb-danger" id="e-delete">刪除商品</button>`}
       <button type="button" class="btn-primary kb-small" id="e-save">儲存</button>
     </div>`;
@@ -236,7 +255,7 @@ async function saveProduct(p, isNew, draft) {
     modal_factors: { 年繳: 1, 半年繳: Number($("e-f-h").value), 季繳: Number($("e-f-q").value), 月繳: Number($("e-f-m").value) },
     assumed_rate: num($("e-assumed").value), best_dividend_rate: num($("e-bestdiv").value), source: $("e-source").value.trim(),
     notes: $("e-notes").value.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const [text, clause] = l.split("｜"); return { text: text.trim(), clause: (clause || "").trim() }; }),
-    verified: $("e-verified").checked, verified_at: $("e-verified").checked ? (p.verified_at || new Date().toISOString()) : null,
+    verified: !!p.verified, verified_at: p.verified ? (p.verified_at || new Date().toISOString()) : null,
     updated_at: new Date().toISOString(),
   };
   if (!rec.code || !rec.name) { showToast("請填代號與名稱"); return; }

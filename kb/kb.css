@@ -72,3 +72,9 @@
 .ai-rate .kb-inline .ai-rate-keep input { width: 18px; height: 18px; flex: none; }
 .ai-rate textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .82rem; }
 @media (max-width: 760px) { .ai-form { grid-template-columns: 1fr; } .ai-form .kb-wide { grid-column: auto; } }
+.kb-badge.auditor { background: #EEF5EC; color: #2F6B3A; }
+.kb-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 18px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.kb-foot .kb-source { margin: 0; }
+.kb-verify-btn { width: auto; margin: 0; padding: 10px 18px; white-space: nowrap; }
+.kb-verify.done { display: flex; align-items: center; gap: 10px; color: #2F6B3A; font-weight: 700; }
+.kb-verify.done .link-btn { font-weight: 400; color: var(--ink-soft); }
