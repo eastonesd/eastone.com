@@ -124,10 +124,17 @@ function buildStaticOptions() {
   fillSelect($("pf-card-y"), [["", "YY"], ...Array.from({ length: 12 }, (_, k) => [String(y0 + k), String(y0 + k).slice(2)])], "");
   fillSelect($("pf-card-m"), [["", "MM"], ...Array.from({ length: 12 }, (_, k) => String(k + 1).padStart(2, "0"))], "");
 
-  // 人員下拉：本人排第一，其他客戶在後面
-  const others = allClients.filter((c) => c.id !== client.id).sort((a, b) => (a.name || "").localeCompare(b.name || "", "zh-Hant"));
-  const people = [[client.id, `${client.name}（本人）`], ...others.map((c) => [c.id, `${c.name}（${c.id}）`])];
-  document.querySelectorAll(".pf-person").forEach((s) => fillSelect(s, people, client.id));
+  // 人員下拉（要保人、被保人、附加人員）：本人 → 同住址 → 其他客戶；預設本人
+  //（繳費人另有自己的排法，見 fillPayerOptions）
+  const hk = addressKey(client);
+  const others = allClients.filter((c) => c.id !== client.id);
+  const house = hk ? others.filter((c) => addressKey(c) === hk) : [];
+  const rest = others.filter((c) => !house.includes(c)).sort((a, b) => (a.name || "").localeCompare(b.name || "", "zh-Hant"));
+  const opt = (c, tag) => `<option value="${esc(c.id)}">${esc(`${c.name}（${tag || c.id}）`)}</option>`;
+  const html = `<optgroup label="本人">${opt(client, "本人")}</optgroup>`
+    + (house.length ? `<optgroup label="同住址">${house.map((c) => opt(c)).join("")}</optgroup>` : "")
+    + (rest.length ? `<optgroup label="其他客戶">${rest.map((c) => opt(c)).join("")}</optgroup>` : "");
+  ["pf-applicant", "pf-insured", "pf-r-person"].forEach((id) => { $(id).innerHTML = html; $(id).value = client.id; });
 
   // 商品代號／名稱提示
   // 主約：同一商品的各版本整合成一個商品（IAT、IAT1、IAT2 → IAT）
