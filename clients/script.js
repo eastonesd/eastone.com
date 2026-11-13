@@ -240,12 +240,14 @@ function bindCodeMaintenance() {
     }
     // 類別留白：已有代號就保留原本的類別
     const cats = !c1 ? null : c2 ? { cat1: splitCategory(c1, codeKind).cat1, cat2: splitCategory(c2, codeKind).cat1 } : splitCategory(c1, codeKind);
+    const before = new Set(codeRowsCache.map((r) => r.code));
     await codeAdd(code, name, codeKind, cats);
+    const added = codeEarlierVersions(code).filter((c) => !before.has(c));
     document.getElementById("code-input").value = "";
     document.getElementById("code-name-input").value = "";
     document.getElementById("code-cat-input").value = "";
     document.getElementById("code-cat2-input").value = "";
-    showToast(`已儲存${codeKind === "rider" ? "附約" : "主約"}代號 ${code}`);
+    showToast(`已儲存${codeKind === "rider" ? "附約" : "主約"}代號 ${code}` + (added.length ? `，並補上前面版本 ${added.join("、")}` : ""));
     refreshCodeList();
   });
 }

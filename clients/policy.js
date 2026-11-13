@@ -436,7 +436,7 @@ async function autoCreateMainCode(p) {
   if (!M.code || codes[M.code]) return null;
   const cats = M.cat2 ? { cat1: M.cat1, cat2: M.cat2 } : splitCategory(M.cat1, "main");
   await codeAdd(M.code, M.name || M.code, "main", cats, true);
-  codes[M.code] = M.name || M.code; codeKinds[M.code] = "main"; codeCats[M.code] = cats;
+  [M.code, ...codeEarlierVersions(M.code)].forEach((c) => { if (!codes[c]) { codes[c] = M.name || M.code; codeKinds[c] = "main"; codeCats[c] = cats; } });
   return M.code;
 }
 
@@ -446,7 +446,7 @@ async function autoCreateRiderCodes(list) {
   for (const r of list) {
     if (!r._new || !r.code || codes[r.code]) continue;
     await codeAdd(r.code, r.name, "rider", { cat1: r.cat1, cat2: r.cat2 }, true);
-    codes[r.code] = r.name; codeKinds[r.code] = "rider"; codeCats[r.code] = { cat1: r.cat1, cat2: r.cat2 };
+    [r.code, ...codeEarlierVersions(r.code)].forEach((c) => { if (!codes[c]) { codes[c] = r.name; codeKinds[c] = "rider"; codeCats[c] = { cat1: r.cat1, cat2: r.cat2 }; } });
     made.push(r.code);
   }
   return made;

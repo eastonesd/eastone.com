@@ -71,6 +71,26 @@ async function codeAdd(code, name, kind = 'main', cats = null, autoCreated = fal
   if (autoCreated) row.auto_created = true;
   const { error } = await sb.from('insurance_codes').upsert(row, { onConflict: 'code' });
   sbThrow(error, '儲存保單代號');
+  await codeAddEarlierVersions(row);
+}
+
+// 同一險種的前面版本：XXX2 → XXX、XXX1（已經有的不動）
+// 尾數代表不同商品、不是版本的險種（例 SPV1 躉繳、SPV2 分期）不補
+const CODE_NOT_VERSIONED = ['SPV'];
+function codeEarlierVersions(code) {
+  const c = String(code || '').toUpperCase();
+  const m = /^(.*[A-Z])(\d)$/.exec(c);
+  if (!m || CODE_NOT_VERSIONED.includes(m[1])) return [];
+  const n = Number(m[2]);
+  return [m[1], ...Array.from({ length: Math.max(0, n - 1) }, (_, k) => `${m[1]}${k + 1}`)];
+}
+async function codeAddEarlierVersions(row) {
+  const list = codeEarlierVersions(row.code);
+  if (!list.length) return [];
+  const rows = list.map((code) => ({ code, name: row.name, kind: row.kind, cat1: row.cat1 || '', cat2: row.cat2 || '', auto_created: true }));
+  const { error } = await sb.from('insurance_codes').upsert(rows, { onConflict: 'code', ignoreDuplicates: true });
+  sbThrow(error, '補建前面版本的保單代號');
+  return list;
 }
 
 // ---------- 險種類別：主約、附約各一套（主要／次要都從同一套選） ----------
