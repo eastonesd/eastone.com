@@ -7,7 +7,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const NATURE = { protection: "保障型", wealth: "理財型" };
 const KIND = { main: "主約", rider: "附約" };
-const RATE_MODE = { level: "平準（依投保年齡）", attained: "逐年調整（依到達年齡）", none: "無費率表" };
+const RATE_MODE = { level: "平準（依投保年齡）", attained: "逐年調整（依到達年齡）", occ: "依職業等級", none: "無費率表" };
 let isAdmin = false;
 let current = null; // 目前打開的商品 id
 
@@ -81,6 +81,7 @@ async function openProduct(id) {
       <div><span>費率型態</span><b>${RATE_MODE[p.rate_mode] || p.rate_mode}</b></div>
       ${p.assumed_rate != null ? `<div><span>預定利率</span><b>${p.assumed_rate}%</b></div>` : ""}
       ${p.best_dividend_rate != null ? `<div><span>最可能紅利情境</span><b>${p.best_dividend_rate}%</b></div>` : ""}
+      ${p.sale_from || p.sale_to ? `<div><span>銷售期間</span><b>${esc(p.sale_from || "—")} ～ ${esc(p.sale_to || "現在")}</b></div>` : ""}
       <div><span>狀態</span><b>${p.verified ? `已驗證${p.verified_at ? "（" + String(p.verified_at).slice(0, 10) + "）" : ""}` : "待驗證"}</b></div>
     </div>
 
@@ -96,7 +97,10 @@ async function openProduct(id) {
     ${(p.notes || []).length ? `<ul class="kb-notes">${p.notes.map((n) => `<li>${esc(n.text)}${n.clause ? `<i>${esc(n.clause)}</i>` : ""}</li>`).join("")}</ul>` : `<p class="kb-empty">—</p>`}
 
     <h3>費率表 <small>年繳、每 1 ${esc(p.unit)}${p.currency && p.currency !== "TWD" ? "（" + esc(p.currency) + "）" : ""}；半年 ×${p.modal_factors["半年繳"]}、季 ×${p.modal_factors["季繳"]}、月 ×${p.modal_factors["月繳"]}</small></h3>
-    ${terms.length ? terms.map((t) => {
+    ${p.rate_mode === "occ" ? (rates.length
+      ? `<div class="kb-rate-grid">${[...rates].sort((a, b) => a.age - b.age).map((r) => `<div><span>${r.age} 級</span><b>${Number(r.rate).toLocaleString()}</b></div>`).join("")}</div><p class="kb-sub">每格：職業等級｜年繳費率</p>`
+      : `<p class="kb-empty">尚未建立費率表</p>`)
+    : terms.length ? terms.map((t) => {
       const ages = [...new Set(rates.filter((r) => r.term === t).map((r) => r.age))].sort((a, b) => a - b);
       const get = (sex, age) => { const r = rates.find((x) => x.term === t && x.sex === sex && x.age === age); return r ? Number(r.rate).toLocaleString() : "—"; };
       return `<details class="kb-rates"><summary>繳費年期 ${esc(t)}（${ages[0]}～${ages[ages.length - 1]} 歲）</summary>

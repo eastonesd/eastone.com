@@ -36,12 +36,18 @@ const KB = {
 
   item(code) { return this.items.find((i) => i.code === code); },
 
-  // 依代號找商品；同代號多個版本時，取生效日當時適用（目前先取最新一筆）
-  product(code, company) {
+  // 依代號找商品；同代號多個版本時，取生效日落在該版銷售期間（sale_from～sale_to）的那一版，
+  // 沒給日期或對不到就取最新一版
+  product(code, company, atIso) {
     const c = String(code || '').trim().toUpperCase();
     if (!c) return null;
-    const list = this.products.filter((p) => p.code.toUpperCase() === c && (!company || p.company === company));
-    return list.sort((a, b) => (b.version || '').localeCompare(a.version || ''))[0] || null;
+    const list = this.products.filter((p) => p.code.toUpperCase() === c && (!company || p.company === company))
+      .sort((a, b) => String(b.sale_from || b.version || '').localeCompare(String(a.sale_from || a.version || '')));
+    if (atIso) {
+      const hit = list.find((p) => (!p.sale_from || p.sale_from <= atIso) && (!p.sale_to || atIso <= p.sale_to));
+      if (hit) return hit;
+    }
+    return list[0] || null;
   },
 
   async rates(productId) {
@@ -125,16 +131,30 @@ function kbUnits(product, sa, saUnit) {
 }
 
 // 依費率表試算保費（未扣折扣）
-async function kbCalcPremium(product, { sex, issueAge, term, mode, sa, saUnit }) {
+async function kbCalcPremium(product, { sex, issueAge, term, mode, sa, saUnit, occ }) {
   if (!product) return { error: '知識庫沒有這個商品' };
   if (product.rate_mode === 'none') return { error: '這個商品的保費無法用費率表直接試算' };
+  // 依職業等級計價（不分性別年齡）：費率表 age 欄存職業等級 1～6
+  if (product.rate_mode === 'occ') {
+    const units = kbUnits(product, sa, saUnit);
+    if (!units) return { error: '請先填保額（單位數）' };
+    const lv = Number(occ) || 1;
+    const rows = await KB.rates(product.id);
+    const row = rows.find((r) => r.age === lv);
+    if (!row) return { error: `費率表查無：職業等級 ${lv} 級` };
+    const factor = (product.modal_factors || {})[mode || '年繳'] ?? 1;
+    const annual = Number(row.rate) * units;
+    return { annual: Math.round(annual), modal: Math.round(annual * factor), rate: Number(row.rate), units, term: term || (product.pay_terms || [])[0] || '', factor };
+  }
   if (!sex || !['男', '女'].includes(sex)) return { error: '被保人性別需為男或女' };
   if (issueAge == null) return { error: '缺少被保人生日或生效日' };
   const units = kbUnits(product, sa, saUnit);
   if (!units) return { error: '請先填保額' };
   const rows = await KB.rates(product.id);
   const termKey = term || (product.pay_terms && product.pay_terms.length === 1 ? product.pay_terms[0] : '');
-  const row = rows.find((r) => r.term === termKey && r.sex === sex && r.age === issueAge);
+  // 費率表不分年期的商品（term 存空白），任何年期都用同一張
+  const row = rows.find((r) => r.term === termKey && r.sex === sex && r.age === issueAge)
+    || rows.find((r) => r.term === '' && r.sex === sex && r.age === issueAge);
   if (!row) return { error: `費率表查無：${termKey || '（未選年期）'}／${sex}／${issueAge} 歲` };
   const factor = (product.modal_factors || {})[mode || '年繳'] ?? 1;
   const annual = Number(row.rate) * units;
@@ -202,7 +222,7 @@ function kbCompute({ allClients, insured, asOf, fx }) {
   const fxRates = (fx && fx.rates) || { TWD: 1 };
   const contracts = kbCollectContracts(allClients, insured.id).map((ct) => {
     if (ct.pending) return ct;
-    const product = KB.product(ct.code, ct.company || undefined) || KB.product(ct.code);
+    const product = KB.product(ct.code, ct.company || undefined, ct.effective) || KB.product(ct.code, undefined, ct.effective);
     const issueAge = kbInsuranceAge(insured.birthday, ct.effective);
     const py = kbPolicyYear(ct.effective, asOf);
     const age = issueAge == null ? null : issueAge + Math.max(0, py - 1);

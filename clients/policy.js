@@ -318,8 +318,9 @@ function bindForm() {
 }
 
 // ---------------- 保單知識庫：自動帶入與保費試算 ----------------
-function kbProductOf(code) {
-  try { return KB.loaded ? KB.product(code) : null; } catch { return null; }
+// at：生效日，同代號有多個版本時用來挑當時銷售的那一版
+function kbProductOf(code, at) {
+  try { return KB.loaded ? KB.product(code, undefined, at || $("pf-effective").value || undefined) : null; } catch { return null; }
 }
 function kbBadge(product) {
   if (!product) return "";
@@ -345,15 +346,15 @@ function applyKbMain(fill) {
 function personRecord(id) {
   return allClients.find((x) => x.id === id) || (id === client.id ? client : null);
 }
-async function calcPremiumFor({ code, personId, effective, term, sa, saUnit }) {
-  const product = kbProductOf(code);
+async function calcPremiumFor({ code, personId, effective, term, sa, saUnit, occ }) {
+  const product = kbProductOf(code, effective);
   const person = personRecord(personId);
   const issueAge = person ? kbInsuranceAge(person.birthday, effective) : null;
-  return kbCalcPremium(product, { sex: person && person.gender, issueAge, term, mode: $("pf-mode-pay").value, sa, saUnit });
+  return kbCalcPremium(product, { sex: person && person.gender, issueAge, term, mode: $("pf-mode-pay").value, sa, saUnit, occ });
 }
 async function calcMainPremium() {
   const r = await calcPremiumFor({ code: $("pf-main-code").value, personId: $("pf-insured").value, effective: $("pf-effective").value,
-    term: $("pf-main-term").value.trim(), sa: $("pf-main-sa").value, saUnit: $("pf-main-sa-unit").value });
+    term: $("pf-main-term").value.trim(), sa: $("pf-main-sa").value, saUnit: $("pf-main-sa-unit").value, occ: $("pf-occ").value });
   if (r.error) { showToast(r.error); return; }
   $("pf-main-premium").value = r.modal;
   if (!$("pf-main-term").value) $("pf-main-term").value = r.term;
@@ -513,7 +514,7 @@ function renderRiders() {
         <button type="button" class="icon-btn pf-rider-del" title="移除">✕</button>
       </div>
       <div class="pf-rider-meta">被保人 ${esc(r.insured_name)}　職等 ${esc(r.occ_class)} 級${r.effective_date ? "　生效 " + esc(fmtDate(r.effective_date)) : ""}</div>
-      ${kbProductOf(r.code) ? `<div class="pf-kb">${kbBadge(kbProductOf(r.code))}</div>` : ""}
+      ${kbProductOf(r.code, r.effective_date) ? `<div class="pf-kb">${kbBadge(kbProductOf(r.code, r.effective_date))}</div>` : ""}
       <div class="pf-grid4">
         ${isWaiver(r)
           ? `<label>繳費年期<input type="text" value="${WAIVER_TERM}" disabled data-pick="none"></label>
@@ -544,7 +545,7 @@ function renderRiders() {
     el.querySelector(".pf-rider-calc").addEventListener("click", async () => {
       const r = riders[i];
       const res = await calcPremiumFor({ code: r.code, personId: r.insured_id, effective: r.effective_date || $("pf-effective").value,
-        term: r.term, sa: r.sum_assured, saUnit: r.sa_unit });
+        term: r.term, sa: r.sum_assured, saUnit: r.sa_unit, occ: r.occ_class });
       if (res.error) { showToast(res.error); return; }
       r.premium = String(res.modal);
       if (!r.term) r.term = res.term;
