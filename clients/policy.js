@@ -513,7 +513,9 @@ function renderRiders() {
         <div><b>${esc(r.code)}</b> ${esc(r.name)}${r.cat1 ? `<span class="pf-rider-cat">${esc([r.cat1, r.cat2].filter(Boolean).join("／"))}</span>` : ""}${r._new ? `<span class="pf-rider-new">新代號・儲存時建檔</span>` : ""}</div>
         <button type="button" class="icon-btn pf-rider-del" title="移除">✕</button>
       </div>
-      <div class="pf-rider-meta">被保人 ${esc(r.insured_name)}　職等 ${esc(r.occ_class)} 級${r.effective_date ? "　生效 " + esc(fmtDate(r.effective_date)) : ""}</div>
+      <div class="pf-rider-meta">被保人 ${esc(r.insured_name)}　職等
+        <select class="pf-rider-occ" data-f="occ_class">${["1", "2", "3", "4", "5", "6"].map((n) => `<option value="${n}"${String(r.occ_class || "1") === n ? " selected" : ""}>${n} 級</option>`).join("")}</select>
+        ${r.effective_date ? "　生效 " + esc(fmtDate(r.effective_date)) : ""}</div>
       ${kbProductOf(r.code, r.effective_date) ? `<div class="pf-kb">${kbBadge(kbProductOf(r.code, r.effective_date))}</div>` : ""}
       <div class="pf-grid4">
         ${isWaiver(r)
@@ -534,13 +536,17 @@ function renderRiders() {
           </div>
         </label>
       </div>
+      <div class="pf-occhint" hidden></div>
     </div>`).join("");
   box.querySelectorAll(".pf-rider").forEach((el) => {
     const i = +el.dataset.i;
     el.querySelectorAll("[data-f]").forEach((inp) => inp.addEventListener("input", () => {
       riders[i][inp.dataset.f] = inp.value;
       if (inp.dataset.f === "premium") updateTotal();
+      if (["premium", "sum_assured", "sa_unit", "occ_class"].includes(inp.dataset.f)) showOccHint(el, i);
     }));
+    el.querySelector(".pf-rider-occ").addEventListener("change", (e) => { riders[i].occ_class = e.target.value; showOccHint(el, i); });
+    showOccHint(el, i);
     el.querySelector(".pf-rider-del").addEventListener("click", () => { riders.splice(i, 1); renderRiders(); });
     el.querySelector(".pf-rider-calc").addEventListener("click", async () => {
       const r = riders[i];
@@ -554,6 +560,50 @@ function renderRiders() {
     });
   });
   updateTotal();
+}
+
+// ---------------- 由保費回推職業等級（依職業等級計價的商品，例如 AHI） ----------------
+// 保費 ÷ 單位數 ÷ 繳別係數 ＝ 每單位費率，拿去各版本的費率表對職業等級；生效日當時的版本排前面
+async function occFromPremium(r) {
+  const premium = Number(r.premium);
+  if (!KB.loaded || !(premium > 0)) return null;
+  const at = r.effective_date || $("pf-effective").value;
+  const versions = KB.products.filter((p) => p.code.toUpperCase() === String(r.code).toUpperCase() && p.rate_mode === "occ");
+  if (!versions.length) return null;
+  const current = KB.product(r.code, undefined, at);
+  versions.sort((a, b) => (a === current ? -1 : b === current ? 1 : String(b.sale_from || "").localeCompare(String(a.sale_from || ""))));
+  const units = kbUnits(versions[0], r.sum_assured, r.sa_unit);
+  if (!units) return { error: "填了保額（單位數）才能回推職業等級" };
+  const factor = (versions[0].modal_factors || {})[$("pf-mode-pay").value || "年繳"] ?? 1;
+  const perUnit = premium / units / factor;
+  const hits = [];
+  for (const p of versions) {
+    const rows = await KB.rates(p.id);
+    rows.filter((x) => Math.abs(Number(x.rate) - perUnit) <= 0.5).forEach((x) => hits.push({ occ: String(x.age), rate: Number(x.rate), product: p, current: p === current }));
+  }
+  return { perUnit, hits };
+}
+const versionLabel = (p) => (p.sale_from ? `${Number(p.sale_from.slice(0, 4)) - 1911}.${p.sale_from.slice(5, 7)} 起的版本` : p.version);
+async function showOccHint(el, i) {
+  const box = el.querySelector(".pf-occhint");
+  const r = riders[i];
+  const res = await occFromPremium(r);
+  if (!res) { box.hidden = true; return; }
+  box.hidden = false;
+  if (res.error) { box.className = "pf-occhint muted"; box.textContent = res.error; return; }
+  if (!res.hits.length) {
+    box.className = "pf-occhint warn";
+    box.textContent = `每單位 ${Math.round(res.perUnit * 10) / 10} 元，對不到任何職業等級的費率，請確認保額或保費`;
+    return;
+  }
+  const best = res.hits[0];
+  const same = best.occ === String(r.occ_class || "1");
+  const note = best.current ? "" : "（生效時版本對不到，這是用其他版本的費率對到的，可能是續保後改用新費率）";
+  box.className = "pf-occhint" + (same ? " ok" : "");
+  box.innerHTML = `依保費回推：<b>職業 ${best.occ} 級</b>，每單位 ${best.rate} 元・${esc(versionLabel(best.product))}${note}
+    ${same ? "　✓ 與目前職等相符" : `<button type="button" class="link-btn pf-occ-apply">改成 ${best.occ} 級</button>`}`;
+  const btn = box.querySelector(".pf-occ-apply");
+  if (btn) btn.addEventListener("click", () => { r.occ_class = best.occ; renderRiders(); showToast(`已改成職業 ${best.occ} 級`); });
 }
 
 // ---------------- 受益人 ----------------
