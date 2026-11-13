@@ -571,7 +571,8 @@ function renderRiders() {
     el.querySelector(".pf-rider-calc").addEventListener("click", async () => {
       const r = riders[i];
       const res = await calcPremiumFor({ code: r.code, personId: r.insured_id, effective: r.effective_date || $("pf-effective").value,
-        term: r.term, sa: r.sum_assured, saUnit: r.sa_unit, occ: r.occ_class, plan: r.plan });
+        term: isWaiver(r) ? $("pf-main-term").value.trim() : r.term,   // 豁免附約依主約繳費年期查費率
+        sa: r.sum_assured, saUnit: r.sa_unit, occ: r.occ_class, plan: r.plan });
       if (res.error) { showToast(res.error); return; }
       r.premium = String(res.modal);
       if (!r.term) r.term = res.term;
