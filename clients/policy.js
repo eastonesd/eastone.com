@@ -194,6 +194,28 @@ function personName(id) {
   return c ? c.name : "";
 }
 
+// ---------------- 繳費人：要保人 → 同住址 → 其他客戶 ----------------
+let payerFollows = true;
+function fillPayerOptions(pick) {
+  const sel = $("pf-payer");
+  const keep = pick || sel.value || $("pf-applicant").value;
+  const appId = $("pf-applicant").value;
+  const app = personRecord(appId);
+  const ins = personRecord($("pf-insured").value);
+  const keys = new Set([addressKey(app), addressKey(ins)].filter(Boolean));
+  const label = (c) => `${c.name}（${c.id === client.id ? "本人" : c.id}）`;
+  const everyone = [client, ...allClients.filter((c) => c.id !== client.id)];
+  const house = everyone.filter((c) => c.id !== appId && keys.has(addressKey(c)));
+  const houseIds = new Set(house.map((c) => c.id));
+  const rest = everyone.filter((c) => c.id !== appId && !houseIds.has(c.id))
+    .sort((a, b) => (a.name || "").localeCompare(b.name || "", "zh-Hant"));
+  const opt = (c) => `<option value="${esc(c.id)}">${esc(label(c))}</option>`;
+  sel.innerHTML = (app ? `<optgroup label="要保人">${opt(app)}</optgroup>` : "")
+    + (house.length ? `<optgroup label="同住址">${house.map(opt).join("")}</optgroup>` : "")
+    + `<optgroup label="其他客戶">${rest.map(opt).join("")}</optgroup>`;
+  sel.value = [...sel.options].some((o) => o.value === keep) ? keep : appId;
+}
+
 // ---------------- 上方：客戶與保單清單 ----------------
 function renderClient() {
   $("pf-client-name").textContent = `${client.name}`;
@@ -226,7 +248,10 @@ function bindForm() {
   $("pf-disc-pct").addEventListener("input", updateTotal);
 
   // 基本資料的被保人／職等／生效日，順手帶到附約的預設值
-  $("pf-insured").addEventListener("change", () => { $("pf-r-person").value = $("pf-insured").value; });
+  $("pf-insured").addEventListener("change", () => { $("pf-r-person").value = $("pf-insured").value; fillPayerOptions(); });
+  // 繳費人預設同要保人；手動改成別人之後，就不再跟著要保人變
+  $("pf-applicant").addEventListener("change", () => fillPayerOptions(payerFollows ? $("pf-applicant").value : undefined));
+  $("pf-payer").addEventListener("change", () => { payerFollows = $("pf-payer").value === $("pf-applicant").value; });
   $("pf-occ").addEventListener("change", () => { $("pf-r-occ").value = $("pf-occ").value; });
   $("pf-effective").addEventListener("change", () => { $("pf-r-effective").value = $("pf-effective").value; });
 
@@ -617,7 +642,9 @@ function fillForm(p) {
   const setPerson = (sel, id) => { $(sel).value = id && [...$(sel).options].some((o) => o.value === id) ? id : client.id; };
   setPerson("pf-applicant", L.applicant_id);
   setPerson("pf-insured", L.insured_id);
-  setPerson("pf-payer", L.payer_id);
+  // 繳費人：沒填過或跟要保人同一人 → 之後換要保人時繳費人跟著換
+  payerFollows = !L.payer_id || L.payer_id === $("pf-applicant").value;
+  fillPayerOptions(L.payer_id || $("pf-applicant").value);
   $("pf-effective").value = L.effective_date || today();
   $("pf-occ").value = L.occ_class || "1";
   $("pf-mode-pay").value = L.pay_mode || "年繳";
