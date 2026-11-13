@@ -76,10 +76,10 @@ async function codeAdd(code, name, kind = 'main', cats = null, autoCreated = fal
 // ---------- 險種類別：主要／次要 ----------
 const CAT1_LIST = [
   '壽險', '小額終老保險', '增額壽險', '還本壽險', '養老保險', '分紅', '利變', '投資U', '意外險',
-  '定期醫療', '終身醫療', '防癌', '重疾', '重傷', '特傷', '長照', '失智', '失能', '豁免', '其他',
+  '定期醫療', '終身醫療', '住院醫療', '自負額', '傷害', '防癌', '重疾', '重傷', '特傷', '長照', '失智', '失能', '豁免', '其他',
 ];
 const CAT2_LIST = [
-  '終身', '定期', '實支實付', '住院', '手術', '還本', '壽險', '增額壽險', '還本壽險', '養老保險',
+  '終身', '定期', '實支實付', '日額', '死殘', '住院', '手術', '還本', '壽險', '增額壽險', '還本壽險', '養老保險',
   '特傷', '即期年金 乙型', '年金 甲型', '甲型', '國際',
 ];
 // 打一個類別（原本寫在險種名稱後面的那段），拆成主要／次要；沒有規則就原文當主要類別
@@ -98,6 +98,9 @@ const CAT_SPLIT_RULES = {
 function splitCategory(text) {
   const t = String(text || '').trim().replace(/\s+/g, ' ');
   if (!t) return { cat1: '', cat2: '' };
+  // 也接受「主要/次要」寫法，例如「傷害/死殘」
+  const slash = t.split(/\s*[\/／]\s*/);
+  if (slash.length === 2 && slash[0]) return { cat1: slash[0], cat2: slash[1] };
   const r = CAT_SPLIT_RULES[t];
   return r ? { cat1: r[0], cat2: r[1] } : { cat1: t, cat2: '' };
 }
