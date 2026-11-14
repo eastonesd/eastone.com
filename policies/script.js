@@ -49,6 +49,19 @@ const P_PROP = ['30萬', '50萬', '100萬', '200萬'];
 const P_EXCESS = ['300萬', '500萬', '1000萬'];
 const P_PASSENGER = ['每人100萬/每一事故100萬', '每人200萬/每一事故200萬'];
 const VOL_CODES = {
+  // ----- 車損險（保額選填） -----
+  '0G':       { name: '機車火災事故險', presets: [], optional: true },
+  '0J':       { name: '車體免追償', presets: [], optional: true },
+  '0K':       { name: '交通費用附加險', presets: [], optional: true },
+  '0L':       { name: '汽車限額車碰車對撞', presets: [], optional: true },
+  '0X':       { name: '特定事故汽機車代車費用補償險', presets: [], optional: true },
+  '18':       { name: '機車整車失竊損失險', presets: [], optional: true },
+  // ----- 附加條款（不需保額） -----
+  'KP02':     { name: '車隊附加條款（法人專用｜100台以上）', noAmount: true },
+  'KP05':     { name: '教練車使用附加條款', noAmount: true },
+  'KP12':     { name: '車隊附加條款（法人專用｜5台以上）', noAmount: true },
+  'KP17':     { name: '營業機車附加條款', noAmount: true },
+  // ----- 責任險 -----
   '27A':      { name: '慰問金保險-乙型', presets: ['5萬'], old: ['慰問金保險'] },
   '27A1':     { name: '慰問金保險-甲型', presets: ['5萬'] },
   '31':       { name: '第三人責任險-體傷', presets: P_BODY },
@@ -75,20 +88,35 @@ const VOL_CODES = {
 //   variants：勾選後用下拉選其中一種
 //   bundle：勾選就是整組一起投保（不能拆開）
 //   group：同一組的任一項被勾起來時（且同組都還沒勾），其他項一併勾選；之後可以個別取消
+const VOL_SECTIONS = [
+  { key: 'damage', title: '車損險' },
+  { key: 'liab',   title: '責任險' },
+  { key: 'clause', title: '附加條款' },
+];
 const VOL_ROWS = [
-  { row: '27', label: '慰問金保險', variants: ['27A', '27A1'], group: 'tp' },
-  { row: '31', codes: ['31'], group: 'tp' },
-  { row: '32', codes: ['32'], group: 'tp' },
-  { row: '30', label: '超額責任險', variants: ['30G', '30G1', '30G2'] },
-  { row: '3B', label: '機車第三人責任（慰問金＋傷害＋財損）', bundle: ['3B27', '3B31', '3B32'] },
-  { row: '3FA', codes: ['3FA'] },
-  { row: '38', codes: ['38'] },
-  { row: '50B', codes: ['50B'] },
-  { row: '59', codes: ['59'] },
-  { row: '51A', label: '乘客體傷責任險', variants: ['51A', '51A+275A', '51A+275B'] },
-  { row: '77C', codes: ['77C'] },
-  { row: '6AA1', codes: ['6AA1'] },
-  { row: '83', label: '享安心家庭綜合保險', variants: ['83F1', '83F2'] },
+  { row: '0G', codes: ['0G'], section: 'damage' },
+  { row: '0J', codes: ['0J'], section: 'damage' },
+  { row: '0K', codes: ['0K'], section: 'damage' },
+  { row: '0L', codes: ['0L'], section: 'damage' },
+  { row: '0X', codes: ['0X'], section: 'damage' },
+  { row: '18', codes: ['18'], section: 'damage' },
+  { row: '27', label: '慰問金保險', variants: ['27A', '27A1'], group: 'tp', section: 'liab' },
+  { row: '31', codes: ['31'], group: 'tp', section: 'liab' },
+  { row: '32', codes: ['32'], group: 'tp', section: 'liab' },
+  { row: '30', label: '超額責任險', variants: ['30G', '30G1', '30G2'], section: 'liab' },
+  { row: '3B', label: '機車第三人責任（慰問金＋傷害＋財損）', bundle: ['3B27', '3B31', '3B32'], section: 'liab' },
+  { row: '3FA', codes: ['3FA'], section: 'liab' },
+  { row: '38', codes: ['38'], section: 'liab' },
+  { row: '50B', codes: ['50B'], section: 'liab' },
+  { row: '59', codes: ['59'], section: 'liab' },
+  { row: '51A', label: '乘客體傷責任險', variants: ['51A', '51A+275A', '51A+275B'], section: 'liab' },
+  { row: '77C', codes: ['77C'], section: 'liab' },
+  { row: '6AA1', codes: ['6AA1'], section: 'liab' },
+  { row: '83', label: '享安心家庭綜合保險', variants: ['83F1', '83F2'], section: 'liab' },
+  { row: 'KP02', codes: ['KP02'], section: 'clause' },
+  { row: 'KP05', codes: ['KP05'], section: 'clause' },
+  { row: 'KP12', codes: ['KP12'], section: 'clause' },
+  { row: 'KP17', codes: ['KP17'], section: 'clause' },
 ];
 // 這一列目前要投保的代號（變體列只算選中的那一個）
 function rowCodes(def, st) {
@@ -383,6 +411,7 @@ function stepInsuranceTypes() {
 function stepVoluntaryItems() {
   const amountPicker = (code, cur) => {
     const def = VOL_CODES[code];
+    if (!def.presets.length) return `<input type="text" class="amount-custom show" data-code="${code}" placeholder="保額（選填）" value="${cur || ''}">`;
     const isCustom = cur && !def.presets.includes(cur);
     return `
       <div class="amount-row">
@@ -394,12 +423,12 @@ function stepVoluntaryItems() {
   const rowState = (row) => (state.volRows[row] = state.volRows[row] || { checked: false, variant: '', amounts: {} });
 
   return {
-    eyebrow: '任意險明細', title: '投保內容與保額',
+    eyebrow: '投保內容明細', title: '投保內容與保額',
     render() {
-      return VOL_ROWS.map(def => {
-        const st = rowState(def.row);
+      const panelOf = (def, st) => {
         if (def.variants && !st.variant) st.variant = def.variants[0];
         const title = def.label || VOL_CODES[def.codes[0]].name;
+        if (!def.variants && !def.bundle && VOL_CODES[def.codes[0]].noAmount) return '';
         let detail;
         if (def.variants) {
           detail = `
@@ -414,32 +443,49 @@ function stepVoluntaryItems() {
           detail = amountPicker(def.codes[0], st.amounts[def.codes[0]]);
         }
         return `
-        <div class="check-row vol-row ${st.checked ? 'checked' : ''}" id="vrow_${def.row}">
-          <label class="label">
-            <input type="checkbox" class="v-chk" data-row="${def.row}" ${st.checked ? 'checked' : ''}>
-            <span class="vol-code">${def.row}</span><p>${title}</p>
-            ${def.bundle ? '<span class="vol-hint">三項綁定</span>' : ''}${def.group ? '<span class="vol-hint">27／31／32 一組</span>' : ''}
-          </label>
-          <div class="detail">${detail}</div>
+        <div class="vol-panel ${st.checked ? 'show' : ''}" id="vpanel_${def.row}">
+          <div class="vol-panel-head"><span class="vol-code">${def.row}</span><b>${title}</b>
+            ${def.bundle ? '<span class="vol-hint">三項綁定</span>' : ''}
+            ${!def.variants && !def.bundle && VOL_CODES[def.codes[0]].optional ? '<span class="vol-opt">保額選填</span>' : ''}
+          </div>
+          ${detail}
         </div>`;
+      };
+      return VOL_SECTIONS.map(sec => {
+        const defs = VOL_ROWS.filter(d => d.section === sec.key);
+        const hint = sec.key === 'liab' ? '<span class="vol-hint">27／31／32 一組</span>' : sec.key === 'clause' ? '<span class="vol-opt">不需保額</span>' : '';
+        return `
+        <section class="vol-section">
+          <div class="vol-section-title">${sec.title}${hint}</div>
+          <div class="vol-grid">
+            ${defs.map(def => {
+              const st = rowState(def.row);
+              const title = def.label || VOL_CODES[def.codes[0]].name;
+              return `<button type="button" class="vol-card ${st.checked ? 'on' : ''}" id="vcard_${def.row}" data-row="${def.row}">
+                <b>${def.row}</b><small>${title}</small></button>`;
+            }).join('')}
+          </div>
+          <div class="vol-panels">${defs.map(def => panelOf(def, rowState(def.row))).join('')}</div>
+        </section>`;
       }).join('');
     },
     afterRender(root) {
       const setChecked = (row, on) => {
         rowState(row).checked = on;
-        const el = root.querySelector(`#vrow_${row}`);
-        el.classList.toggle('checked', on);
-        el.querySelector('.v-chk').checked = on;
+        root.querySelector(`#vcard_${row}`).classList.toggle('on', on);
+        const panel = root.querySelector(`#vpanel_${row}`);
+        if (panel) panel.classList.toggle('show', on);
       };
-      root.querySelectorAll('.v-chk').forEach(chk => {
-        chk.addEventListener('change', () => {
-          const def = VOL_ROWS.find(d => d.row === chk.dataset.row);
-          if (chk.checked && def.group) {
+      root.querySelectorAll('.vol-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const def = VOL_ROWS.find(d => d.row === card.dataset.row);
+          const on = !rowState(def.row).checked;
+          if (on && def.group) {
             // 27／31／32：同組都還沒勾時，勾任何一個就三個一起勾；之後可以個別取消
             const mates = VOL_ROWS.filter(d => d.group === def.group && d.row !== def.row);
             if (mates.every(m => !rowState(m.row).checked)) mates.forEach(m => setChecked(m.row, true));
           }
-          setChecked(def.row, chk.checked);
+          setChecked(def.row, on);
         });
       });
       const wireAmounts = (scope) => {
@@ -482,8 +528,8 @@ function stepVoluntaryItems() {
     },
     collect() {
       const picked = selectedVoluntary();
-      if (!picked.length && !state.legacyVoluntary.length) { alert('請至少勾選一項任意險投保內容'); return false; }
-      const missing = picked.find(v => !v.amount);
+      if (!picked.length && !state.legacyVoluntary.length) { alert('請至少選擇一項投保內容'); return false; }
+      const missing = picked.find(v => !v.amount && !VOL_CODES[v.id].optional && !VOL_CODES[v.id].noAmount);
       if (missing) { alert(`請設定「${missing.id} ${missing.item}」的保額`); return false; }
       return true;
     }
@@ -935,7 +981,7 @@ function stepReview() {
       let topBlock = '';
       if (state.category === 'vehicle') {
         const voluntaryLines = selectedVoluntary()
-          .map(v => `<div class="row"><span class="k">${v.id}　${v.item}</span><span class="v">${v.amount}</span></div>`).join('')
+          .map(v => `<div class="row"><span class="k">${v.id}　${v.item}</span><span class="v">${v.amount || '已投保'}</span></div>`).join('')
           + state.legacyVoluntary.map(v => `<div class="row"><span class="k">${v.item}（舊項目）</span><span class="v">${v.amount || '已投保'}</span></div>`).join('');
         topBlock = `
           <div class="grp-title">車輛與險種</div>

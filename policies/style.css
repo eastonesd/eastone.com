@@ -459,3 +459,35 @@ table.records tbody tr:hover{ background:#EDE8DC; }
 .same-check input{ width:18px; height:18px; accent-color:var(--navy); margin:0; }
 .period-block [hidden]{ display:none !important; }
 .same-note{ margin:0 0 12px; }
+
+/* ===== 投保內容明細：代號卡片格 ===== */
+.vol-section{ margin-bottom:22px; }
+.vol-section-title{
+  display:flex; align-items:center; gap:8px;
+  font-size:13px; font-weight:700; letter-spacing:.12em; color:var(--brass);
+  margin:0 2px 10px; padding-bottom:6px; border-bottom:1px solid var(--line);
+}
+.vol-grid{ display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:10px; }
+.vol-card{
+  appearance:none; cursor:pointer; font:inherit; text-align:left;
+  display:grid; gap:4px; align-content:start; min-height:72px;
+  padding:10px 12px; border-radius:10px;
+  border:1px solid var(--line); background:#fff; color:var(--navy);
+  transition:background .12s, border-color .12s, box-shadow .12s;
+}
+.vol-card b{ font-size:15px; line-height:1.2; }
+.vol-card small{ font-size:12px; line-height:1.35; color:#6B6656; }
+.vol-card:hover{ border-color:var(--brass); background:#FFF6DD; }
+.vol-card.on, .vol-card.on:hover{ background:var(--navy); border-color:var(--navy); box-shadow:0 0 0 2px var(--brass-light) inset; }
+.vol-card.on b, .vol-card.on small{ color:#F3DFA8; }
+.vol-panels{ display:grid; gap:10px; margin-top:10px; }
+.vol-panels:empty{ display:none; }
+.vol-panel{ display:none; border:1px solid var(--navy); background:#F9FAFC; border-radius:10px; padding:12px 14px; }
+.vol-panel.show{ display:block; }
+.vol-panel-head{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; font-size:14px; }
+.vol-panel .vol-variant{ margin-bottom:10px; }
+.vol-opt{ font-size:11px; font-weight:600; color:#6B6656; border:1px solid var(--line); border-radius:999px; padding:1px 8px; letter-spacing:0; }
+.vol-section-title .vol-hint, .vol-section-title .vol-opt{ letter-spacing:0; }
+@media (max-width:1000px){ .vol-grid{ grid-template-columns:repeat(4, minmax(0,1fr)); } }
+@media (max-width:720px){ .vol-grid{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
+@media (max-width:480px){ .vol-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; } }
