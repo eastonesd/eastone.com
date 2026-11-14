@@ -494,3 +494,90 @@ table.records tbody tr:hover{ background:#EDE8DC; }
 .vol-card-fixed{ cursor:default; }
 .vol-card-fixed:not(.on){ opacity:.55; }
 .vol-card-fixed:not(.on):hover{ border-color:var(--line); background:#fff; }
+
+/* ===== 與人壽管理統一的版型：上方標題列＋右側分頁、900px 主欄 ===== */
+.app-header, .top-nav{ display:none; }
+.topbar{
+  position:relative; z-index:1;
+  max-width:900px; margin:22px auto 18px; padding:0 20px;
+  display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:14px;
+}
+.topbar h1{ font-family:'Noto Serif TC', serif; font-weight:700; font-size:22px; margin:0; letter-spacing:.04em; color:var(--navy-deep); }
+.topbar h1 small{ display:block; font-family:'Noto Sans TC', sans-serif; font-weight:500; font-size:11px; letter-spacing:.24em; color:#9A927D; margin-top:3px; }
+.tabs{ display:flex; gap:16px; margin-left:auto; }
+.tab-btn{
+  background:none; border:none; border-bottom:2px solid transparent; color:var(--navy-deep);
+  padding:4px 0; cursor:pointer; font:inherit; font-size:.85rem; font-weight:700; transition:border-color .15s, color .15s;
+}
+.tab-btn:hover{ color:var(--brass); }
+.tab-btn.active{ border-color:var(--brass); color:var(--navy-deep); }
+.pmain{ position:relative; z-index:1; max-width:900px; margin:0 auto; padding:0 20px 60px; }
+.pmain .card{ width:100%; }
+.wizard-top{ display:flex; align-items:center; gap:14px; margin-bottom:18px; }
+.wizard-top .rail{ flex:1; margin:0; }
+.wizard-top .tag{
+  white-space:nowrap; font-family:'Space Mono', monospace; font-size:12px; color:var(--brass);
+  border:1px solid var(--brass-light); background:#FFF9EA; padding:4px 10px; border-radius:2px; cursor:pointer;
+}
+.pmain .hint{ color:#6B6656; font-size:.88rem; margin:0 0 12px; }
+
+/* 保單彙總（比照人壽「客戶清單」） */
+.backup-row{ display:flex; gap:10px; margin-bottom:12px; }
+.backup-row .btn-outline{ flex:1; }
+#search-box{ display:block; width:100%; margin:0 0 14px; }
+.fl-views{ display:inline-flex; border:1px solid var(--navy); border-radius:999px; overflow:hidden; margin-bottom:12px; }
+.fl-view{ appearance:none; border:0; background:#fff; color:var(--navy); font:inherit; font-weight:700; padding:8px 20px; cursor:pointer; }
+.fl-view + .fl-view{ border-left:1px solid var(--navy); }
+.fl-view.active{ background:var(--navy); color:#F3DFA8; }
+.kind-tabs{ display:inline-flex; border:1px solid var(--navy-deep); border-radius:999px; overflow:hidden; margin-bottom:12px; }
+.kind-tab{ border:0; background:transparent; padding:6px 20px; font:inherit; font-weight:700; font-size:.9rem; cursor:pointer; color:var(--navy-deep); }
+.kind-tab.active{ background:var(--navy-deep); color:#fff; }
+.list-head .kind-tabs{ margin:0; }
+.fl-tags{ white-space:normal !important; }
+.fl-tag{ display:inline-block; margin:1px 4px 1px 0; padding:2px 8px; border-radius:999px; font-size:.74rem; font-weight:700; color:var(--navy); background:#EDE8DC; }
+.fl-tag.house{ color:var(--brass); background:#FFF6DD; }
+.fl-cards{ display:grid; gap:14px; margin-top:6px; }
+.fl-cards[hidden]{ display:none; }
+.fl-card{ border:1px solid var(--line); border-left:4px solid var(--brass); border-radius:12px; background:#fff; padding:14px 16px; }
+.fl-card-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px; }
+.fl-card-head b{ display:block; color:var(--navy-deep); font-size:1.02rem; }
+.fl-card-kicker{ display:block; font-size:.74rem; font-weight:700; letter-spacing:.06em; color:var(--brass); margin-bottom:2px; }
+.fl-members{ display:flex; flex-wrap:wrap; gap:8px; }
+.fl-member{ appearance:none; cursor:pointer; font:inherit; text-align:left; display:grid; gap:1px; min-width:120px;
+  padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.fl-member:hover{ border-color:var(--brass); background:#FFF8E6; }
+.fl-member b{ color:var(--navy); }
+.fl-member span{ font-size:.78rem; color:#6B6656; }
+.fl-member em{ font-style:normal; font-size:.74rem; color:var(--brass); font-weight:700; }
+.fl-empty, .fl-hint{ color:#6B6656; font-size:.88rem; }
+.fl-empty{ text-align:center; padding:20px 0; }
+.fl-btn{ padding:6px 14px; font-size:.84rem; white-space:nowrap; }
+.link-btn{ background:none; border:0; color:var(--navy-deep); cursor:pointer; font:inherit; font-size:.9rem; margin-right:10px; }
+.icon-btn{ background:none; border:none; cursor:pointer; color:var(--danger); font:inherit; font-size:.9rem; }
+
+/* 詳細資料：群組 */
+.dt-groups{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:6px 0 18px; padding:10px 12px; border:1px dashed var(--line); border-radius:10px; }
+.dt-groups-label{ font-size:.8rem; font-weight:700; color:var(--brass); letter-spacing:.06em; }
+.dt-group{ display:inline-flex; align-items:center; gap:4px; padding:3px 6px 3px 10px; border-radius:999px; background:#EDE8DC; color:var(--navy); font-size:.84rem; font-weight:700; }
+.dt-group button{ border:0; background:none; cursor:pointer; color:#6B6656; font-size:.8rem; padding:0 2px; }
+.dt-group-add{ display:inline-flex; gap:6px; align-items:center; }
+.dt-group-add input{ width:9em; padding:6px 10px; border:1.5px solid var(--line); border-radius:6px; font:inherit; font-size:.85rem; }
+
+/* 保單條款 */
+table.codes-table{ width:100%; border-collapse:collapse; font-size:.9rem; }
+table.codes-table th{ text-align:left; padding:10px; color:#6B6656; font-weight:600; background:var(--paper); border-bottom:1px solid var(--line); }
+table.codes-table td{ padding:10px; border-bottom:1px solid var(--line); vertical-align:top; }
+table.codes-table tr.sec td{ background:#FFF9EA; color:var(--brass); font-weight:700; letter-spacing:.1em; font-size:.82rem; padding:8px 10px; }
+table.codes-table td.code{ font-weight:700; color:var(--navy); white-space:nowrap; }
+table.codes-table td.presets{ color:#6B6656; font-size:.84rem; }
+
+@media (max-width:600px){
+  .topbar{ padding:0 12px; }
+  .tabs{ gap:12px; margin-left:0; }
+  .pmain{ padding:0 8px 50px; }
+  .pmain .card{ width:100%; }
+  .fl-view{ padding:7px 14px; }
+  table.codes-table th, table.codes-table td{ padding:8px 5px; font-size:.82rem; }
+}
+#search-box{ padding:10px 12px; border:1.5px solid var(--line); border-radius:8px; font:inherit; font-size:.95rem; background:#fff; }
+#search-box:focus{ outline:none; border-color:var(--navy); }

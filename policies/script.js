@@ -1,5 +1,5 @@
 // ============================================================
-// 保單建檔系統 - 前端邏輯
+// 產險管理（客戶保單管理）- 前端邏輯
 // ============================================================
 
 const CURRENT_ROC_YEAR = new Date().getFullYear() - 1911;
@@ -1234,33 +1234,101 @@ function resetWizard() {
 }
 
 // ---------- list view ----------
+// ========================= 分頁切換 =========================
+const VIEWS = { form: 'wizardWrap', list: 'listWrap', detail: 'detailWrap', codes: 'codesWrap' };
+function setView(v) {
+  Object.entries(VIEWS).forEach(([k, id]) => { document.getElementById(id).style.display = k === v ? 'block' : 'none'; });
+  const tab = v === 'detail' ? 'list' : v;
+  document.getElementById('navForm').classList.toggle('active', tab === 'form');
+  document.getElementById('navList').classList.toggle('active', tab === 'list');
+  document.getElementById('navCodes').classList.toggle('active', tab === 'codes');
+  if (window.closePicker) window.closePicker();
+}
+
+// ========================= 保單彙總（比照人壽「客戶清單」） =========================
+const escH = (x) => String(x ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let flView = 'all';         // all 全部／house 同住址／group 群組
+let flKind = 'vehicle';     // 保單明細：vehicle 車險／personal 個人險
+let flRecords = [];         // 最近一次讀到的保單
+
+function recAddrText(r) { return [r.insured_city, r.insured_district, r.insured_address_detail].filter(Boolean).join(''); }
+function recAddrKey(r) {
+  if (!r || !r.insured_address_detail) return '';
+  return `${r.insured_city || ''}${r.insured_district || ''}${r.insured_address_detail}`
+    .replace(/[！-～]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .replace(/臺/g, '台').replace(/[\s,，、.。\-－]/g, '').toUpperCase();
+}
+function recSummary(r) {
+  return r.category === 'personal'
+    ? ((r.personal_items || []).map(i => i.item).join('、') || '—')
+    : (r.plate_number || '—');
+}
+function recHouseMap(rows) {
+  const map = new Map();
+  rows.forEach(r => { const k = recAddrKey(r); if (!k) return; if (!map.has(k)) map.set(k, []); map.get(k).push(r); });
+  // 同一個地址要有兩位以上被保人才算「同住」
+  [...map.keys()].forEach(k => { if (new Set(map.get(k).map(r => r.insured_name || r.id)).size < 2) map.delete(k); });
+  return map;
+}
+function recGroupMap(rows) {
+  const map = new Map();
+  rows.forEach(r => (r.groups || []).forEach(g => { if (!map.has(g)) map.set(g, []); map.get(g).push(r); }));
+  return map;
+}
+function recMatch(r, kw) {
+  if (!kw) return true;
+  return [r.plate_number, r.insured_name, recSummary(r), recAddrText(r), ...(r.groups || [])]
+    .some(x => String(x || '').toLowerCase().includes(kw));
+}
+async function saveGroups(r, groups) {
+  const clean = [...new Set(groups.map(g => g.trim()).filter(Boolean))];
+  await dbUpdate(r.id, { groups: clean });
+  r.groups = clean;
+}
+
 async function showList() {
-  document.getElementById('wizardWrap').style.display = 'none';
-  document.getElementById('detailWrap').style.display = 'none';
-  document.getElementById('listWrap').style.display = 'block';
-  document.getElementById('rail').style.display = 'none';
-  document.getElementById('navList').classList.add('active');
-  document.getElementById('navForm').classList.remove('active');
+  setView('list');
   const holder = document.getElementById('recordsTableHolder');
-  holder.textContent = '載入中...';
-  const rows = await dbGetAll();
-  if (!rows.length) { holder.innerHTML = '<p>目前尚無建檔資料。</p>'; return; }
+  if (!flRecords.length) holder.textContent = '載入中...';
+  flRecords = await dbGetAll();
+  refreshList();
+}
+
+function refreshList() {
+  const kw = document.getElementById('search-box').value.trim().toLowerCase();
+  document.querySelectorAll('.fl-view').forEach(b => b.classList.toggle('active', b.dataset.view === flView));
+  document.querySelectorAll('#flAll .kind-tab').forEach(b => b.classList.toggle('active', b.dataset.kind === flKind));
+  document.getElementById('flAll').hidden = flView !== 'all';
+  document.getElementById('fl-cards').hidden = flView === 'all';
+  const houses = recHouseMap(flRecords);
+  if (flView === 'house') return renderHouseCards(houses, kw);
+  if (flView === 'group') return renderGroupCards(kw);
+
+  const holder = document.getElementById('recordsTableHolder');
+  const rows = flRecords.filter(r => (r.category === 'personal' ? 'personal' : 'vehicle') === flKind && recMatch(r, kw));
+  const sumHead = flKind === 'personal' ? '投保商品' : '車牌號';
+  if (!rows.length) {
+    holder.innerHTML = `<p class="fl-empty">${kw ? '找不到符合的保單' : (flKind === 'personal' ? '目前沒有個人險保單。' : '目前沒有車險保單。')}</p>`;
+    return;
+  }
   holder.innerHTML = `
     <div class="records-scroll">
     <table class="records">
-      <thead><tr><th>類別</th><th>摘要</th><th>被保人</th><th>刪除</th></tr></thead>
+      <thead><tr><th>${sumHead}</th><th>被保人</th><th>同住／群組</th><th>刪除</th></tr></thead>
       <tbody>
         ${rows.map(r => {
-          const isPersonal = r.category === 'personal';
-          const categoryLabel = isPersonal ? '個人保險' : '汽/機車';
-          const summary = isPersonal
-            ? ((r.personal_items || []).map(i => i.item).join('、') || '—')
-            : (r.plate_number || '—');
+          const house = houses.get(recAddrKey(r));
+          const people = house ? new Set(house.map(x => x.insured_name || x.id)).size : 0;
+          const tags = [
+            house ? `<span class="fl-tag house" title="${escH(recAddrText(r))}">同住 ${people} 人</span>` : '',
+            ...(r.groups || []).map(g => `<span class="fl-tag">${escH(g)}</span>`),
+          ].join('');
+          const summary = recSummary(r);
           return `
           <tr class="record-row" data-id="${r.id}" style="cursor:pointer;">
-            <td>${categoryLabel}</td>
-            <td class="records-sum" title="${summary}">${summary}</td>
-            <td>${r.insured_name || ''}</td>
+            <td class="records-sum" title="${escH(summary)}">${escH(summary)}</td>
+            <td>${escH(r.insured_name || '')}</td>
+            <td class="fl-tags">${tags}</td>
             <td><span class="del-btn" data-id="${r.id}">刪除</span></td>
           </tr>`;
         }).join('')}
@@ -1279,6 +1347,120 @@ async function showList() {
     });
   });
 }
+
+function memberChip(r) {
+  const personal = r.category === 'personal';
+  return `<button type="button" class="fl-member" data-id="${r.id}">
+    <b>${escH(r.insured_name || '（未填被保人）')}</b><span>${escH(recSummary(r))}</span>
+    <em>${personal ? '個人險' : (r.vehicle_type || '車險')}</em></button>`;
+}
+function bindMemberChips(box) {
+  box.querySelectorAll('.fl-member').forEach(b => b.addEventListener('click', () => showDetail(b.dataset.id)));
+}
+
+function renderHouseCards(houses, kw) {
+  const box = document.getElementById('fl-cards');
+  const list = [...houses.values()].filter(m => !kw || m.some(r => recMatch(r, kw))).sort((a, b) => b.length - a.length);
+  if (!list.length) {
+    box.innerHTML = `<p class="fl-empty">${kw ? '找不到符合的同住名單' : '目前沒有兩位以上被保人住在同一個地址。保單上的地址要填得一樣才會分在一起。'}</p>`;
+    return;
+  }
+  box.innerHTML = list.map((m, i) => {
+    const people = new Set(m.map(r => r.insured_name || r.id)).size;
+    return `
+    <div class="fl-card">
+      <div class="fl-card-head">
+        <div><span class="fl-card-kicker">同住址・${people} 人・${m.length} 張保單</span><b>${escH(recAddrText(m[0]))}</b></div>
+        <button type="button" class="btn-outline fl-btn fl-make-group" data-i="${i}">設為群組</button>
+      </div>
+      <div class="fl-members">${m.map(memberChip).join('')}</div>
+    </div>`;
+  }).join('');
+  bindMemberChips(box);
+  box.querySelectorAll('.fl-make-group').forEach(b => b.addEventListener('click', async () => {
+    const m = list[+b.dataset.i];
+    const surname = (m[0].insured_name || '').slice(0, 1);
+    const name = (prompt('群組名稱', surname ? `${surname}家` : '') || '').trim();
+    if (!name) return;
+    for (const r of m) await saveGroups(r, [...(r.groups || []), name]);
+    alert(`已建立群組「${name}」（${m.length} 張保單）`);
+    refreshList();
+  }));
+}
+
+function renderGroupCards(kw) {
+  const box = document.getElementById('fl-cards');
+  const groups = [...recGroupMap(flRecords).entries()]
+    .filter(([g, m]) => !kw || g.toLowerCase().includes(kw) || m.some(r => recMatch(r, kw)))
+    .sort((a, b) => a[0].localeCompare(b[0], 'zh-Hant'));
+  const head = `<p class="fl-hint">在保單詳細資料的「群組」欄加入，或到「同住址」按「設為群組」。同一張保單可以在多個群組。</p>`;
+  if (!groups.length) {
+    box.innerHTML = head + `<p class="fl-empty">${kw ? '找不到符合的群組' : '還沒有自訂群組。'}</p>`;
+    return;
+  }
+  box.innerHTML = head + groups.map(([g, m]) => `
+    <div class="fl-card">
+      <div class="fl-card-head">
+        <div><span class="fl-card-kicker">群組・${m.length} 張保單</span><b>${escH(g)}</b></div>
+        <span>
+          <button type="button" class="link-btn fl-rename" data-g="${escH(g)}">改名</button>
+          <button type="button" class="icon-btn fl-ungroup" data-g="${escH(g)}">解散</button>
+        </span>
+      </div>
+      <div class="fl-members">${m.map(memberChip).join('')}</div>
+    </div>`).join('');
+  bindMemberChips(box);
+  const members = (g) => flRecords.filter(r => (r.groups || []).includes(g));
+  box.querySelectorAll('.fl-rename').forEach(b => b.addEventListener('click', async () => {
+    const g = b.dataset.g;
+    const name = (prompt('新的群組名稱', g) || '').trim();
+    if (!name || name === g) return;
+    for (const r of members(g)) await saveGroups(r, (r.groups || []).map(x => (x === g ? name : x)));
+    refreshList();
+  }));
+  box.querySelectorAll('.fl-ungroup').forEach(b => b.addEventListener('click', async () => {
+    const g = b.dataset.g;
+    if (!confirm(`解散群組「${g}」？保單不會被刪除，只是不再分在這一組。`)) return;
+    for (const r of members(g)) await saveGroups(r, (r.groups || []).filter(x => x !== g));
+    refreshList();
+  }));
+}
+
+document.getElementById('search-box').addEventListener('input', refreshList);
+document.querySelectorAll('.fl-view').forEach(b => b.addEventListener('click', () => { flView = b.dataset.view; refreshList(); }));
+document.querySelectorAll('#flAll .kind-tab').forEach(b => b.addEventListener('click', () => { flKind = b.dataset.kind; refreshList(); }));
+
+// ========================= 保單條款 =========================
+let codeKind = 'vehicle';
+function showCodes() {
+  setView('codes');
+  document.querySelectorAll('#codeKindTabs .kind-tab').forEach(b => b.classList.toggle('active', b.dataset.kind === codeKind));
+  const hint = document.getElementById('codeHint');
+  const holder = document.getElementById('codesHolder');
+  if (codeKind === 'vehicle') {
+    hint.textContent = '汽／機車保險的險種代號與常用保額，與「投保內容明細」的卡片相同。';
+    const sec = (title, rows) => `<tr class="sec"><td colspan="3">${title}</td></tr>` + rows.map(([code, name, presets]) =>
+      `<tr><td class="code">${escH(code)}</td><td>${escH(name)}</td><td class="presets">${escH(presets)}</td></tr>`).join('');
+    const rowsOf = (key) => VOL_ROWS.filter(d => d.section === key)
+      .flatMap(d => d.variants || d.bundle || d.codes)
+      .map(c => { const v = VOL_CODES[c]; return [c, v.name, v.noAmount ? '不需保額' : (v.presets || []).length ? v.presets.join('、') : '保額選填']; });
+    holder.innerHTML = `<div class="records-scroll"><table class="codes-table">
+      <thead><tr><th>代號</th><th>險種名稱</th><th>常用保額</th></tr></thead>
+      <tbody>
+        ${sec('強制險', [['21', '強制險', '依法定保額']])}
+        ${VOL_SECTIONS.map(s => sec(s.title, rowsOf(s.key))).join('')}
+      </tbody></table></div>`;
+  } else {
+    hint.textContent = '個人保險商品與可選的計畫。';
+    holder.innerHTML = `<div class="records-scroll"><table class="codes-table">
+      <thead><tr><th>商品名稱</th><th>計畫</th></tr></thead>
+      <tbody>${PERSONAL_ITEMS.map(i => `<tr><td class="code">${escH(i.name)}</td>
+        <td class="presets">${escH((i.presets || []).length ? i.presets.join('、') : (i.note || ''))}</td></tr>`).join('')}</tbody>
+      </table></div>`;
+  }
+}
+document.querySelectorAll('#codeKindTabs .kind-tab').forEach(b => b.addEventListener('click', () => { codeKind = b.dataset.kind; showCodes(); }));
+document.getElementById('navCodes').addEventListener('click', showCodes);
 
 // 反向操作：把一筆已存在的資料「灌回」state，讓精靈可以重複使用來編輯
 function loadStateFromRecord(r) {
@@ -1467,28 +1649,53 @@ function renderRecordDetail(r) {
 }
 
 async function showDetail(id) {
-  document.getElementById('wizardWrap').style.display = 'none';
-  document.getElementById('listWrap').style.display = 'none';
-  document.getElementById('detailWrap').style.display = 'block';
-  document.getElementById('rail').style.display = 'none';
+  setView('detail');
   const holder = document.getElementById('detailHolder');
+  const gbox = document.getElementById('detailGroups');
   holder.textContent = '載入中...';
+  gbox.innerHTML = '';
   const rec = await dbGet(id);
   if (!rec) { holder.innerHTML = '<p>找不到這筆資料。</p>'; return; }
   holder.innerHTML = renderRecordDetail(rec);
+  renderDetailGroups(rec);
   const editBtn = document.getElementById('btnEditRecord');
   if (editBtn) editBtn.onclick = () => startEdit(id);
+}
+
+// 詳細資料上方的「群組」：可加入、移出
+function renderDetailGroups(rec) {
+  const gbox = document.getElementById('detailGroups');
+  gbox.innerHTML = `
+    <div class="dt-groups">
+      <span class="dt-groups-label">群組</span>
+      ${(rec.groups || []).map(g => `<span class="dt-group">${escH(g)}<button type="button" data-g="${escH(g)}" title="移出群組">✕</button></span>`).join('')}
+      <span class="dt-group-add">
+        <input type="text" id="dtGroupInput" data-pick="rec-group" placeholder="加入群組" autocomplete="off">
+        <button type="button" class="btn-outline fl-btn" id="dtGroupAdd">加入</button>
+      </span>
+    </div>`;
+  PICK_SOURCES['rec-group'] = () => [...recGroupMap(flRecords).keys()].filter(g => !(rec.groups || []).includes(g)).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+  const update = async (groups) => {
+    await saveGroups(rec, groups);
+    const cached = flRecords.find(r => String(r.id) === String(rec.id));
+    if (cached) cached.groups = rec.groups;
+    renderDetailGroups(rec);
+  };
+  const add = () => {
+    const g = gbox.querySelector('#dtGroupInput').value.trim();
+    if (!g || (rec.groups || []).includes(g)) return;
+    update([...(rec.groups || []), g]);
+  };
+  gbox.querySelector('#dtGroupAdd').addEventListener('click', add);
+  gbox.querySelector('#dtGroupInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+  gbox.querySelectorAll('.dt-group button').forEach(b => b.addEventListener('click', () => update((rec.groups || []).filter(g => g !== b.dataset.g))));
 }
 
 document.getElementById('btnBackToList').addEventListener('click', showList);
 
 function showForm() {
-  document.getElementById('listWrap').style.display = 'none';
-  document.getElementById('detailWrap').style.display = 'none';
-  document.getElementById('wizardWrap').style.display = 'block';
+  setView('form');
   document.getElementById('rail').style.display = 'flex';
-  document.getElementById('navForm').classList.add('active');
-  document.getElementById('navList').classList.remove('active');
   renderStep();
 }
 

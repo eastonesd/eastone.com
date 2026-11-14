@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindEraSwitch();
 
   addPolicyRow(); // 預設一列
-  // 從保單頁「← 返回客戶資料」回來時，直接打開檔案區
+  // 從保單頁「← 返回客戶資料」回來時，直接打開客戶清單
   const backTo = decodeURIComponent((location.hash.match(/^#client=([\w-]+)/) || [])[1] || "");
   if (location.hash === "#filelist" || backTo) document.querySelector('.tab-btn[data-tab="filelist"]').click();
   await refreshFileList();
@@ -640,7 +640,7 @@ async function startEditClient(clientId) {
   goToStep(1);
 }
 
-// ========================= 檔案區 =========================
+// ========================= 客戶清單 =========================
 function bindFileList() {
   document.getElementById("search-box").addEventListener("input", refreshFileList);
   document.querySelectorAll(".fl-view").forEach((b) => b.addEventListener("click", () => { flView = b.dataset.view; refreshFileList(); }));
@@ -694,7 +694,7 @@ function bindBackup() {
   });
 }
 
-let flView = "all";          // 檔案區顯示方式：all 全部／house 同住址／group 群組
+let flView = "all";          // 客戶清單顯示方式：all 全部／house 同住址／group 群組
 let flClients = [];          // 最近一次讀到的客戶清單（資料卡的同住家人、群組選項會用到）
 
 function flMatch(c, kw) {

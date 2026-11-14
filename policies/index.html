@@ -8,10 +8,11 @@
 <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png?v=2">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="車險管理">
-<link rel="stylesheet" href="../shared/site-header.css?v=20261115-2">
-<link rel="stylesheet" href="../shared/auth.css?v=20261115-2">
-<link rel="stylesheet" href="style.css?v=20261115-2">
+<meta name="apple-mobile-web-app-title" content="產險管理">
+<link rel="stylesheet" href="../shared/site-header.css?v=20261115-3">
+<link rel="stylesheet" href="../shared/auth.css?v=20261115-3">
+<link rel="stylesheet" href="../clients/picker.css?v=20261115-3">
+<link rel="stylesheet" href="style.css?v=20261115-3">
 </head>
 <body>
 
@@ -32,56 +33,88 @@
   </nav>
 </div>
 
-<div class="app-header">
-  <div class="brand">保單建檔<small>VEHICLE INSURANCE INTAKE</small></div>
-  <div class="tag mono" id="stepTag">STEP 01 / 10</div>
-</div>
+<header class="topbar">
+  <h1>客戶保單管理<small>PROPERTY INSURANCE MANAGEMENT</small></h1>
+  <nav class="tabs">
+    <button type="button" class="tab-btn active" id="navForm">＋ 新增客戶</button>
+    <button type="button" class="tab-btn" id="navList">📁 保單彙總</button>
+    <button type="button" class="tab-btn" id="navCodes">⚙ 保單條款</button>
+  </nav>
+</header>
 
-<div class="top-nav">
-  <a href="#" id="navForm" class="active">新增建檔</a>
-  <a href="#" id="navList">已建檔案列表</a>
-</div>
+<main class="pmain">
 
-<div class="rail" id="rail"></div>
-
-<!-- FORM WIZARD -->
+<!-- 新增客戶（建檔精靈） -->
 <div id="wizardWrap">
+  <div class="wizard-top">
+    <div class="rail" id="rail"></div>
+    <div class="tag mono" id="stepTag">STEP 01 / 10</div>
+  </div>
   <form class="card" id="wizardCard" onsubmit="return false;"></form>
 </div>
 
-<!-- RECORDS LIST -->
-<div class="table-wrap" id="listWrap" style="display:none;">
-  <div class="card" style="max-width:none;">
-    <div class="list-head">
-      <div class="step-title">已建檔案</div>
-      <div class="list-actions">
-        <button type="button" class="btn-outline" id="btnExportBackup">匯出備份</button>
-        <button type="button" class="btn-outline" id="btnImportBackup">匯入復原</button>
-        <input type="file" id="importFileInput" accept="application/json" style="display:none;">
-      </div>
+<!-- 保單彙總 -->
+<div id="listWrap" style="display:none;">
+  <div class="card">
+    <div class="backup-row">
+      <button type="button" class="btn-outline" id="btnExportBackup">匯出備份</button>
+      <button type="button" class="btn-outline" id="btnImportBackup">匯入復原</button>
+      <input type="file" id="importFileInput" accept="application/json" style="display:none;">
     </div>
-    <div id="recordsTableHolder">載入中...</div>
+    <div class="fl-views" role="tablist">
+      <button type="button" class="fl-view active" data-view="all">全部</button>
+      <button type="button" class="fl-view" data-view="house">同住址</button>
+      <button type="button" class="fl-view" data-view="group">群組</button>
+    </div>
+    <input type="text" id="search-box" placeholder="搜尋車牌號、被保人、商品、地址或群組...">
+    <div id="flAll">
+      <div class="list-head">
+        <div class="step-title">保單明細</div>
+        <div class="kind-tabs" role="tablist">
+          <button type="button" class="kind-tab active" data-kind="vehicle">車險</button>
+          <button type="button" class="kind-tab" data-kind="personal">個人險</button>
+        </div>
+      </div>
+      <div id="recordsTableHolder">載入中...</div>
+    </div>
+    <div id="fl-cards" class="fl-cards" hidden></div>
   </div>
 </div>
 
-<!-- RECORD DETAIL -->
-<div class="table-wrap" id="detailWrap" style="display:none;">
-  <div class="card" style="max-width:none;">
+<!-- 單張保單詳細資料 -->
+<div id="detailWrap" style="display:none;">
+  <div class="card">
     <div class="nav-row" style="border:none; margin:0 0 16px; padding:0; justify-content:flex-start; gap:16px;">
-      <button type="button" class="btn btn-ghost" id="btnBackToList">← 返回列表</button>
+      <button type="button" class="btn btn-ghost" id="btnBackToList">← 返回保單彙總</button>
       <button type="button" class="btn btn-primary" id="btnEditRecord">編輯資料</button>
     </div>
     <div class="step-title">詳細資料</div>
+    <div id="detailGroups"></div>
     <div id="detailHolder"></div>
   </div>
 </div>
 
+<!-- 保單條款 -->
+<div id="codesWrap" style="display:none;">
+  <div class="card">
+    <div class="kind-tabs" role="tablist" id="codeKindTabs">
+      <button type="button" class="kind-tab active" data-kind="vehicle">車險</button>
+      <button type="button" class="kind-tab" data-kind="personal">個人險</button>
+    </div>
+    <p class="hint" id="codeHint"></p>
+    <div id="codesHolder"></div>
+  </div>
+</div>
+
+</main>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
-<script src="../shared/supabase-client.js?v=20261115-2"></script>
-<script src="../shared/auth.js?v=20261115-2"></script>
-<script src="../shared/migrate-local.js?v=20261115-2"></script>
-<script src="zipcodes.js?v=20261115-2"></script>
-<script src="db.js?v=20261115-2"></script>
-<script src="script.js?v=20261115-2"></script>
+<script src="../shared/supabase-client.js?v=20261115-3"></script>
+<script src="../shared/auth.js?v=20261115-3"></script>
+<script src="../shared/migrate-local.js?v=20261115-3"></script>
+<script src="zipcodes.js?v=20261115-3"></script>
+<script src="db.js?v=20261115-3"></script>
+<script src="../clients/picker.js?v=20261115-3"></script>
+<script src="script.js?v=20261115-3"></script>
 </body>
 </html>
