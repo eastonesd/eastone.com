@@ -451,7 +451,16 @@ function stepVoluntaryItems() {
           ${detail}
         </div>`;
       };
-      return VOL_SECTIONS.map(sec => {
+      // 強制險：只顯示，依前一步是否勾選強制險自動亮起（不算在任意險項目裡）
+      const comp = `
+        <section class="vol-section">
+          <div class="vol-section-title">強制險<span class="vol-opt">依險種選擇自動帶入</span></div>
+          <div class="vol-grid">
+            <div class="vol-card vol-card-fixed ${state.hasCompulsory ? 'on' : ''}" title="${state.hasCompulsory ? '已投保強制險' : '未投保強制險'}">
+              <b>21</b><small>強制險</small></div>
+          </div>
+        </section>`;
+      return comp + VOL_SECTIONS.map(sec => {
         const defs = VOL_ROWS.filter(d => d.section === sec.key);
         const hint = sec.key === 'liab' ? '<span class="vol-hint">27／31／32 一組</span>' : sec.key === 'clause' ? '<span class="vol-opt">不需保額</span>' : '';
         return `
