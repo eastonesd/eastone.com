@@ -581,3 +581,29 @@ table.codes-table td.presets{ color:#6B6656; font-size:.84rem; }
 }
 #search-box{ padding:10px 12px; border:1.5px solid var(--line); border-radius:8px; font:inherit; font-size:.95rem; background:#fff; }
 #search-box:focus{ outline:none; border-color:var(--navy); }
+
+/* 投保內容明細：強制險／任意險大標＋保單號碼 */
+.vol-section-title{ border-bottom:none; padding-bottom:0; }
+.vol-head{
+  display:flex; align-items:center; flex-wrap:wrap; gap:12px;
+  font-family:'Noto Serif TC', serif; font-size:18px; font-weight:700; color:var(--brass);
+  margin:4px 0 12px; min-height:40px;
+}
+.vol-head .vol-no{
+  flex:0 1 260px; min-width:0; font-family:'Noto Sans TC', sans-serif; font-size:14px; font-weight:500;
+  padding:8px 12px; border:1.5px solid var(--brass-light); border-radius:8px; background:#fff; color:var(--ink);
+}
+.vol-head .vol-no[hidden]{ display:none; }
+.vol-head .vol-no:focus{ outline:none; border-color:var(--brass); }
+.vol-head + .vol-section .vol-section-title{ margin-top:0; }
+
+/* 保費：強制險／任意險兩張卡＋總保費 */
+.prem-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.prem-card{ border:1px solid var(--navy); border-radius:12px; padding:16px; background:#fff; }
+.prem-card.off{ border-color:var(--line); background:#F1EEE6; opacity:.6; }
+.prem-label{ font-weight:700; color:var(--navy); margin-bottom:10px; }
+.prem-card input{ width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:8px; font:inherit; font-size:1rem; }
+.prem-none{ color:#6B6656; font-size:.9rem; padding:10px 0; }
+.prem-total{ margin-top:16px; padding:14px 16px; border-radius:12px; background:var(--navy); color:#F3DFA8; display:flex; justify-content:space-between; align-items:center; font-weight:700; }
+.prem-total b{ font-size:1.3rem; }
+@media (max-width:480px){ .prem-grid{ grid-template-columns:1fr; } }

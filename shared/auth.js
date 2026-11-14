@@ -199,7 +199,7 @@ function openLineDialog() {
         <label class="line-days"${'remind_days' in data ? '' : ' hidden'}>提前提醒天數
           <select data-act="days">${[30, 60, 90].map((n) => `<option value="${n}"${n === (data.remind_days || 30) ? ' selected' : ''}>到期前 ${n} 天</option>`).join('')}</select>
         </label>
-        <p class="line-note">保單到期前 <b class="line-days-n">${data.remind_days || 30}</b> 天內，每天早上 9 點會把快到期的保單整理成一則訊息傳到你的 LINE（每張保單只提醒一次）。</p>
+        <p class="line-note">保單到期前 <b class="line-days-n">${data.remind_days || 30}</b> 天內，每天早上 9 點會把快到期的保單整理成一則訊息傳到你的 LINE；到期前 10 天會再發一次最後提醒。</p>
         <button type="button" class="auth-btn auth-btn-ghost" data-act="unlink">解除綁定</button>`;
       body.querySelector('[data-act="days"]').addEventListener('change', async (ev) => {
         const n = Number(ev.target.value);
