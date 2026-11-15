@@ -52,7 +52,7 @@ const P_PASSENGER = ['每人100萬/每一事故100萬', '每人200萬/每一事�
 const VOL_CODES = {
   // ----- 車損險（保額選填） -----
   '0G':       { name: '機車火災事故險', presets: [], optional: true },
-  '0J':       { name: '車體免追償', presets: [], optional: true },
+  '0J':       { name: '車體免追償', noAmount: true },
   '0K':       { name: '交通費用附加險', presets: [], optional: true },
   '0L':       { name: '汽車限額車碰車對撞', presets: [], optional: true },
   '0X':       { name: '特定事故汽機車代車費用補償險', presets: [], optional: true },
@@ -75,7 +75,7 @@ const VOL_CODES = {
   '3B32':     { name: '機車第三人責任-財損', presets: P_PROP, old: ['機車第三人責任險-財損'] },
   '3FA':      { name: '機車第三人責任保險-單一保額型', presets: ['500萬', '800萬', '1000萬'], old: ['機車第三人責任險-單一保額型'] },
   '38':       { name: '刑事訴訟律師費用補償險', presets: ['5萬'], old: ['刑事律師費用', '刑事律師費用補償險'] },
-  '50B':      { name: '駕傷實支', presets: ['5萬/200萬'], old: ['駕駛人傷害險-實支實付', '駕傷（實支）'] },
+  '50B':      { name: '駕傷實支', presets: ['5萬/100萬'], old: ['駕駛人傷害險-實支實付', '駕傷（實支）'] },
   '59':       { name: '駕傷（機車單一事故）', presets: ['20萬/200萬', '20萬/300萬'], old: ['單一事故駕駛人傷害險-機車'] },
   '51A':      { name: '乘客體傷責任險', presets: P_PASSENGER, old: ['乘客傷害險'] },
   '51A+275A': { name: '乘客體傷責任險＋附加慰問金甲型', presets: P_PASSENGER },
@@ -1472,13 +1472,13 @@ function showCodes() {
   const holder = document.getElementById('codesHolder');
   if (codeKind === 'vehicle') {
     hint.textContent = '汽／機車保險的險種代號與常用保額，與「投保內容明細」的卡片相同。';
-    const sec = (title, rows) => `<tr class="sec"><td colspan="3">${title}</td></tr>` + rows.map(([code, name, presets]) =>
-      `<tr><td class="code">${escH(code)}</td><td>${escH(name)}</td><td class="presets">${escH(presets)}</td></tr>`).join('');
+    const sec = (title, rows) => `<tr class="sec"><td colspan="4">${title}</td></tr>` + rows.map(([code, name, presets]) =>
+      `<tr><td class="code">${escH(code)}</td><td>${escH(name)}</td><td class="presets">${escH(presets)}</td><td class="cl-cell" data-code="${escH(code)}"></td></tr>`).join('');
     const rowsOf = (key) => VOL_ROWS.filter(d => d.section === key)
       .flatMap(d => d.variants || d.bundle || d.codes)
       .map(c => { const v = VOL_CODES[c]; return [c, v.name, v.noAmount ? '不需保額' : (v.presets || []).length ? v.presets.join('、') : '保額選填']; });
     holder.innerHTML = `<div class="records-scroll"><table class="codes-table">
-      <thead><tr><th>代號</th><th>險種名稱</th><th>常用保額</th></tr></thead>
+      <thead><tr><th>代號</th><th>險種名稱</th><th>常用保額</th><th>條款</th></tr></thead>
       <tbody>
         ${sec('強制險', [['21', '強制險', '依法定保額']])}
         ${VOL_SECTIONS.map(s => sec(s.title, rowsOf(s.key))).join('')}
@@ -1491,6 +1491,7 @@ function showCodes() {
         <td class="presets">${escH((i.presets || []).length ? i.presets.join('、') : (i.note || ''))}</td></tr>`).join('')}</tbody>
       </table></div>`;
   }
+  if (window.pcClausesAfter) window.pcClausesAfter(codeKind);
 }
 document.querySelectorAll('#codeKindTabs .kind-tab').forEach(b => b.addEventListener('click', () => { codeKind = b.dataset.kind; showCodes(); }));
 document.getElementById('navCodes').addEventListener('click', showCodes);

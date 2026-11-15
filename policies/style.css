@@ -607,3 +607,32 @@ table.codes-table td.presets{ color:#6B6656; font-size:.84rem; }
 .prem-total{ margin-top:16px; padding:14px 16px; border-radius:12px; background:var(--navy); color:#F3DFA8; display:flex; justify-content:space-between; align-items:center; font-weight:700; }
 .prem-total b{ font-size:1.3rem; }
 @media (max-width:480px){ .prem-grid{ grid-template-columns:1fr; } }
+
+/* 保單條款：AI 讀取條款 */
+.cl-cell{ white-space:nowrap; }
+.cl-link{ border:0; background:none; cursor:pointer; font:inherit; font-size:.84rem; font-weight:700; color:var(--navy); text-decoration:underline; padding:0; }
+.cl-link i, .cl-item em{ font-style:normal; }
+.cl-link i{ margin-left:4px; font-size:.72rem; color:var(--brass); text-decoration:none; }
+#clausePanel{ margin-top:26px; padding-top:18px; border-top:1px dashed var(--line); }
+.cl-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; }
+.cl-head small{ font-size:.8rem; color:#6B6656; font-weight:500; margin-left:6px; }
+.cl-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:10px; }
+.cl-item{ appearance:none; cursor:pointer; font:inherit; text-align:left; display:grid; gap:2px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.cl-item:hover{ border-color:var(--brass); background:#FFF8E6; }
+.cl-item b{ color:var(--navy); } .cl-item span{ font-size:.82rem; color:var(--ink); } .cl-item em{ font-size:.74rem; color:var(--brass); font-weight:700; }
+.cl-ai-form, .cl-view{ margin:14px 0; padding:16px; border:1px solid var(--navy); border-radius:12px; background:#F9FAFC; }
+.cl-view-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px; }
+.cl-view-head b{ color:var(--navy-deep); font-size:1.05rem; }
+.cl-summary{ margin:0 0 12px; line-height:1.7; }
+.cl-sub{ font-weight:700; color:var(--brass); letter-spacing:.08em; font-size:.85rem; margin:14px 0 6px; }
+.cl-ul{ margin:0; padding-left:20px; line-height:1.7; }
+.cl-ul small{ margin-left:8px; color:#6B6656; font-size:.76rem; }
+.cl-ok, .cl-wait{ font-size:.74rem; font-weight:700; padding:2px 8px; border-radius:999px; margin-right:8px; }
+.cl-ok{ background:#E3F1E6; color:#2F6B3D; } .cl-wait{ background:#FFF1D6; color:var(--brass); }
+.cl-row{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; }
+.cl-grid{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
+.cl-edit textarea{ width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:8px; font:inherit; font-size:.9rem; line-height:1.6; background:#fff; resize:vertical; }
+.cl-warn{ background:#FFF6DD; border:1px solid var(--brass-light); border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:.86rem; }
+.cl-warn ul{ margin:4px 0 0; padding-left:18px; }
+.cl-check{ display:flex; align-items:center; gap:8px; font-size:.9rem; margin-top:6px; }
+@media (max-width:600px){ .cl-grid{ grid-template-columns:1fr 1fr; } }
