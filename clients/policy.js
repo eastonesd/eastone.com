@@ -262,9 +262,9 @@ function renderClient() {
 function bindForm() {
   $("pf-new").addEventListener("click", () => { newPolicy(); window.scrollTo({ top: $("pf-form").offsetTop - 10, behavior: "smooth" }); });
 
-  // 保單號碼：只收數字，滿 10 碼自動加「-」
+  // 保單號碼：10 碼數字，或用身分證字號（英文開頭）當保單號碼；滿 10 碼自動加「-」
   $("pf-no").addEventListener("input", (e) => {
-    const d = e.target.value.replace(/\D/g, "").slice(0, 12);
+    const d = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
     e.target.value = d.length > 10 ? `${d.slice(0, 10)}-${d.slice(10)}` : d;
     e.target.classList.remove("pf-invalid");
   });
@@ -851,10 +851,10 @@ function collectPolicy() {
 
 async function savePolicy() {
   const p = collectPolicy();
-  if (!/^\d{10}-\d{2}$/.test(p.policy_no)) {
+  if (!/^(\d{10}-\d{2}|[A-Z][A-Z0-9]\d{8}(-\d{2})?)$/.test(p.policy_no)) {
     $("pf-no").classList.add("pf-invalid");
     $("pf-no").focus();
-    showToast("保單號碼格式：10 碼數字 - 2 碼數字");
+    showToast("保單號碼格式：10 碼數字 - 2 碼數字，或身分證字號（可再加 - 2 碼）");
     return;
   }
   if (!p.main_code && !p.main_name) { $("pf-main-family").focus(); showToast("請填主約代號或險種名稱"); return; }
