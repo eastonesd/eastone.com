@@ -53,10 +53,10 @@ const VOL_CODES = {
   // ----- 車損險（保額選填） -----
   '0G':       { name: '機車火災事故險', presets: [], optional: true },
   '0J':       { name: '車體免追償', noAmount: true },
-  '0K':       { name: '交通費用附加險', presets: [], optional: true },
-  '0L':       { name: '汽車限額車碰車對撞', presets: [], optional: true },
-  '0X':       { name: '特定事故汽機車代車費用補償險', presets: [], optional: true },
-  '18':       { name: '機車整車失竊損失險', presets: [], optional: true },
+  '0K':       { name: '交通費用附加險', presets: ['1千/3萬'], optional: true },
+  '0L':       { name: '汽車限額車碰車對撞', presets: [], optional: true, fields: 'replace' },
+  '0X':       { name: '特定事故汽機車代車費用補償險', presets: [], optional: true, fields: 'daily' },
+  '18':       { name: '機車整車失竊損失險', presets: [], optional: true, fields: 'replace' },
   // ----- 附加條款（不需保額） -----
   'KP02':     { name: '車隊附加條款（法人專用｜100台以上）', noAmount: true },
   'KP05':     { name: '教練車使用附加條款', noAmount: true },
@@ -78,8 +78,8 @@ const VOL_CODES = {
   '50B':      { name: '駕傷實支', presets: ['5萬/100萬'], old: ['駕駛人傷害險-實支實付', '駕傷（實支）'] },
   '59':       { name: '駕傷（機車單一事故）', presets: ['20萬/200萬', '20萬/300萬'], old: ['單一事故駕駛人傷害險-機車'] },
   '51A':      { name: '乘客體傷責任險', presets: P_PASSENGER, old: ['乘客傷害險'] },
-  '51A+275A': { name: '乘客體傷責任險＋附加慰問金甲型', presets: P_PASSENGER },
-  '51A+275B': { name: '乘客體傷責任險＋附加慰問金乙型', presets: P_PASSENGER },
+  '51A+275A': { name: '乘客體傷責任險＋附加慰問金甲型', presets: ['100萬/100萬/10萬', '200萬/200萬/10萬'] },
+  '51A+275B': { name: '乘客體傷責任險＋附加慰問金乙型', presets: ['100萬/100萬/5萬', '200萬/200萬/5萬'] },
   '77C':      { name: '道路救援費用險', presets: ['30公里/3萬', '50公里/5萬', '100公里/10萬'], old: ['道路救援費用保險', '道路救援', '道路救援險'] },
   '6AA1':     { name: '租賃電池損失責任保險', presets: ['2.5萬', '3萬', '4萬', '5萬'] },
   '83F1':     { name: '享安心家庭綜合保險-家庭財物被竊', presets: ['5000/50%/5萬', '10000/50%/10萬', '10000/100%/15萬'] },
@@ -100,7 +100,7 @@ const VOL_ROWS = [
   { row: '0K', codes: ['0K'], section: 'damage' },
   { row: '0L', codes: ['0L'], section: 'damage' },
   { row: '0X', codes: ['0X'], section: 'damage' },
-  { row: '18', codes: ['18'], section: 'damage' },
+  { row: '18', codes: ['18'], section: 'damage', autoWith: ['0K'] },   // 勾 18 自動勾 0K，0K 可再取消
   { row: '27', label: '慰問金保險', variants: ['27A', '27A1'], group: 'tp', section: 'liab' },
   { row: '31', codes: ['31'], group: 'tp', section: 'liab' },
   { row: '32', codes: ['32'], group: 'tp', section: 'liab' },
@@ -146,6 +146,26 @@ function normalizeVoluntary(items) {
     out.push({ id: code, item: VOL_CODES[code].name, amount: v.amount || '' });
   });
   return out;
+}
+// 需要多格輸入的保額：replace（重置價＋保額）、daily（日額×天數＝保額）
+function parseMoney(x) {
+  const t = String(x || '').replace(/[,，\s元]/g, '');
+  const m = t.match(/^([\d.]+)(萬|千)?$/);
+  if (!m) return NaN;
+  return parseFloat(m[1]) * (m[2] === '萬' ? 10000 : m[2] === '千' ? 1000 : 1);
+}
+function fmtMoney(n) {
+  if (!isFinite(n) || n <= 0) return '';
+  return n >= 10000 && n % 1000 === 0 ? `${n / 10000}萬` : `${n.toLocaleString()}元`;
+}
+function multiParts(kind, amount) {
+  const a = String(amount || '');
+  const m = kind === 'replace' ? a.match(/^重置價(.*)／保額(.*)$/) : a.match(/^日額(.*)×(.*)天＝(.*)$/);
+  return m ? m.slice(1) : (kind === 'replace' ? ['', a] : ['', '', a]);
+}
+function multiAmount(kind, parts) {
+  if (kind === 'replace') return parts.some(Boolean) ? `重置價${parts[0]}／保額${parts[1]}` : '';
+  return parts.some(Boolean) ? `日額${parts[0]}×${parts[1]}天＝${parts[2]}` : '';
 }
 // 目前勾選的任意險（給確認頁與存檔用）
 function selectedVoluntary() {
@@ -387,6 +407,13 @@ function stepPlate() {
 function stepVoluntaryItems() {
   const amountPicker = (code, cur) => {
     const def = VOL_CODES[code];
+    if (def.fields) {
+      const parts = multiParts(def.fields, cur);
+      const labels = def.fields === 'replace' ? ['重置價', '保額'] : ['日額', '天數', '保額（日額×天數）'];
+      return `<div class="amount-multi" data-code="${code}" data-kind="${def.fields}">${labels.map((l, i) => `
+        <label><span>${l}</span><input type="text" data-i="${i}" value="${escH(parts[i] || '')}" ${def.fields === 'daily' && i === 2 ? 'readonly' : ''}
+          placeholder="${def.fields === 'daily' ? ['例 1000', '例 15', '自動計算'][i] : '例 60萬'}"></label>`).join('')}</div>`;
+    }
     if (!def.presets.length) return `<input type="text" class="amount-custom show" data-code="${code}" placeholder="保額（選填）" value="${cur || ''}">`;
     const isCustom = cur && !def.presets.includes(cur);
     return `
@@ -493,6 +520,8 @@ function stepVoluntaryItems() {
             if (mates.every(m => !rowState(m.row).checked)) mates.forEach(m => setChecked(m.row, true));
           }
           setChecked(def.row, on);
+          // 18 機車整車失竊 → 自動帶 0K 交通費用（之後可以單獨取消 0K）
+          if (on && def.autoWith) def.autoWith.forEach(r => { if (!rowState(r).checked) setChecked(r, true); });
         });
       });
       const wireAmounts = (scope) => {
@@ -517,6 +546,18 @@ function stepVoluntaryItems() {
           inp.addEventListener('input', () => {
             rowState(rowOfCode(inp.dataset.code).row).amounts[inp.dataset.code] = inp.value.trim();
           });
+        });
+        scope.querySelectorAll('.amount-multi').forEach(box => {
+          const code = box.dataset.code, kind = box.dataset.kind;
+          const inputs = [...box.querySelectorAll('input')];
+          const sync = () => {
+            if (kind === 'daily') {
+              const d = parseMoney(inputs[0].value), n = parseFloat(inputs[1].value);
+              inputs[2].value = isFinite(d) && isFinite(n) ? fmtMoney(d * n) : '';
+            }
+            rowState(rowOfCode(code).row).amounts[code] = multiAmount(kind, inputs.map(i => i.value.trim()));
+          };
+          inputs.forEach(i => i.addEventListener('input', sync));
         });
       };
       wireAmounts(root);
@@ -1064,13 +1105,13 @@ function stepReview() {
           ${topBlock}
 
           <div class="grp-title">保費與期間</div>
-          <div class="row"><span class="k">被保人</span><span class="v">${state.insuredName}</span></div>
           ${state.category === 'vehicle' && state.hasCompulsory ? `<div class="row"><span class="k">強制險保費</span><span class="v">NT$ ${state.compulsoryPremium}</span></div>` : ''}
           ${state.category === 'vehicle' && state.hasVoluntary ? `<div class="row"><span class="k">任意險保費</span><span class="v">NT$ ${state.voluntaryPremium}</span></div>` : ''}
           <div class="row"><span class="k">總保費</span><span class="v">NT$ ${state.totalPremium}</span></div>
           ${periodRows()}
           ${vehicleInfoBlock}
           <div class="grp-title">被保人資料</div>
+          <div class="row"><span class="k">被保人</span><span class="v">${state.insuredName}</span></div>
           ${employmentBlock}
           <div class="row"><span class="k">身分證字號</span><span class="v">${state.insuredIdNumber}</span></div>
           <div class="row"><span class="k">出生日期</span><span class="v">民國${state.birth.y}年${state.birth.m}月${state.birth.d}日</span></div>
@@ -1651,7 +1692,6 @@ function renderRecordDetail(r) {
       ${voluntaryLines ? `<div class="grp-title">投保內容</div>${voluntaryLines}` : ''}
 
       <div class="grp-title">保費與期間</div>
-      <div class="row"><span class="k">被保人</span><span class="v">${r.insured_name || ''}</span></div>
       ${r.compulsory_premium ? `<div class="row"><span class="k">強制險保費</span><span class="v">NT$ ${r.compulsory_premium}</span></div>` : ''}
       ${r.voluntary_premium ? `<div class="row"><span class="k">任意險保費</span><span class="v">NT$ ${r.voluntary_premium}</span></div>` : ''}
       <div class="row"><span class="k">總保費</span><span class="v">NT$ ${r.total_premium || ''}</span></div>
@@ -1674,7 +1714,6 @@ function renderRecordDetail(r) {
 
   const premiumBlock = isPersonal ? `
       <div class="grp-title">保費與期間</div>
-      <div class="row"><span class="k">被保人</span><span class="v">${r.insured_name || ''}</span></div>
       ${r.compulsory_premium ? `<div class="row"><span class="k">強制險保費</span><span class="v">NT$ ${r.compulsory_premium}</span></div>` : ''}
       ${r.voluntary_premium ? `<div class="row"><span class="k">任意險保費</span><span class="v">NT$ ${r.voluntary_premium}</span></div>` : ''}
       <div class="row"><span class="k">總保費</span><span class="v">NT$ ${r.total_premium || ''}</span></div>
@@ -1687,6 +1726,7 @@ function renderRecordDetail(r) {
       ${topBlock}
       ${premiumBlock}
       <div class="grp-title">被保人資料</div>
+      <div class="row"><span class="k">被保人</span><span class="v">${r.insured_name || ''}</span></div>
       ${employmentBlock}
       <div class="row"><span class="k">身分證字號</span><span class="v">${r.insured_id_number || ''}</span></div>
       <div class="row"><span class="k">出生日期</span><span class="v">${birth ? `民國${birth.y}年${birth.m}月${birth.d}日` : ''}</span></div>

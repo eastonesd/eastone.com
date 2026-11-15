@@ -636,3 +636,7 @@ table.codes-table td.presets{ color:#6B6656; font-size:.84rem; }
 .cl-warn ul{ margin:4px 0 0; padding-left:18px; }
 .cl-check{ display:flex; align-items:center; gap:8px; font-size:.9rem; margin-top:6px; }
 @media (max-width:600px){ .cl-grid{ grid-template-columns:1fr 1fr; } }
+.amount-multi{ display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:10px; }
+.amount-multi label{ display:grid; gap:4px; font-size:.8rem; color:#6B6656; font-weight:600; }
+.amount-multi input{ padding:9px 12px; border:1.5px solid var(--line); border-radius:8px; font:inherit; font-size:.92rem; background:#fff; }
+.amount-multi input[readonly]{ background:#F1EEE6; color:var(--navy); font-weight:700; }
