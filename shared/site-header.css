@@ -114,3 +114,19 @@
     letter-spacing: 0.02em;
   }
 }
+
+/* 深淺色切換鈕 */
+.ghdr-wrap .theme-toggle {
+  appearance: none; cursor: pointer; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 12px; margin-left: 12px;
+  border-radius: 999px; border: 1px solid rgba(228, 199, 126, .55);
+  background: rgba(255, 255, 255, .06); color: #F6F3EC;
+  font: 500 13px 'Noto Sans TC', sans-serif;
+}
+.ghdr-wrap .theme-toggle span { display: inline-flex; color: #E4C77E; }
+.ghdr-wrap .theme-toggle:hover { background: rgba(228, 199, 126, .15); }
+.ghdr-right .theme-toggle { margin-left: 0; }
+@media (max-width: 600px) { .ghdr-wrap .theme-toggle b { display: none; } .ghdr-wrap .theme-toggle { padding: 0 10px; } }
+/* 深色模式時頁首再沉一點，跟頁面融在一起 */
+html[data-theme="dark"] .ghdr-wrap { background: #0E1626; }
