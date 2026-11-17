@@ -77,7 +77,7 @@
 - 口徑重點：未知＝null 不是 0；匯率方向 1 外幣＝x 台幣，缺匯率不補 0／1、總額標不完整；估值取基準日（含）以前最新一筆，同日人工覆寫優先，不用未來價格回填；保單「扣貸後淨額」需同日同口徑核對才還原，否則待核對不納入；上層部位已計入時底層只展示；共同擔保的借款在可動用資金只扣一次；借款撥入／還本是融資流量，轉帳／換匯不算收入，分配款來源未知不視為收益。
 - 資料表 `fin_assets`、`fin_asset_values`、`fin_liabilities`、`fin_liability_balances`、`fin_collateral_links`、`fin_funding_links`、`fin_cash_events`、`fin_cash_schedules`、`fin_snapshots`（RLS：owner＝本人；複合外鍵綁 `clients(owner,id)`，客戶轉移帳號時一起跟過去，刪客戶時一起刪；連結不能跨客戶）；`fin_fx_quotes`（自動匯率 owner 為空，大家可讀；手動匯率屬於個人）、`fin_market_quotes`（公開收盤價，不含客戶資料）。
 - 報表 `finance-report.html?snap=`：只讀凍結快照（`fin_snapshots`，建立後不能修改），A4 列印／另存 PDF。
-- 自動資料：Edge Function `fin-fx`（臺灣銀行牌告即期買賣中價，週一到週五 16:35 排程 `fin-fx-daily`，頁面也可手動更新，30 分鐘內不重抓）；`fin-quotes`（台股上市＝證交所 OpenAPI、上櫃＝櫃買中心 OpenAPI 的收盤價；美股尚未選定供應商、基金淨值尚無合法免費來源 → 手動估值）。只送商品代號，不送客戶資料。
+- 自動資料：匯率＝Edge Function `fin-fx`（臺灣銀行牌告即期買賣中價，週一到週五 16:35 排程 `fin-fx-daily`，頁面也可手動更新，30 分鐘內不重抓）。「更新行情」接**東石診股**（`eastonesd/eastone.stock`）：基金＝東石診股每天收集的投信投顧公會／集保結算所淨值（`data/funds/index.json`，建檔時從清單選基金，含級別與幣別）；台股、美股＝FinMind 收盤價（沿用東石診股存在同一瀏覽器的 FinMind 金鑰）；台股 FinMind 失敗時改用 `fin-quotes`（證交所／櫃買中心）。只送商品代號，不送客戶資料。
 - MCN：通用建檔＋「商品結構待確認」；專屬規則待取得說明書後再做。
 
 ## 三、產險管理（`policies/`）
@@ -112,7 +112,10 @@
 - **截圖**：`.github/workflows/daily-snapshot.yml` 週一到週五 08:05／08:20／08:35／08:50 執行 `tools/snapshot.mjs`，把 `market/` 拍成圖放到 `daily-report` 分支（只留 7 天）；當天已拍好就跳過。Runner 固定 `ubuntu-24.04`（26.04 的 Playwright 不支援）。
 - **推播**：09:00 由 `expiry-reminders` 發送日報與保單到期提醒，週六、日不發。
 - **推播管道**（`line_links.report_channel`）：dkyp2377 → Discord；tpbu → LINE；Minnie → 停發日報。保單到期提醒一律走 LINE，每人可選提前 30／60／90 天（`line_links.remind_days`），到期前 10 天另發一次「最後提醒」（`due_reminders_final`，`reminder_log.kind = '10d'`）。
-- **LINE 官方帳號**：只有傳「綁定」（或說明／HELP）才回罐頭訊息；圖文選單由 `setup-richmenu` 上傳（body 可帶 `{"ref": commit SHA}` 避開快取）。
+- **LINE 官方帳號**：只有傳「綁定」（或說明／HELP）才回罐頭訊息；圖文選單（左：東石保險服務平台、中：產險快速報價、右：東石診股，圖 `tools/line-richmenu.jpg`）由 `setup-richmenu` 上傳（body 可帶 `{"ref": commit SHA}` 避開快取）。
+- **產險快速報價**（`line-webhook` 的 `quote.ts`）：選單按鈕或傳「產險快速報價」開始 → 選業務帳戶（tpbu8544／dkyp2377／minnie0707）→ 車險／旅平險／個人險 → 車險：機車／汽車 → 強制／任意／強制＋任意 → 上傳駕照、行照 → 電話 → 電子郵件（選填）。旅平險、個人險目前只留電話與信箱。傳「取消」可中止，閒置 30 分鐘自動取消。
+  - 進度存 `line_quote_sessions`；送出寫入 `line_quote_requests`（業務員只讀得到自己的）；證件照片存私有空間 `quote-docs`（路徑第一層＝業務員 id）。
+  - 送出後推播通知該帳戶綁定的 LINE（附 7 天有效的照片連結）；該帳戶沒有帳號或沒綁 LINE 時轉給 dkyp2377。
 
 ### Edge Functions
 

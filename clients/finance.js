@@ -100,6 +100,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       .filter((c) => !kw || `${c.name}${c.id}`.toLowerCase().includes(kw))
       .slice(0, 60).map((c) => ({ value: `${c.name}｜${c.id}`, label: c.name || c.id, sub: c.id })) }];
   };
+  PICK_SOURCES['fin-fund'] = (input) => {
+    if (!fundIndex) { loadFundIndex().then(() => input.dispatchEvent(new Event('input'))).catch(() => {}); return [{ label: '讀取東石診股基金清單中…', options: [] }]; }
+    const kw = input.value.split('｜')[0].trim().toLowerCase();
+    if (kw.length < 2) return [{ label: '請輸入至少 2 個字（名稱、ISIN 或代碼）', options: [] }];
+    return [{ label: `東石診股基金清單（淨值更新 ${fundIndex.updated}）`, layout: 'list', options: fundIndex.funds
+      .filter((f) => `${f.name}${f.isin}${f.id}${f.ticker}`.toLowerCase().includes(kw)).slice(0, 40)
+      .map((f) => ({ value: `${f.id}｜${f.name}`, label: f.name, sub: `${f.currency}・${f.date} 淨值 ${f.nav}${f.isin ? '・' + f.isin : ''}` })) }];
+  };
   $('fin-client').addEventListener('change', () => {
     const id = ($('fin-client').value.split('｜')[1] || '').trim();
     if (id) openClient(id);
@@ -156,30 +164,86 @@ async function refreshFx() {
   showFxStatus();
   if (data) recompute();
 }
+// ---------- 行情：接東石診股的資料來源 ----------
+// 基金：東石診股每天收集的投信投顧公會（境內）／集保結算所（境外）淨值 → data/funds/index.json
+// 股票：FinMind（台股 TaiwanStockPrice、美股 USStockPrice 收盤價），沿用東石診股存在本機的 FinMind 金鑰
+// 只送商品代號，不送客戶、數量或金額；失敗時保留原本估值
+const STOCK_SITE = 'https://eastonesd.github.io/eastone.stock/';
+const FINMIND = 'https://api.finmindtrade.com/api/v4/data';
+let fundIndex = null;
+async function loadFundIndex() {
+  if (fundIndex) return fundIndex;
+  const res = await fetch(STOCK_SITE + 'data/funds/index.json', { cache: 'no-cache' });
+  if (!res.ok) throw new Error('東石診股基金資料讀取失敗');
+  const j = await res.json();
+  const cols = j.columns;
+  fundIndex = { updated: j.updated, funds: j.funds.map((r) => Object.fromEntries(cols.map((c, i) => [c, r[i]]))) };
+  return fundIndex;
+}
+async function finmindClose(market, symbol) {
+  const dataset = market === 'US' ? 'USStockPrice' : 'TaiwanStockPrice';
+  const start = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
+  const q = new URLSearchParams({ dataset, data_id: symbol, start_date: start });
+  let token = ''; try { token = localStorage.getItem('eastone.finmindToken') || ''; } catch { /* 無痕模式 */ }
+  if (token) q.set('token', token);
+  const res = await fetch(`${FINMIND}?${q}`);
+  const body = await res.json().catch(() => null);
+  if (!res.ok || !body || (body.status && body.status !== 200)) throw new Error((body && body.msg) || `FinMind ${res.status}`);
+  const rows = (body.data || []).filter((r) => Number(r.close ?? r.Close) > 0);
+  if (!rows.length) throw new Error('查無收盤價（請確認代號）');
+  const last = rows[rows.length - 1];
+  return { price: Number(last.close ?? last.Close), date: last.date, currency: market === 'US' ? 'USD' : 'TWD', source: `FinMind ${market === 'US' ? '美股' : '台股'}收盤價（東石診股）` };
+}
 async function refreshQuotes() {
   if (!data) { toast('請先選擇客戶'); return; }
-  const stocks = data.assets.filter((a) => a.category === 'stock' && a.status !== 'archived' && a.identifier && ['TWSE', 'TPEX', 'US'].includes(a.market));
-  if (!stocks.length) { toast('沒有可自動更新的股票（需填市場與代號）'); return; }
-  setStatus('更新股價中…');
-  try {
-    // 只送市場與代號，不送客戶、股數或金額
-    const out = await callFn('fin-quotes', { items: [...new Map(stocks.map((a) => [a.market + a.identifier, { market: a.market, symbol: a.identifier }])).values()] });
-    let saved = 0; const fails = [];
-    for (const a of stocks) {
-      const q = out.results.find((r) => r.market === a.market && r.symbol === a.identifier.toUpperCase());
-      if (!q || !q.ok) { fails.push(`${a.name || a.identifier}：${q ? q.reason : '無回應'}`); continue; }
-      if (q.currency !== a.currency) { fails.push(`${a.name}：報價幣別 ${q.currency} 與資產幣別不同，未更新`); continue; }
-      if (C.D(a.quantity) === null) { fails.push(`${a.name}：未填股數，無法計算市值`); continue; }
-      const exists = data.assetValues.some((v) => v.asset_id === a.id && v.as_of === q.date && !v.is_manual);
-      if (exists) continue;
-      const value = C.toNum(C.mul(C.D(a.quantity), C.D(q.price)));
-      await save('fin_asset_values', { asset_id: a.id, as_of: q.date, quantity: a.quantity, price: q.price, value, value_basis: 'market', source: `${q.source}（收盤價）`, is_manual: false });
-      saved++;
+  const live = data.assets.filter((a) => a.status !== 'archived' && a.identifier);
+  const stocks = live.filter((a) => a.category === 'stock' && ['TWSE', 'TPEX', 'US'].includes(a.market));
+  const funds = live.filter((a) => a.category === 'fund' && /^[TF]-/.test(a.identifier));
+  if (!stocks.length && !funds.length) { toast('沒有可自動更新的部位（股票需填市場與代號；基金需從東石診股清單選取）'); return; }
+  setStatus('更新行情中…');
+  let saved = 0; const fails = [];
+  const store = async (a, q) => {
+    if (q.currency !== a.currency) { fails.push(`${a.name}：報價幣別 ${q.currency} 與資產幣別 ${a.currency} 不同，未更新`); return; }
+    if (C.D(a.quantity) === null) { fails.push(`${a.name}：未填數量，無法計算市值`); return; }
+    if (data.assetValues.some((v) => v.asset_id === a.id && v.as_of === q.date && !v.is_manual)) return;
+    const value = C.toNum(C.mul(C.D(a.quantity), C.D(q.price)));
+    await save('fin_asset_values', { asset_id: a.id, as_of: q.date, quantity: a.quantity, price: q.price, value, value_basis: 'market', source: q.source, is_manual: false });
+    saved++;
+  };
+  // 基金
+  if (funds.length) {
+    try {
+      const idx = await loadFundIndex();
+      for (const a of funds) {
+        const f = idx.funds.find((x) => x.id === a.identifier);
+        if (!f || !(f.nav > 0)) { fails.push(`${a.name}：東石診股查無這檔基金的淨值`); continue; }
+        await store(a, { price: f.nav, date: f.date, currency: f.currency, source: `${f.kind === '境外' ? '集保結算所' : '投信投顧公會'}最新公告淨值（東石診股）` });
+      }
+    } catch (e) { fails.push('基金：' + e.message); }
+  }
+  // 股票（同一代號只查一次）
+  const cache = new Map();
+  for (const a of stocks) {
+    const mk = a.market === 'US' ? 'US' : 'TW';
+    const key = mk + a.identifier.toUpperCase();
+    try {
+      if (!cache.has(key)) cache.set(key, await finmindClose(mk, a.identifier.toUpperCase()));
+      await store(a, cache.get(key));
+    } catch (e) {
+      // 台股 FinMind 失敗時改用證交所／櫃買中心公開收盤價
+      if (mk === 'TW') {
+        try {
+          const out = await callFn('fin-quotes', { items: [{ market: a.market, symbol: a.identifier }] });
+          const q = out.results[0];
+          if (q && q.ok) { await store(a, { price: q.price, date: q.date, currency: q.currency, source: q.source }); continue; }
+        } catch { /* 兩個來源都失敗 */ }
+      }
+      fails.push(`${a.name || a.identifier}：${e.message}`);
     }
-    await reload();
-    toast(`已更新 ${saved} 筆收盤價` + (fails.length ? `；${fails.length} 筆未更新` : ''));
-    if (fails.length) alert('以下項目沒有自動更新（原本的估值保留不變）：\n\n' + fails.join('\n'));
-  } catch (e) { toast('股價更新失敗，保留原本估值：' + e.message); }
+  }
+  await reload();
+  toast(`已更新 ${saved} 筆行情` + (fails.length ? `；${fails.length} 筆未更新` : ''));
+  if (fails.length) alert('以下項目沒有自動更新（原本的估值保留不變）：\n\n' + fails.join('\n'));
   showFxStatus();
 }
 
@@ -415,7 +479,7 @@ function openModal(title, fields, values, submit, extraHtml = '', onDelete = nul
     let input;
     if (f.type === 'select') input = `<select name="${f.k}"${req}>${f.opts.map(([o, l]) => `<option value="${esc(o)}" ${String(val) === String(o) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
     else if (f.type === 'textarea') input = `<textarea name="${f.k}" rows="2">${esc(val)}</textarea>`;
-    else input = `<input type="${f.type || 'text'}" name="${f.k}" value="${esc(val)}"${req}${f.type === 'number' ? ' step="any" inputmode="decimal"' : ''}${f.ph ? ` placeholder="${esc(f.ph)}"` : ''}${f.list ? ` list="${f.list}"` : ''}>`;
+    else input = `<input type="${f.type || 'text'}" name="${f.k}" value="${esc(val)}"${req}${f.pick ? ` data-pick="${f.pick}" autocomplete="off"` : ''}${f.type === 'number' ? ' step="any" inputmode="decimal"' : ''}${f.ph ? ` placeholder="${esc(f.ph)}"` : ''}${f.list ? ` list="${f.list}"` : ''}>`;
     return `<label class="${f.wide ? 'wide' : ''}"${show}>${f.label}${f.req ? ' *' : ''}${input}${f.hint ? `<small>${f.hint}</small>` : ''}</label>`;
   };
   $('fin-form').innerHTML = `<datalist id="fin-ccy">${CCYS.map((c) => `<option value="${c}">`).join('')}</datalist>
@@ -485,7 +549,8 @@ function assetForm(a) {
     ccyField(),
     { k: 'policy_ref', label: '連結既有保單', type: 'select', opts: policyOptions(), when: 'category=savings_policy|investment_policy' },
     { k: 'market', label: '市場', type: 'select', opts: [['', '—'], ['TWSE', '台股上市'], ['TPEX', '台股上櫃'], ['US', '美股'], ['OTHER', '其他']], when: 'category=stock' },
-    { k: 'identifier', label: '代號／ISIN', ph: '股票代號、基金 ISIN 或供應商代碼', upper: true, when: 'category=stock|fund|mcn|other', hint: '基金請填完整級別的 ISIN，不能只用中文名稱比對' },
+    { k: 'identifier', label: '代號', ph: '股票代號（例 2330、AAPL）', upper: true, when: 'category=stock|mcn|other' },
+    { k: 'fund_pick', label: '基金（從東石診股清單選，含完整級別與幣別）', when: 'category=fund', pick: 'fin-fund', hint: '可輸入名稱、ISIN 或代碼搜尋；選定後會自動填幣別，淨值每天自動更新' },
     { k: 'meta_class', label: '基金級別', ph: '例：A 累積 美元', when: 'category=fund' },
     { k: 'share_pct', label: '持分（%）', type: 'number', def: 100, when: 'category=house', hint: '估值填整體市值時，系統只換算一次持分' },
     { k: 'meta_region', label: '地區描述', when: 'category=house' },
@@ -505,8 +570,20 @@ function assetForm(a) {
     { k: 'parent_id', label: '上層部位（例：投資型保單的底層基金）', type: 'select', opts: [['', '（無）'], ...assetOptions(a && a.id)], nullable: true },
     { k: 'include_in_total', label: '計入資產總額（銀行總覽、帳戶彙總這類只看不加的，請取消勾選）', type: 'check', def: true },
     { k: 'note', label: '備註', type: 'textarea', wide: true },
-  ], a ? { ...a, ...Object.fromEntries(Object.entries(a.meta || {}).map(([k, v]) => ['meta_' + k, v])) } : { include_in_total: true, purpose: 'none', restriction: 'none' }, async (row) => {
+  ], a ? { ...a, fund_pick: a.category === 'fund' && a.identifier ? `${a.identifier}｜${(a.meta || {}).fund_name || a.name}` : '', ...Object.fromEntries(Object.entries(a.meta || {}).map(([k, v]) => ['meta_' + k, v])) } : { include_in_total: true, purpose: 'none', restriction: 'none' }, async (row) => {
     validNumbers(row, ['share_pct', 'quantity', 'cost', 'liquidity_days', 'exit_cost']);
+    if (row.category === 'fund') {
+      const fid = (row.fund_pick || '').split('｜')[0].trim();
+      if (fid) {
+        const idx = await loadFundIndex().catch(() => null);
+        const f = idx && idx.funds.find((x) => x.id === fid);
+        if (!f) throw new Error('請從清單選取基金（找不到這個代碼）');
+        row.identifier = f.id; row.meta_fund_name = f.name; row.meta_isin = f.isin || ''; row.meta_company = f.company || '';
+        if (row.currency !== f.currency && !confirm(`這檔基金的計價幣別是 ${f.currency}，要把資產幣別改成 ${f.currency} 嗎？`)) throw new Error('幣別與基金不一致，未儲存');
+        row.currency = f.currency;
+      } else row.identifier = '';
+    }
+    delete row.fund_pick;
     if (!/^[A-Z]{3}$/.test(row.currency || '')) throw new Error('幣別請填三碼代號，例如 TWD、USD');
     const meta = {};
     Object.keys(row).filter((k) => k.startsWith('meta_')).forEach((k) => { if (row[k]) meta[k.slice(5)] = row[k]; delete row[k]; });
