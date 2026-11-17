@@ -416,3 +416,4 @@ th { color:var(--tc-fg-6b6656); font-weight: 600; background:var(--tc-bg-f6f3ec)
 .dt-none { font-style: normal; color:var(--tc-fg-999999); font-size: .88rem; }
 #dt-group-input { width: 150px; height: 32px; padding: 4px 12px; border-radius:999px; font-size: .88rem; margin: 0; }
 .fl-btn { width: auto !important; flex: none; padding: 6px 14px !important; font-size: .84rem; white-space: nowrap; margin: 0; }
+.tab-link { text-decoration: none; display: inline-block; }

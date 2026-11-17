@@ -178,3 +178,44 @@ refreshMarket();
 refreshNews();
 setInterval(refreshMarket, REFRESH_MS);
 setInterval(refreshNews, REFRESH_MS);
+
+// ===== 手機／平板：下拉頁面自動刷新 =====
+// 在最上方往下拉超過門檻後放開，重新抓指數、匯率與新聞（不重新整理整頁）
+(function pullToRefresh() {
+  const THRESHOLD = 70, MAX = 110;
+  const tip = document.createElement('div');
+  tip.className = 'ptr';
+  tip.innerHTML = '<span class="ptr-icon">↓</span><span class="ptr-text">下拉更新</span>';
+  document.body.appendChild(tip);
+  let startY = null, dist = 0, busy = false;
+  const atTop = () => (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
+  const show = (d) => {
+    tip.style.transform = `translate(-50%, ${Math.min(d, MAX) - 50}px)`;
+    tip.style.opacity = Math.min(1, d / THRESHOLD);
+    tip.classList.toggle('ready', d >= THRESHOLD);
+    tip.querySelector('.ptr-text').textContent = d >= THRESHOLD ? '放開更新' : '下拉更新';
+  };
+  const reset = () => { tip.style.transition = 'transform .2s, opacity .2s'; show(0); setTimeout(() => (tip.style.transition = ''), 220); };
+  window.addEventListener('touchstart', (e) => {
+    if (busy || e.touches.length !== 1 || !atTop()) { startY = null; return; }
+    startY = e.touches[0].clientY; dist = 0;
+  }, { passive: true });
+  window.addEventListener('touchmove', (e) => {
+    if (startY === null) return;
+    dist = (e.touches[0].clientY - startY) * 0.55;
+    if (dist > 0 && atTop()) { if (e.cancelable) e.preventDefault(); show(dist); }
+  }, { passive: false });
+  window.addEventListener('touchend', async () => {
+    if (startY === null) return;
+    startY = null;
+    if (dist < THRESHOLD) { reset(); return; }
+    busy = true;
+    tip.classList.add('loading');
+    tip.querySelector('.ptr-text').textContent = '更新中…';
+    tip.style.transform = `translate(-50%, ${THRESHOLD - 50}px)`;
+    try { await Promise.all([refreshMarket(), refreshNews()]); tip.querySelector('.ptr-text').textContent = '已更新'; }
+    catch { tip.querySelector('.ptr-text').textContent = '更新失敗，稍後再試'; }
+    tip.classList.remove('loading');
+    setTimeout(() => { reset(); busy = false; }, 700);
+  });
+})();

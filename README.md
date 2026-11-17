@@ -14,7 +14,7 @@
 |---|---|---|
 | 理賠 | `index.html` | 各家壽險／產險公司理賠申請書下載（PDF 放 `pdfs/`） |
 | 契變 | `index.html` | 契約變更申請書下載（PDF 放 `pdfs-endorse/`） |
-| 財經日報 | `market/` | 4 大指數＋即時匯率的單頁海報，也是每日推播截圖的來源 |
+| 財經日報 | `market/` | 4 大指數＋即時匯率的單頁海報，也是每日推播截圖的來源；手機／平板在頁面頂端下拉即可更新 |
 | 人壽管理 | `clients/` | 客戶清單、壽險保單、保單資料庫、保單健診 |
 | 產險管理 | `policies/` | 客戶保單管理：汽／機車與個人保險 |
 | （頭像選單）保單知識庫 | `kb/` | 商品給付內容、費率表、宣告利率；只有管理員可編輯 |
@@ -71,6 +71,15 @@
 
 ---
 
+### 資產負債（`finance.html`，人壽管理第四個分頁「💼 資產負債」）
+- 獨立頁面，上方選客戶；分「總覽／資產／負債／收支／資金關聯／報表紀錄」。所有業務員都能用，只看得到自己的客戶。
+- 計算核心 `clients/finance-calc.js`（純函式、定點小數，畫面與報表共用）；測試 `node --test tools/finance-calc.test.js`（企劃驗收案例，虛構資料）。
+- 口徑重點：未知＝null 不是 0；匯率方向 1 外幣＝x 台幣，缺匯率不補 0／1、總額標不完整；估值取基準日（含）以前最新一筆，同日人工覆寫優先，不用未來價格回填；保單「扣貸後淨額」需同日同口徑核對才還原，否則待核對不納入；上層部位已計入時底層只展示；共同擔保的借款在可動用資金只扣一次；借款撥入／還本是融資流量，轉帳／換匯不算收入，分配款來源未知不視為收益。
+- 資料表 `fin_assets`、`fin_asset_values`、`fin_liabilities`、`fin_liability_balances`、`fin_collateral_links`、`fin_funding_links`、`fin_cash_events`、`fin_cash_schedules`、`fin_snapshots`（RLS：owner＝本人；複合外鍵綁 `clients(owner,id)`，客戶轉移帳號時一起跟過去，刪客戶時一起刪；連結不能跨客戶）；`fin_fx_quotes`（自動匯率 owner 為空，大家可讀；手動匯率屬於個人）、`fin_market_quotes`（公開收盤價，不含客戶資料）。
+- 報表 `finance-report.html?snap=`：只讀凍結快照（`fin_snapshots`，建立後不能修改），A4 列印／另存 PDF。
+- 自動資料：Edge Function `fin-fx`（臺灣銀行牌告即期買賣中價，週一到週五 16:35 排程 `fin-fx-daily`，頁面也可手動更新，30 分鐘內不重抓）；`fin-quotes`（台股上市＝證交所 OpenAPI、上櫃＝櫃買中心 OpenAPI 的收盤價；美股尚未選定供應商、基金淨值尚無合法免費來源 → 手動估值）。只送商品代號，不送客戶資料。
+- MCN：通用建檔＋「商品結構待確認」；專屬規則待取得說明書後再做。
+
 ## 三、產險管理（`policies/`）
 - 版型與人壽管理統一：標題「客戶保單管理」，右上分頁「＋ 新增客戶」「📁 保單彙總」「⚙ 保單條款」。
 - **保單彙總**：個人保險與汽／機車保險統一收納，比照人壽「客戶清單」分「全部／同住址／群組」。
@@ -116,6 +125,7 @@
 | `market-data` | 指數與匯率資料 |
 | `kb-extract` | 人壽知識庫：AI 讀取條款／費率表 |
 | `pc-extract` | 產險：AI 讀取條款（無費率） |
+| `fin-fx`、`fin-quotes` | 資產負債：自動匯率、台股收盤價 |
 | `jarvis-line`、`arthur-hub`、`arthur-discord` | A.R.T.H.U.R.（`eastonesd/arthur`）使用 |
 
 ---

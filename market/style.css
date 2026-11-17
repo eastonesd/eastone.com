@@ -295,3 +295,16 @@ body {
   box-shadow: 0 0 0 1.5px rgba(242, 193, 78, .8);
 }
 
+
+/* 下拉刷新提示 */
+html, body { overscroll-behavior-y: contain; }
+.ptr {
+  position: fixed; top: 0; left: 50%; z-index: 9999; transform: translate(-50%, -50px); opacity: 0;
+  display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px;
+  background: rgba(10, 16, 30, .88); border: 1px solid var(--gold); color: var(--white);
+  font-size: 14px; font-weight: 700; pointer-events: none; box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+.ptr-icon { color: var(--gold); display: inline-block; transition: transform .2s; }
+.ptr.ready .ptr-icon { transform: rotate(180deg); }
+.ptr.loading .ptr-icon { animation: ptr-spin .8s linear infinite; }
+@keyframes ptr-spin { to { transform: rotate(360deg); } }

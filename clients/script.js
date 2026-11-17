@@ -34,6 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 從保單頁「← 返回客戶資料」回來時，直接打開客戶清單
   const backTo = decodeURIComponent((location.hash.match(/^#client=([\w-]+)/) || [])[1] || "");
   if (location.hash === "#filelist" || backTo) document.querySelector('.tab-btn[data-tab="filelist"]').click();
+  if (location.hash === "#codes") document.querySelector('.tab-btn[data-tab="codes"]').click();
   await refreshFileList();
   if (backTo) {
     history.replaceState(null, "", location.pathname + location.search + "#filelist");
@@ -72,9 +73,9 @@ function showToast(msg) {
 
 // ========================= Tabs =========================
 function bindTabs() {
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
+  document.querySelectorAll(".tab-btn[data-tab]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      document.querySelectorAll(".tab-btn[data-tab]").forEach((b) => b.classList.remove("active"));
       document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
@@ -737,7 +738,7 @@ async function refreshFileList() {
     });
     tr.querySelector(".delete-client-btn").addEventListener("click", async (e) => {
       e.stopPropagation();
-      if (!confirm(`確定要刪除客戶「${c.id} ${c.name}」嗎？此動作無法復原。`)) return;
+      if (!confirm(`確定要刪除客戶「${c.id} ${c.name}」嗎？這位客戶的資產負債資料與報表快照也會一起刪除，此動作無法復原。`)) return;
       await clientDelete(c.id);
       showToast("已刪除");
       refreshFileList();
