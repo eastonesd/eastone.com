@@ -1,28 +1,131 @@
-.tax-switch { display: flex; gap: 8px; margin: 16px 0; }
-.tax-switch [aria-pressed="true"] { border-color: var(--tc-bd-b8892b); color: var(--tc-fg-b8892b); }
-.tax-card { padding: clamp(14px, 4vw, 24px); margin-bottom: 16px; }
-.tax-card h2 { margin: 0 0 8px; font-size: 1.2rem; }
-.tax-intro, .tax-card p, .tax-sources { font-size: .9rem; }
-.tax-card p { margin: 8px 0 16px; }
-.tax-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; margin: 14px 0; }
-.tax-fields label { display: grid; gap: 6px; align-content: start; font-size: .9rem; }
-.tax-fields input:not([type="checkbox"]), .tax-fields select {
-  width: 100%; min-width: 0; box-sizing: border-box; font: inherit;
-  padding: 8px; border: 1px solid var(--tc-bd-121d33); border-radius: 6px;
-  color: var(--tc-fg-121d33); background: var(--tc-bg-ffffff, var(--tc-bg-fff, transparent));
+/* 稅務規劃（顏色用 theme-tokens 變數，深淺色都適用） */
+.tax-main { max-width: 900px; margin: 0 auto; padding: 0 20px 60px; }
+.tax-switch { display: inline-flex; border: 1px solid var(--tc-bd-1b2a4a); border-radius: 999px; overflow: hidden; margin: 4px 0 16px; }
+.tax-mode { appearance: none; border: 0; background: var(--tc-bg-ffffff); color: var(--tc-fg-1b2a4a); font: inherit; font-weight: 700; padding: 10px 26px; cursor: pointer; }
+.tax-mode + .tax-mode { border-left: 1px solid var(--tc-bd-1b2a4a); }
+.tax-mode.active { background: var(--tc-bg-1b2a4a); color: #F3DFA8; }
+.tax-card { padding: clamp(16px, 4vw, 26px); margin-bottom: 16px; }
+.tax-card h2 { margin: 0 0 12px; font-size: 1.08rem; color: var(--tc-fg-121d33); }
+.tax-card h2:not(:first-child) { margin-top: 22px; }
+.tax-h-sub { font-size: .78rem; font-weight: 500; color: var(--tc-fg-6b6656); margin-left: 8px; }
+.tax-card h3 { margin: 18px 0 8px; font-size: .9rem; color: var(--tc-fg-b8892b); letter-spacing: .06em; }
+.tax-card h3 small { display: block; font-size: .74rem; font-weight: 500; color: var(--tc-fg-6b6656); letter-spacing: 0; margin-top: 2px; }
+.tax-big { display: grid; gap: 6px; font-weight: 700; font-size: .9rem; color: var(--tc-fg-1b2a4a); }
+.tax-big input { height: 52px; font-size: 1.3rem; font-weight: 700; }
+.tax-big.small { margin-top: 18px; font-size: .84rem; }
+.tax-big.small input { height: 44px; font-size: 1rem; font-weight: 500; }
+.tax-note { font-size: .82rem; color: var(--tc-fg-6b6656); line-height: 1.7; margin: 8px 0; }
+.tax-empty { font-size: .84rem; color: var(--tc-fg-6b6656); margin: 4px 0; }
+.tax-err { color: var(--tc-fg-a2402d); font-weight: 700; }
+
+/* 可勾選的卡片 */
+.tax-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.tax-chip {
+  appearance: none; cursor: pointer; font: inherit; text-align: left; display: grid; gap: 3px;
+  padding: 12px 14px; border-radius: 10px; border: 1px solid var(--tc-bd-d8d0bc); background: var(--tc-bg-ffffff); color: var(--tc-fg-1b2a4a);
+  position: relative; transition: background .12s, border-color .12s;
 }
-.tax-fields .tax-checkbox { display: flex; align-items: center; align-self: center; }
-.tax-gift-row { min-width: 0; border: 1px solid var(--tc-bd-b8892b); border-radius: 8px; margin: 0 0 12px; }
-.tax-sources { display: flex; flex-wrap: wrap; gap: 8px 16px; }
-.tax-sources a { color: inherit; }
+.tax-chip b { font-size: .95rem; }
+.tax-chip span { font-size: .82rem; color: var(--tc-fg-6b6656); }
+.tax-chip::after { content: ""; position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--tc-bd-d8d0bc); }
+.tax-chip:hover { border-color: var(--tc-bd-b8892b); }
+.tax-chip.on { background: var(--tc-bg-1b2a4a); border-color: var(--tc-bd-1b2a4a); }
+.tax-chip.on b { color: #F3DFA8; }
+.tax-chip.on span { color: #C9D2E6; }
+.tax-chip.on::after { border-color: #E4C77E; background: #E4C77E; box-shadow: inset 0 0 0 3px var(--tc-bg-1b2a4a); }
+.tax-chip.sm { padding: 10px 14px; text-align: center; }
+.tax-chip.sm::after { display: none; }
+.tax-check { display: flex; align-items: center; gap: 8px; font-size: .86rem; font-weight: 600; margin: 10px 0 0; cursor: pointer; }
+.tax-check[hidden] { display: none; }
+.tax-check input { width: 18px; height: 18px; margin: 0; }
+
+/* 人員清單 */
+.tax-group { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--tc-bd-d8d0bc); }
+.tax-group-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.tax-group-head h3 { margin: 0 0 8px; }
+.tax-group-head .btn-secondary { width: auto; padding: 7px 14px; font-size: .84rem; flex-shrink: 0; }
+.tax-people { display: grid; gap: 8px; }
+.tax-person { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; padding: 10px 12px; border: 1px solid var(--tc-bd-d8d0bc); border-radius: 10px; background: var(--tc-bg-ffffff); }
+.tax-person label:not(.tax-check) { display: flex; align-items: center; gap: 6px; font-size: .84rem; font-weight: 600; margin: 0; }
+.tax-person input[type=number] { width: 140px; height: 36px; font-size: .9rem; }
+.tax-person .tax-check { margin: 0; }
+.tp-no { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: .78rem; font-weight: 700; background: var(--tc-bg-ede8dc); color: var(--tc-fg-1b2a4a); }
+.tp-amt { margin-left: auto; font-weight: 700; color: var(--tc-fg-b8892b); font-variant-numeric: tabular-nums; }
+.tp-del { appearance: none; border: 0; background: none; cursor: pointer; color: var(--tc-fg-a2402d); font-size: .9rem; padding: 4px 6px; }
+
+/* 結果 */
+.tax-result h2 { font-size: 1.15rem; }
+.tax-eq { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; }
+.tax-eq > div { flex: 1 1 150px; border: 1px solid var(--tc-bd-d8d0bc); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; background: var(--tc-bg-ffffff); }
+.tax-eq > div span { font-size: .76rem; color: var(--tc-fg-6b6656); font-weight: 700; }
+.tax-eq > div b { font-size: 1.15rem; color: var(--tc-fg-121d33); font-variant-numeric: tabular-nums; }
+.tax-eq > div.em { background: var(--tc-bg-1b2a4a); border-color: var(--tc-bd-1b2a4a); }
+.tax-eq > div.em span { color: #C9D2E6; }
+.tax-eq > div.em b { color: #F3DFA8; }
+.tax-eq em { align-self: center; font-style: normal; font-size: 1.2rem; color: var(--tc-fg-6b6656); }
+
+/* 級距進度條 */
+.tb { position: relative; padding: 46px 0 30px; }
+.tb-track { display: flex; height: 26px; border-radius: 13px; overflow: hidden; border: 1px solid var(--tc-bd-d8d0bc); }
+.tb-seg { position: relative; height: 100%; border-right: 2px solid var(--tc-bg-ffffff); }
+.tb-seg:last-child { border-right: 0; }
+.tb-seg.r0 { background: rgba(46, 125, 73, .14); } .tb-seg.r0 .tb-fill { background: #3E9A5C; }
+.tb-seg.r10 { background: rgba(184, 137, 43, .16); } .tb-seg.r10 .tb-fill { background: #D2A64A; }
+.tb-seg.r15 { background: rgba(214, 120, 40, .16); } .tb-seg.r15 .tb-fill { background: #D9822B; }
+.tb-seg.r20 { background: rgba(162, 64, 45, .16); } .tb-seg.r20 .tb-fill { background: #B5452F; }
+.tb-fill { height: 100%; transition: width .3s ease; }
+.tb-rate { position: absolute; inset: 0; display: grid; place-items: center; font-size: .78rem; font-weight: 800; color: var(--tc-fg-121d33); text-shadow: 0 0 3px rgba(255,255,255,.7); }
+.tb-marker { position: absolute; top: 0; transform: translateX(-50%); display: grid; justify-items: center; transition: left .3s ease; z-index: 1; }
+.tb-marker b { white-space: nowrap; font-size: .8rem; background: var(--tc-bg-1b2a4a); color: #F3DFA8; padding: 3px 10px; border-radius: 999px; }
+.tb-marker i { width: 2px; height: 40px; background: var(--tc-bg-1b2a4a); }
+.tb-ticks { position: relative; height: 20px; }
+.tb-tick { position: absolute; top: 6px; transform: translateX(-50%); font-size: .72rem; color: var(--tc-fg-6b6656); white-space: nowrap; }
+
+.tax-table { width: 100%; border-collapse: collapse; font-size: .88rem; margin-top: 6px; }
+.tax-table th { text-align: left; color: var(--tc-fg-6b6656); font-weight: 600; padding: 7px 8px; border-bottom: 1px solid var(--tc-bd-d8d0bc); }
+.tax-table td { padding: 8px; border-bottom: 1px solid var(--tc-bd-ede8dc); }
+.tax-table td small { display: block; font-size: .72rem; color: var(--tc-fg-6b6656); }
+.tax-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tax-table tr.dim td { color: var(--tc-fg-6b6656); opacity: .6; }
+.tax-table tr.total td { font-weight: 800; font-size: 1rem; color: var(--tc-fg-121d33); border-top: 2px solid var(--tc-bd-b8892b); border-bottom: 0; }
+.tax-detail { margin-top: 12px; font-size: .86rem; }
+.tax-detail summary { cursor: pointer; color: var(--tc-fg-1b2a4a); font-weight: 700; }
+.tax-actions { margin-top: 16px; display: flex; justify-content: flex-end; }
+.tax-actions .btn-secondary { width: auto; padding: 9px 18px; }
+
+/* 贈與記帳 */
+.gift-entry { display: grid; grid-template-columns: 1fr 2fr 1fr auto; gap: 10px; align-items: end; }
+.gift-entry label { display: grid; gap: 6px; font-size: .82rem; font-weight: 700; margin: 0; }
+.gift-entry input { height: 44px; }
+.gift-entry input.bad { border-color: var(--tc-bd-a2402d); }
+.gift-entry .btn-primary { width: auto; height: 44px; padding: 0 20px; }
+.gift-forms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.gift-forms .tax-chip b { font-size: .84rem; }
+.gift-table { margin-top: 14px; }
+.tax-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px; }
+.tax-split p { display: flex; justify-content: space-between; margin: 4px 0; font-size: .86rem; border-bottom: 1px dashed var(--tc-bd-ede8dc); padding-bottom: 4px; }
+.tax-foot { font-size: .78rem; color: var(--tc-fg-6b6656); line-height: 1.7; }
 .tax-loading { margin: 20px; text-align: center; }
-.tax-numbers { margin: 0 0 12px; }
-.tax-numbers div { display: flex; justify-content: space-between; gap: 16px; padding: 5px 0; border-bottom: 1px solid var(--tc-bd-b8892b); break-inside: avoid; }
-.tax-numbers dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 720px) {
+  .gift-entry { grid-template-columns: 1fr; }
+  .gift-forms { grid-template-columns: 1fr 1fr; }
+  .tax-split { grid-template-columns: 1fr; }
+  .tax-person input[type=number] { width: 110px; }
+  .tp-amt { margin-left: 0; }
+}
 @media print {
-  body { background: white !important; color: black !important; }
-  .ghdr-wrap, .topbar, .tax-switch, .tax-intro, .tax-sources, .tax-card form,
-  form.tax-card, #tax-print, #tax-load { display: none !important; }
-  #tax-result { border: none; box-shadow: none; color: black; background: white; }
-  main { max-width: none; padding: 0; }
+  body { background: #fff !important; }
+  .ghdr-wrap, .topbar, .tax-switch, .tax-actions, .tax-add, .tp-del, .gift-entry, #tax-load { display: none !important; }
+  .tax-main { max-width: none; padding: 0; }
+  .tax-card { box-shadow: none; break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+.tb-marker { max-width: none; }
+.tb-marker[style*="left:0%"] b, .tb-marker[style*="left:0."] b { transform: translateX(40%); }
+@media (max-width: 720px) {
+  .tax-eq { flex-direction: column; }
+  .tax-eq > div { flex: none; }
+  .tax-eq em { align-self: center; line-height: 1; }
+  .tb-tick { font-size: .66rem; }
 }

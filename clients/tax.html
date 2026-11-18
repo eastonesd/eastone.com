@@ -11,8 +11,8 @@
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=2">
 <link rel="stylesheet" href="../shared/site-header.css?v=20261118-1">
 <link rel="stylesheet" href="../shared/auth.css?v=20261118-1">
-<link rel="stylesheet" href="style.css?v=20261118-3">
-<link rel="stylesheet" href="tax.css?v=20261118-3">
+<link rel="stylesheet" href="style.css?v=20261118-4">
+<link rel="stylesheet" href="tax.css?v=20261118-4">
 </head>
 <body>
 
@@ -41,99 +41,88 @@
       <a class="tab-btn tab-link" href="index.html#filelist">📁 客戶清單</a>
       <a class="tab-btn tab-link" href="index.html#codes">⚙ 保單資料庫</a>
       <a class="tab-btn tab-link" href="finance.html">💼 資產負債</a>
-      <a class="tab-btn tab-link active" aria-current="page" href="tax.html">稅務規劃</a>
+      <a class="tab-btn tab-link active" aria-current="page" href="tax.html">🧾 稅務規劃</a>
     </nav>
   </div>
 </header>
 
-<main id="tax-main" hidden>
-  <p class="tax-intro">臺灣稅額試算 · 新台幣 · 民國 115 年（2026）</p>
-  <p class="tax-intro">本頁計算留在當前頁面。列印可另存 PDF，重新整理會清空輸入。</p>
-  <div class="tax-switch" aria-label="稅別">
-    <button type="button" class="btn-secondary" data-mode="gift" aria-pressed="true">贈與稅</button>
-    <button type="button" class="btn-secondary" data-mode="estate" aria-pressed="false">遺產稅</button>
+<main class="tax-main" id="tax-main" hidden>
+  <div class="tax-switch" role="tablist">
+    <button type="button" class="tax-mode active" data-mode="estate">遺產稅</button>
+    <button type="button" class="tax-mode" data-mode="gift">贈與稅</button>
   </div>
 
-  <form id="tax-gift" class="card tax-card" autocomplete="off">
-    <h2>贈與稅</h2>
-    <p>一份試算填同一位贈與人的全年紀錄。本次試算以最後一列的日期為準。</p>
-    <div id="tax-gifts"></div>
-    <button id="tax-add" type="button" class="btn-secondary">＋ 新增同年贈與</button>
-    <div class="tax-fields">
-      <label>今年可扣除額（元）
-        <input name="deductions" type="number" min="0" step="1" value="0" required>
+  <!-- ===== 遺產稅 ===== -->
+  <section id="mode-estate">
+    <div class="card tax-card">
+      <label class="tax-big">遺產總額（萬元）
+        <input type="number" id="es-gross" min="0" step="any" inputmode="decimal" placeholder="例：8000">
       </label>
-      <label>今年前次應納稅額及其他可扣抵額（元）
-        <input name="credits" type="number" min="0" step="1" placeholder="確認無扣抵額時填 0">
-      </label>
+      <p class="tax-note">房屋、土地以公告現值／評定標準價格，其他財產以死亡時時價計算。</p>
     </div>
-    <p>扣除額請填已確認可扣除的金額。扣抵額留空時，只顯示全年扣抵前稅額。</p>
-    <button type="submit" class="btn-primary">計算贈與稅</button>
-  </form>
 
-  <form id="tax-estate" class="card tax-card" autocomplete="off" hidden>
-    <h2>遺產稅</h2>
-    <p>填入同一位被繼承人的資料。房屋、土地與金融資產請使用適用的課稅價值。</p>
-    <div class="tax-fields">
-      <label>死亡日／假設基準日<input name="date" type="date" min="2026-01-01" max="2026-12-31" required></label>
-      <label>應計入的現存遺產（元）
-        <input name="gross" type="number" min="0" step="1" required>
-      </label>
-      <label>死亡前兩年贈與中已確認應併入的部分（元）
-        <input name="includedGifts" type="number" min="0" step="1" placeholder="未確認請留空">
-      </label>
-      <label class="tax-checkbox"><input name="spouse" type="checkbox"> 適用配偶扣除額</label>
-      <label>符合資格的成年直系血親卑親屬（人）
-        <input name="children" type="number" min="0" step="1" value="0" required>
-      </label>
-      <label>符合資格的父母（人）
-        <input name="parents" type="number" min="0" max="2" step="1" value="0" required>
-      </label>
-      <label>確認可扣除的未償債務（元）
-        <input name="debts" type="number" min="0" step="1" value="0" required>
-      </label>
-      <label>其他已覆核扣除額（元）
-        <input name="otherDeductions" type="number" min="0" step="1" value="0" required>
-      </label>
-      <label>可扣抵稅額及利息（元）
-        <input name="credits" type="number" min="0" step="1" placeholder="確認無扣抵額時填 0">
-      </label>
-    </div>
-    <p>系統已計入喪葬費扣除額。未成年、身心障礙及配偶剩餘財產差額等扣除額，覆核後再填入「其他」。
-      保單、海外資產及前兩年贈與的歸類，請先依個案資料確認。</p>
-    <button type="submit" class="btn-primary">計算遺產稅</button>
-  </form>
-
-  <div id="tax-result" class="card tax-card" aria-live="polite" hidden></div>
-  <footer class="tax-sources">
-    <a href="https://www.dot.gov.tw/singlehtml/ch26?cntId=266ef2de8dd54f9494bd5c399b3f323a" target="_blank" rel="noopener noreferrer">財政部 115 年免稅額、扣除額及稅率</a>
-    <a href="https://www.ntbna.gov.tw/singlehtml/664242cd2db34e84b427058a423d80ca?cntId=ca21587d75f94220bab6a5f3fc6bd3df" target="_blank" rel="noopener noreferrer">115 年遺贈稅修法與新舊制</a>
-  </footer>
-
-  <template id="tax-gift-template">
-    <fieldset class="tax-gift-row">
-      <legend>贈與紀錄</legend>
-      <div class="tax-fields">
-        <label>贈與日期<input name="date" type="date" min="2026-01-01" max="2026-12-31" required></label>
-        <label>受贈人代稱（選填）<input name="recipient" type="text" maxlength="40"></label>
-        <label>課稅估值（元）<input name="value" type="number" min="1" step="1" required></label>
-        <label>列計方式
-          <select name="treatment">
-            <option value="taxable">計入贈與總額</option>
-            <option value="excluded">已確認依法不計入</option>
-            <option value="pending">待覆核</option>
-          </select>
-        </label>
+    <div class="card tax-card">
+      <h2>免稅額與不計入遺產總額</h2>
+      <div class="tax-chips">
+        <button type="button" class="tax-chip on" data-k="exemption"><b>免稅額</b><span>1,333 萬</span></button>
+        <button type="button" class="tax-chip" data-k="necessities"><b>日常生活必需器具</b><span>100 萬</span></button>
+        <button type="button" class="tax-chip" data-k="tools"><b>職業上之工具</b><span>56 萬</span></button>
       </div>
-      <button type="button" class="btn-secondary tax-remove">移除本列</button>
-    </fieldset>
-  </template>
+
+      <h2>扣除額</h2>
+      <div class="tax-chips">
+        <button type="button" class="tax-chip" data-k="spouse"><b>配偶</b><span>553 萬</span></button>
+        <button type="button" class="tax-chip" data-k="funeral"><b>喪葬費</b><span>138 萬</span></button>
+      </div>
+      <label class="tax-check" id="es-spouse-dis" hidden><input type="checkbox"> 配偶為重度以上身心障礙（加扣 693 萬）</label>
+
+      <div class="tax-group">
+        <div class="tax-group-head"><h3>直系血親卑親屬<small>每人 56 萬；未滿 18 歲每差 1 歲加 56 萬</small></h3><button type="button" class="btn-secondary tax-add" data-list="descendants">＋ 新增</button></div>
+        <div class="tax-people" id="list-descendants"></div>
+      </div>
+      <div class="tax-group">
+        <div class="tax-group-head"><h3>父母<small>每人 138 萬，最多 2 人</small></h3><button type="button" class="btn-secondary tax-add" data-list="parents">＋ 新增</button></div>
+        <div class="tax-people" id="list-parents"></div>
+      </div>
+      <div class="tax-group">
+        <div class="tax-group-head"><h3>受扶養的兄弟姊妹、祖父母<small>每人 56 萬；未滿 18 歲每差 1 歲加 56 萬</small></h3><button type="button" class="btn-secondary tax-add" data-list="dependents">＋ 新增</button></div>
+        <div class="tax-people" id="list-dependents"></div>
+      </div>
+      <label class="tax-big small">其他扣除額（萬元，例：未償債務、應納未納稅捐）
+        <input type="number" id="es-debts" min="0" step="any" inputmode="decimal" placeholder="沒有可留空">
+      </label>
+    </div>
+
+    <div class="card tax-card tax-result" id="es-result"></div>
+  </section>
+
+  <!-- ===== 贈與稅 ===== -->
+  <section id="mode-gift" hidden>
+    <div class="card tax-card">
+      <h2>記一筆贈與<small class="tax-h-sub">同一位贈與人、同一年度合併計算</small></h2>
+      <div class="gift-entry">
+        <label>受贈人<input type="text" id="gf-recipient" maxlength="30" placeholder="例：長子"></label>
+        <div class="gift-forms" role="radiogroup">
+          <button type="button" class="tax-chip sm on" data-form="cash"><b>現金贈與</b></button>
+          <button type="button" class="tax-chip sm" data-form="policy"><b>保單贈與</b></button>
+          <button type="button" class="tax-chip sm" data-form="securities"><b>股票／基金贈與</b></button>
+          <button type="button" class="tax-chip sm" data-form="property"><b>實物贈與</b></button>
+        </div>
+        <label>贈與金額（萬元）<input type="number" id="gf-amount" min="0" step="any" inputmode="decimal" placeholder="例：244"></label>
+        <button type="button" class="btn-primary" id="gf-add">記一筆</button>
+      </div>
+      <div id="gf-list"></div>
+    </div>
+    <div class="card tax-card tax-result" id="gf-result"></div>
+  </section>
+
+  <p class="tax-foot">依民國 115 年財政部公告金額試算（115 年免稅額、扣除額、級距未調整）。實際應納稅額以稽徵機關核定為準。本頁不存檔，重新整理會清空，需要保留請列印／另存 PDF。</p>
 </main>
 <p id="tax-load" class="tax-loading" role="status">正在確認登入狀態…</p>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script src="../shared/supabase-client.js?v=20261118-1"></script>
 <script src="../shared/auth.js?v=20261118-1"></script>
-<script src="tax-calc.js?v=20261118-3"></script>
-<script src="tax.js?v=20261118-3"></script>
+<script src="tax-calc.js?v=20261118-4"></script>
+<script src="tax.js?v=20261118-4"></script>
 </body>
 </html>

@@ -1,47 +1,57 @@
+// 稅務規劃試算測試（虛構資料）：node --test tools/tax-calc.test.js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { gift, estate } = require('../clients/tax-calc.js');
+const T = require('../clients/tax-calc.js');
+const W = 10000;
+const base = { exemption: true, necessities: false, tools: false, funeral: false, spouse: { on: false }, descendants: [], parents: [], dependents: [], debts: 0 };
 
-const event = (value, date = '2026-11-18', treatment = 'taxable') => ({ value, date, treatment });
-const gifts = (events, credits = 0) => gift({ events, deductions: 0, credits });
-const estateInput = {
-  date: '2026-11-18', gross: 30000000, includedGifts: 0, spouse: true,
-  children: 2, parents: 0, debts: 3000000, otherDeductions: 0, credits: 0,
-};
-
-test('贈與按同一人累計，前次應納稅額及不計入項目各自處理', () => {
-  const r = gifts([event(2000000, '2026-01-01'), event(1000000), event(7000000, '2026-11-18', 'excluded')], 40000);
-  assert.equal(r.gross, 3000000);
-  assert.equal(r.excluded, 7000000);
-  assert.equal(r.net, 560000);
-  assert.equal(r.taxCents, 5600000);
-  assert.equal(r.dueCents, 1600000);
-  assert.equal(r.firstOver, '2026-11-18');
+test('遺產：只勾免稅額，淨額＝總額−1333萬，10% 級距', () => {
+  const r = T.estate({ ...base, gross: 3333 * W });
+  assert.equal(r.net, 2000 * W);
+  assert.equal(r.tax, 200 * W);
 });
 
-test('贈與在級距邊界只對超過部分加稅', () => {
-  for (const [value, cents] of [[30550000, 281100000], [30550001, 281100015], [58650000, 702600000], [58650001, 702600020]]) {
-    assert.equal(gifts([event(value)]).taxCents, cents);
-  }
+test('遺產：配偶、成年子女、父母、喪葬費、不計入項目', () => {
+  const r = T.estate({ ...base, gross: 5000 * W, necessities: true, tools: true, funeral: true, spouse: { on: true },
+    descendants: [{ age: '' }, { age: 30 }], parents: [{}] });
+  // 1333 + 100 + 56 + 553 + 56×2 + 138 + 138 = 2430
+  assert.equal(r.totalOff, 2430 * W);
+  assert.equal(r.net, 2570 * W);
 });
 
-test('未知扣抵、待覆核贈與與未確認擬制遺產均只顯示小計', () => {
-  assert.equal(gifts([event(3000000)], null).dueCents, null);
-  const partial = gifts([event(3000000), event(1000000, '2026-11-18', 'pending')]);
-  assert.equal(partial.taxCents, 5600000);
-  assert.equal(partial.dueCents, null);
-  assert.equal(estate({ ...estateInput, includedGifts: null }).dueCents, null);
+test('遺產：未滿 18 歲每差 1 歲加 56 萬、重度身障加 693 萬', () => {
+  const r = T.estate({ ...base, exemption: false, gross: 10000 * W, descendants: [{ age: 5, disabled: true }], spouse: { on: true, disabled: true } });
+  // 子女 5 歲：56 ×(1+13) = 784；身障 693；配偶 553＋693
+  assert.equal(r.totalOff, (784 + 693 + 553 + 693) * W);
 });
 
-test('遺產扣除額、級距及擬制遺產生效日', () => {
-  assert.equal(estate(estateInput).dueCents, 56400000);
-  assert.equal(estate({ ...estateInput, date: '2026-09-12' }).newDeemedEstateRules, false);
-  assert.equal(estate({ ...estateInput, date: '2026-09-13' }).newDeemedEstateRules, true);
-  assert.equal(estate({ ...estateInput, gross: 136780001 }).taxCents, 1405250020);
+test('遺產：受扶養兄弟姊妹未滿 18 歲加扣；父母最多 2 人', () => {
+  const r = T.estate({ ...base, exemption: false, gross: 1000 * W, dependents: [{ age: 16 }, { age: 70 }] });
+  assert.equal(r.totalOff, (56 * 3 + 56) * W);
+  assert.throws(() => T.estate({ ...base, gross: 1, parents: [{}, {}, {}] }), /最多 2 人/);
 });
 
-test('無效日期、年度及贈與順序不可混入試算', () => {
-  assert.throws(() => gifts([event(1, '2026-02-30')]), /日期/);
-  assert.throws(() => gifts([event(1, '2025-12-31')]), /日期/);
-  assert.throws(() => gifts([event(1), event(1, '2026-10-01')]), /由早到晚/);
+test('遺產：級距邊界 5621 萬、1 億 1242 萬', () => {
+  const at = (net) => T.estate({ ...base, exemption: false, gross: net }).tax;
+  assert.equal(at(5621 * W), 562.1 * W);
+  assert.equal(at(11242 * W), 562.1 * W + 843.15 * W);
+  assert.equal(at(12242 * W), 562.1 * W + 843.15 * W + 200 * W);
+});
+
+test('贈與：244 萬以內免稅，超過部分依淨額 2811／5621 萬分段', () => {
+  assert.equal(T.gift([{ form: 'cash', amount: 244 * W }]).tax, 0);
+  const r = T.gift([{ recipient: '長子', form: 'cash', amount: 200 * W }, { recipient: '長子', form: 'policy', amount: 300 * W }]);
+  assert.equal(r.total, 500 * W);
+  assert.equal(r.net, 256 * W);
+  assert.equal(r.tax, 25.6 * W);
+  assert.equal(r.byRecipient['長子'], 500 * W);
+  // 總額 3055 萬＝淨額 2811 萬：全部 10%
+  assert.equal(T.gift([{ form: 'securities', amount: 3055 * W }]).tax, 281.1 * W);
+  // 總額 6865 萬：淨額 6621 萬
+  assert.equal(T.gift([{ form: 'property', amount: 6865 * W }]).tax, 281.1 * W + 421.5 * W + 200 * W);
+});
+
+test('贈與：形式必選、金額大於 0', () => {
+  assert.throws(() => T.gift([{ form: 'x', amount: 1 }]), /贈與形式/);
+  assert.throws(() => T.gift([{ form: 'cash', amount: 0 }]), /大於 0/);
 });
