@@ -23,8 +23,7 @@
     }),
     gift: Object.freeze({
       exemption: 244 * W,             // 每位贈與人每年免稅額
-      // 依葉里克先生指定的算法：以「年度贈與總額」分段——244 萬內 0%、244～2,811 萬 10%、2,811～5,621 萬 15%、超過 5,621 萬 20%
-      brackets: Object.freeze([[244 * W, 0], [2811 * W, 10], [5621 * W, 15], [Infinity, 20]]),
+      brackets: Object.freeze([[2811 * W, 10], [5621 * W, 15], [Infinity, 20]]), // 以「贈與淨額」（扣除免稅額後）計
     }),
   });
 
@@ -106,7 +105,7 @@
     });
     const total = list.reduce((s, g) => s + g.amount, 0);
     const net = Math.max(0, total - R.exemption);
-    const { bands, tax } = progressive(total, R.brackets);
+    const { bands, tax } = progressive(net, R.brackets);
     const byRecipient = {};
     list.forEach((g) => { const k = g.recipient || '（未填受贈人）'; byRecipient[k] = (byRecipient[k] || 0) + g.amount; });
     const byForm = {};

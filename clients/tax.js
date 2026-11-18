@@ -113,19 +113,21 @@
     $('gf-list').querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => { gifts.splice(+b.dataset.del, 1); renderGifts(); }));
     const r = T.gift(gifts);
     const ex = r.exemption;
-    const segs = T.RULES.gift.brackets.map(([to, rate]) => ({ to, rate }));
+    // 進度條放「年度贈與總額」：前 244 萬免稅，之後依贈與淨額 2,811 萬、5,621 萬分段
+    const segs = [{ to: ex, rate: 0 }, ...T.RULES.gift.brackets.map(([to, rate]) => ({ to: to === Infinity ? Infinity : to + ex, rate }))];
     $('gf-result').innerHTML = `
       <h2>贈與稅試算</h2>
       <div class="tax-eq">
         <div><span>年度贈與總額</span><b>${wan(r.total)}</b></div><em>−</em>
         <div><span>免稅額</span><b>${wan(ex)}</b></div><em>＝</em>
-        <div class="em"><span>超過免稅額部分</span><b>${wan(r.net)}</b></div>
+        <div class="em"><span>贈與淨額</span><b>${wan(r.net)}</b></div>
       </div>
       <p class="tax-note">${r.remaining > 0 ? `今年還可以免稅再送 <b>${wan(r.remaining)}</b>。` : '今年的 244 萬免稅額已用完，超過部分要課贈與稅。'}</p>
-      <h3>課稅級距</h3>
+      <h3>課稅級距（以年度贈與總額顯示）</h3>
       ${bar(segs, r.total, wan(r.total))}
       <table class="tax-table"><tbody>
-        ${r.bands.map((b) => `<tr class="${b.base ? '' : 'dim'}"><td>${b.to === Infinity ? `${wan(b.from)} 以上` : `${b.from ? wan(b.from) + '～' : ''}${wan(b.to)}${b.from ? '' : ' 以內'}`}</td><td>${b.rate}%</td><td class="num">${wan(b.base)}</td><td class="num">${ntd(b.tax)}</td></tr>`).join('')}
+        <tr class="${r.total ? '' : 'dim'}"><td>${wan(ex)} 以下</td><td>0%</td><td class="num">${wan(Math.min(r.total, ex))}</td><td class="num">${ntd(0)}</td></tr>
+        ${r.bands.map((b) => `<tr class="${b.base ? '' : 'dim'}"><td>${b.to === Infinity ? `${wan(b.from + ex)} 以上` : `${wan(b.from + ex)}～${wan(b.to + ex)}`}<small>（淨額 ${b.to === Infinity ? wan(b.from) + ' 以上' : wan(b.to) + (b.from ? '' : ' 以下')}）</small></td><td>${b.rate}%</td><td class="num">${wan(b.base)}</td><td class="num">${ntd(b.tax)}</td></tr>`).join('')}
         <tr class="total"><td colspan="3">應納贈與稅（估）</td><td class="num">${ntd(r.tax)}</td></tr>
       </tbody></table>
       ${gifts.length ? `<div class="tax-split">
