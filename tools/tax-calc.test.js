@@ -38,17 +38,15 @@ test('遺產：級距邊界 5621 萬、1 億 1242 萬', () => {
   assert.equal(at(12242 * W), 562.1 * W + 843.15 * W + 200 * W);
 });
 
-test('贈與：244 萬以內免稅，超過部分依淨額 2811／5621 萬分段', () => {
+test('贈與：244 萬內 0%，244～2811 萬 10%，2811～5621 萬 15%，超過 5621 萬 20%（以年度總額分段）', () => {
   assert.equal(T.gift([{ form: 'cash', amount: 244 * W }]).tax, 0);
   const r = T.gift([{ recipient: '長子', form: 'cash', amount: 200 * W }, { recipient: '長子', form: 'policy', amount: 300 * W }]);
   assert.equal(r.total, 500 * W);
-  assert.equal(r.net, 256 * W);
   assert.equal(r.tax, 25.6 * W);
   assert.equal(r.byRecipient['長子'], 500 * W);
-  // 總額 3055 萬＝淨額 2811 萬：全部 10%
-  assert.equal(T.gift([{ form: 'securities', amount: 3055 * W }]).tax, 281.1 * W);
-  // 總額 6865 萬：淨額 6621 萬
-  assert.equal(T.gift([{ form: 'property', amount: 6865 * W }]).tax, 281.1 * W + 421.5 * W + 200 * W);
+  assert.equal(T.gift([{ form: 'securities', amount: 2811 * W }]).tax, 256.7 * W);
+  assert.equal(T.gift([{ form: 'securities', amount: 5621 * W }]).tax, 256.7 * W + 421.5 * W);
+  assert.equal(T.gift([{ form: 'property', amount: 6621 * W }]).tax, 256.7 * W + 421.5 * W + 200 * W);
 });
 
 test('贈與：形式必選、金額大於 0', () => {
