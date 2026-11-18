@@ -12,7 +12,8 @@
 <link rel="stylesheet" href="../shared/site-header.css?v=20261118-1">
 <link rel="stylesheet" href="../shared/auth.css?v=20261118-1">
 <link rel="stylesheet" href="style.css?v=20261118-4">
-<link rel="stylesheet" href="tax.css?v=20261118-4">
+<link rel="stylesheet" href="picker.css?v=20261118-1">
+<link rel="stylesheet" href="tax.css?v=20261119-1">
 </head>
 <body>
 
@@ -55,6 +56,13 @@
   <!-- ===== 遺產稅 ===== -->
   <section id="mode-estate">
     <div class="card tax-card">
+      <div class="tax-import">
+        <label>從資產負債帶入
+          <input type="text" id="es-client" data-pick="tax-client" placeholder="點選客戶" autocomplete="off">
+        </label>
+        <button type="button" class="btn-secondary" id="es-import">帶入</button>
+      </div>
+      <div id="es-import-note"></div>
       <label class="tax-big">遺產總額（萬元）
         <input type="number" id="es-gross" min="0" step="any" inputmode="decimal" placeholder="例：8000">
       </label>
@@ -122,7 +130,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script src="../shared/supabase-client.js?v=20261118-1"></script>
 <script src="../shared/auth.js?v=20261118-1"></script>
-<script src="tax-calc.js?v=20261118-6"></script>
-<script src="tax.js?v=20261118-6"></script>
+<script src="data.js?v=20261118-1"></script>
+<script src="db.js?v=20261118-1"></script>
+<script src="picker.js?v=20261118-1"></script>
+<script src="finance-calc.js?v=20261118-2"></script>
+<script src="tax-calc.js?v=20261119-1"></script>
+<script src="tax.js?v=20261119-1"></script>
 </body>
 </html>

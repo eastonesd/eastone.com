@@ -129,3 +129,11 @@
   .tax-eq em { align-self: center; line-height: 1; }
   .tb-tick { font-size: .66rem; }
 }
+.tax-import { display: flex; gap: 10px; align-items: end; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px dashed var(--tc-bd-d8d0bc); }
+.tax-import label { flex: 1; display: grid; gap: 6px; font-size: .84rem; font-weight: 700; margin: 0; }
+.tax-import input { height: 42px; }
+.tax-import .btn-secondary { width: auto; height: 42px; padding: 0 18px; }
+.tax-imported { background: var(--tc-bg-f3f6fb); border: 1px solid var(--tc-bd-d8d0bc); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: .84rem; line-height: 1.7; }
+.tax-imported p { margin: 0 0 4px; }
+.tax-imported ul { margin: 0; padding-left: 18px; color: var(--tc-fg-6b6656); }
+.tax-imported li.warn { color: var(--tc-fg-a2402d); }

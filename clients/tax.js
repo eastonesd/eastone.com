@@ -148,6 +148,39 @@
     $('gf-amount').focus();
   }
 
+  // ---------- 從資產負債帶入（以今天為基準日，等於「此刻身故」）----------
+  async function importFromFinance() {
+    const id = ($('es-client').value.split('｜')[1] || '').trim();
+    const note = $('es-import-note');
+    if (!id) { $('es-client').focus(); return; }
+    note.innerHTML = '<p class="tax-note">讀取中…</p>';
+    try {
+      const pick = async (t) => { const { data, error } = await sb.from(t).select('*').eq('client_id', id); if (error) throw error; return data || []; };
+      const [assets, assetValues, liabilities, liabilityBalances, fxRes] = await Promise.all([
+        pick('fin_assets'), pick('fin_asset_values'), pick('fin_liabilities'), pick('fin_liability_balances'),
+        sb.from('fin_fx_quotes').select('*').order('quote_date', { ascending: false }).limit(2000),
+      ]);
+      if (!assets.length && !liabilities.length) { note.innerHTML = '<p class="tax-err">這位客戶在資產負債還沒有資料。</p>'; return; }
+      const today = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+      const bs = FinCalc.balanceSheet({ assets, assetValues, liabilities, liabilityBalances, fx: fxRes.data || [], asOf: today });
+      const toWan = (big) => Math.round(FinCalc.toNum(big) / W * 10000) / 10000;
+      $('es-gross').value = toWan(bs.assetsTotal);
+      $('es-debts').value = bs.liabTotal > 0n ? toWan(bs.liabTotal) : '';
+      const miss = bs.missingCount;
+      const houses = assets.filter((a) => a.category === 'house' && a.status !== 'archived').length;
+      const policies = assets.filter((a) => ['savings_policy', 'investment_policy'].includes(a.category) && a.status !== 'archived').length;
+      note.innerHTML = `<div class="tax-imported">
+        <p>已帶入 <b>${esc($('es-client').value.split('｜')[0])}</b> 截至 ${today} 的資料：資產 ${wan(Math.round(FinCalc.toNum(bs.assetsTotal)))}（遺產總額）、負債 ${wan(Math.round(FinCalc.toNum(bs.liabTotal)))}（其他扣除額）。</p>
+        <ul>
+          ${miss ? `<li class="warn">資產負債有 ${miss} 項未估值或缺匯率，未包含在內。</li>` : ''}
+          ${houses ? `<li>房屋、土地申報遺產時是用公告現值／評定標準價格，不是市價；如果資產負債填的是市價，請改成課稅價值。</li>` : ''}
+          ${policies ? `<li>保單：指定受益人的身故保險金不計入遺產；被繼承人當要保人、但被保險人是別人的保單，才以保單價值列入遺產。請依實際情況調整。</li>` : ''}
+          <li>帶入後仍可自行修改；扣除額請依家庭狀況在下方勾選。</li>
+        </ul></div>`;
+      renderEstate();
+    } catch (e) { note.innerHTML = `<p class="tax-err">讀取失敗：${esc(e.message || e)}</p>`; }
+  }
+
   // ---------- 啟動 ----------
   async function init() {
     try { await requireLogin('../'); } catch { $('tax-load').textContent = '目前無法確認登入，請重新整理後再試。'; return; }
@@ -195,6 +228,17 @@
     }));
     $('gf-add').addEventListener('click', addGift);
     $('gf-amount').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addGift(); } });
+
+    try {
+      const clients = await clientList();
+      PICK_SOURCES['tax-client'] = (input) => {
+        const kw = input.value.split('｜')[0].trim().toLowerCase();
+        return [{ label: '客戶', layout: 'list', options: clients.filter((c) => !kw || `${c.name}${c.id}`.toLowerCase().includes(kw)).slice(0, 60)
+          .map((c) => ({ value: `${c.name}｜${c.id}`, label: c.name || c.id, sub: c.id })) }];
+      };
+    } catch { /* 讀不到客戶清單時，帶入功能不可用，手動輸入照常 */ }
+    $('es-import').addEventListener('click', importFromFinance);
+    $('es-client').addEventListener('change', importFromFinance);
 
     renderPeople(); renderEstate(); renderGifts();
     $('tax-load').hidden = true;
