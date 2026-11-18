@@ -1,0 +1,28 @@
+.tax-switch { display: flex; gap: 8px; margin: 16px 0; }
+.tax-switch [aria-pressed="true"] { border-color: var(--tc-bd-b8892b); color: var(--tc-fg-b8892b); }
+.tax-card { padding: clamp(14px, 4vw, 24px); margin-bottom: 16px; }
+.tax-card h2 { margin: 0 0 8px; font-size: 1.2rem; }
+.tax-intro, .tax-card p, .tax-sources { font-size: .9rem; }
+.tax-card p { margin: 8px 0 16px; }
+.tax-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; margin: 14px 0; }
+.tax-fields label { display: grid; gap: 6px; align-content: start; font-size: .9rem; }
+.tax-fields input:not([type="checkbox"]), .tax-fields select {
+  width: 100%; min-width: 0; box-sizing: border-box; font: inherit;
+  padding: 8px; border: 1px solid var(--tc-bd-121d33); border-radius: 6px;
+  color: var(--tc-fg-121d33); background: var(--tc-bg-ffffff, var(--tc-bg-fff, transparent));
+}
+.tax-fields .tax-checkbox { display: flex; align-items: center; align-self: center; }
+.tax-gift-row { min-width: 0; border: 1px solid var(--tc-bd-b8892b); border-radius: 8px; margin: 0 0 12px; }
+.tax-sources { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.tax-sources a { color: inherit; }
+.tax-loading { margin: 20px; text-align: center; }
+.tax-numbers { margin: 0 0 12px; }
+.tax-numbers div { display: flex; justify-content: space-between; gap: 16px; padding: 5px 0; border-bottom: 1px solid var(--tc-bd-b8892b); break-inside: avoid; }
+.tax-numbers dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+@media print {
+  body { background: white !important; color: black !important; }
+  .ghdr-wrap, .topbar, .tax-switch, .tax-intro, .tax-sources, .tax-card form,
+  form.tax-card, #tax-print, #tax-load { display: none !important; }
+  #tax-result { border: none; box-shadow: none; color: black; background: white; }
+  main { max-width: none; padding: 0; }
+}

@@ -53,6 +53,8 @@ body {
 }
 
 .tabs { display: flex; gap: 16px; }
+.life-tabs { flex-wrap: wrap; column-gap: clamp(8px, 2vw, 16px); row-gap: 4px; }
+.life-tabs .tab-btn { white-space: nowrap; }
 .tab-btn {
   background:none;
   border:none;
