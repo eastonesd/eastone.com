@@ -78,6 +78,7 @@
 - 資料表 `fin_assets`、`fin_asset_values`、`fin_liabilities`、`fin_liability_balances`、`fin_collateral_links`、`fin_funding_links`、`fin_cash_events`、`fin_cash_schedules`、`fin_snapshots`（RLS：owner＝本人；複合外鍵綁 `clients(owner,id)`，客戶轉移帳號時一起跟過去，刪客戶時一起刪；連結不能跨客戶）；`fin_fx_quotes`（自動匯率 owner 為空，大家可讀；手動匯率屬於個人）、`fin_market_quotes`（公開收盤價，不含客戶資料）。
 - 報表 `finance-report.html?snap=`：只讀凍結快照（`fin_snapshots`，建立後不能修改），A4 列印／另存 PDF。
 - 自動資料：匯率＝Edge Function `fin-fx`（臺灣銀行牌告即期買賣中價，週一到週五 16:35 排程 `fin-fx-daily`，頁面也可手動更新，30 分鐘內不重抓）。「更新行情」接**東石診股**（`eastonesd/eastone.stock`）：基金＝東石診股每天收集的投信投顧公會／集保結算所淨值（`data/funds/index.json`，建檔時從清單選基金，含級別與幣別）；台股、美股＝FinMind 收盤價（沿用東石診股存在同一瀏覽器的 FinMind 金鑰）；台股 FinMind 失敗時改用 `fin-quotes`（證交所／櫃買中心）。只送商品代號，不送客戶資料。
+- 幣別改為下拉選單（TWD、USD、JPY、CNY、VND 排前面）；臺灣銀行沒有即期報價的幣別（如越南盾）用「手動匯率」輸入（1 外幣＝x 台幣，存在 `fin_fx_quotes`，只屬於自己）。
 - MCN：通用建檔＋「商品結構待確認」；專屬規則待取得說明書後再做。
 
 ### 稅務規劃（`tax.html`，人壽管理第五個分頁）

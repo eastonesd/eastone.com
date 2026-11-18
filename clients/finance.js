@@ -16,7 +16,8 @@ const LIAB_CATS = { mortgage: '房貸', policy_loan: '保單貸款', securities_
 const PURPOSE = { hot: '熱錢', cold: '冷錢', none: '未分類' };
 const RESTRICT = { none: '未設限', pledged: '質押', locked: '鎖定', repay: '需還款解押', unknown: '待確認' };
 const BASIS = { market: '市價', gross: '扣貸前價值', net_of_loan: '扣貸後淨額', manual: '手動估值', statement: '對帳單', appraisal: '估價文件' };
-const CCYS = ['TWD', 'USD', 'EUR', 'JPY', 'CNY', 'AUD', 'HKD', 'GBP', 'SGD', 'CAD', 'CHF', 'NZD', 'ZAR'];
+const CCYS = ['TWD', 'USD', 'JPY', 'CNY', 'VND', 'EUR', 'AUD', 'HKD', 'GBP', 'SGD', 'CAD', 'CHF', 'NZD', 'ZAR'];
+const CCY_NAMES = { TWD: '台幣', USD: '美元', JPY: '日圓', CNY: '人民幣', VND: '越南盾', EUR: '歐元', AUD: '澳幣', HKD: '港幣', GBP: '英鎊', SGD: '新加坡幣', CAD: '加幣', CHF: '瑞士法郎', NZD: '紐幣', ZAR: '南非幣' };
 const FREQ = { once: '一次', monthly: '每月', quarterly: '每季', semiannual: '每半年', annual: '每年' };
 const STATUS_TEXT = { ok: '', unvalued: '未估值', no_fx: '缺匯率', no_currency: '缺幣別', net_unreconciled: '待核對', display_only: '僅展示', no_balance: '未填餘額' };
 
@@ -115,6 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ['fin-asof', 'fin-from', 'fin-to'].forEach((k) => $(k).addEventListener('change', () => data && recompute()));
   document.querySelectorAll('.fin-tab').forEach((b) => b.addEventListener('click', () => { section = b.dataset.sec; render(); }));
   $('fin-fx-btn').addEventListener('click', refreshFx);
+  $('fin-fx-manual').addEventListener('click', manualFxForm);
   $('fin-quote-btn').addEventListener('click', refreshQuotes);
   $('fin-snap-btn').addEventListener('click', saveSnapshot);
   $('fin-modal-close').addEventListener('click', closeModal);
@@ -136,7 +138,7 @@ async function openClient(id) {
   showFxStatus();
   recompute();
 }
-async function reload() { data = await loadClientData(client.id); recompute(); }
+async function reload() { showFxStatus(); if (!client) return; data = await loadClientData(client.id); recompute(); }
 
 function showFxStatus() {
   const usd = fx.filter((q) => q.currency === 'USD' && !q.owner)[0];
@@ -153,6 +155,20 @@ async function callFn(name, body) {
   const out = await res.json().catch(() => ({}));
   if (!res.ok || out.ok === false) throw new Error(out.error || `伺服器錯誤 ${res.status}`);
   return out;
+}
+// 手動匯率：臺灣銀行沒有即期報價的幣別（例如越南盾）或要用自己的匯率時
+function manualFxForm() {
+  openModal('手動輸入匯率', [
+    { k: 'currency', label: '幣別', type: 'select', opts: CCYS.filter((c) => c !== 'TWD').map((c) => [c, `${c} ${CCY_NAMES[c]}`]), req: true },
+    { k: 'quote_date', label: '匯率日期', type: 'date', req: true, def: todayIso() },
+    { k: 'rate', label: '1 單位外幣 ＝ 多少台幣', type: 'number', req: true, hint: '例：1 USD ＝ 32.85；1 VND ＝ 0.00125' },
+    { k: 'source', label: '來源', ph: '例：銀行牌告、對帳單', wide: true },
+  ], {}, async (row) => {
+    if (!(Number(row.rate) > 0)) throw new Error('匯率必須大於 0');
+    const { error } = await sb.from('fin_fx_quotes').insert({ ...row, source: row.source || '手動輸入', basis: 'manual', is_manual: true });
+    if (error) throw new Error(error.message);
+    fx = await loadFx();
+  });
 }
 async function refreshFx() {
   setStatus('更新匯率中…');
@@ -524,7 +540,7 @@ document.addEventListener('submit', async (e) => {
 });
 
 const optsOf = (obj) => Object.entries(obj);
-const ccyField = (def = 'TWD') => ({ k: 'currency', label: '幣別', req: true, def, list: 'fin-ccy', upper: true, ph: 'TWD／USD…' });
+const ccyField = (def = 'TWD') => ({ k: 'currency', label: '幣別', req: true, def, type: 'select', opts: CCYS.map((c) => [c, `${c} ${CCY_NAMES[c]}`]) });
 function validNumbers(row, keys) {
   for (const k of keys) {
     if (row[k] === null || row[k] === undefined) continue;
@@ -788,7 +804,7 @@ function fundForm(k) {
     { k: 'liability_id', label: '借款', type: 'select', opts: [['', '（請選擇）'], ...liabOptions()], nullable: true, when: 'source_type=borrowed' },
     { k: 'asset_id', label: '投入部位', type: 'select', opts: assetOptions(), req: true },
     { k: 'amount', label: '原幣金額', type: 'number' },
-    { k: 'currency', label: '幣別', list: 'fin-ccy', upper: true, nullable: true },
+    { k: 'currency', label: '幣別', type: 'select', opts: [['', '（同投入部位）'], ...CCYS.map((c) => [c, `${c} ${CCY_NAMES[c]}`])], nullable: true },
     { k: 'link_date', label: '日期', type: 'date' },
     { k: 'source', label: '來源', wide: true },
     { k: 'confirm_status', label: '核實狀態', type: 'select', opts: [['pending', '待確認'], ['confirmed', '已確認']] },
