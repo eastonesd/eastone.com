@@ -227,7 +227,7 @@ async function refreshQuotes(silent = false) {
   if (!data) { if (!silent) toast('請先選擇客戶'); return; }
   const live = data.assets.filter((a) => a.status !== 'archived' && a.identifier);
   const stocks = live.filter((a) => a.category === 'stock' && ['TWSE', 'TPEX', 'US'].includes(a.market));
-  const funds = live.filter((a) => a.category === 'fund' && /^[TF]-/.test(a.identifier));
+  const funds = live.filter((a) => a.category === 'fund' && /^[TFI]-/.test(a.identifier));
   if (!stocks.length && !funds.length) { if (!silent) toast('沒有可自動更新的部位（股票需填市場與代號；基金需從東石診股清單選取）'); return; }
   setStatus('從東石診股更新行情中…');
   let saved = 0; const fails = [];
@@ -254,7 +254,7 @@ async function refreshQuotes(silent = false) {
       for (const a of funds) {
         const f = idx.funds.find((x) => x.id === a.identifier);
         if (!f || !(f.nav > 0)) { fails.push(`${a.name}：東石診股查無這檔基金的淨值`); continue; }
-        await store(a, { price: f.nav, date: f.date, currency: f.currency, source: `${f.kind === '境外' ? '集保結算所' : '投信投顧公會'}最新公告淨值（東石診股）` });
+        await store(a, { price: f.nav, date: f.date, currency: f.currency, source: `${f.kind === '境外' ? '集保結算所' : f.kind === '類全委' ? (f.insurer || '保險公司') + '投資帳戶' : '投信投顧公會'}最新公告淨值（東石診股）` });
       }
     } catch (e) { fails.push('基金：' + e.message); }
   }
