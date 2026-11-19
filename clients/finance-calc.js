@@ -60,7 +60,7 @@
   // ---------- 估值選用 ----------
   // 基準日以前（含）最新的一筆；同一天以人工覆寫優先；不使用基準日之後的價格
   function pickValue(values, assetId, asOf) {
-    const list = (values || []).filter((v) => v.asset_id === assetId && lte(v.as_of, asOf))
+    const list = (values || []).filter((v) => v.asset_id === assetId && lte(v.as_of, asOf) && v.value !== null && v.value !== undefined && v.value !== '')
       .sort((a, b) => (a.as_of === b.as_of
         ? ((b.is_manual ? 1 : 0) - (a.is_manual ? 1 : 0)) || (String(b.created_at || '') > String(a.created_at || '') ? 1 : -1)
         : (a.as_of < b.as_of ? 1 : -1)));

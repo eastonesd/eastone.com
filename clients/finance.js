@@ -233,7 +233,12 @@ async function refreshQuotes(silent = false) {
   let saved = 0; const fails = [];
   const store = async (a, q) => {
     if (q.currency !== a.currency) { fails.push(`${a.name}：報價幣別 ${q.currency} 與資產幣別 ${a.currency} 不同，未更新`); return; }
-    if (C.D(a.quantity) === null) { fails.push(`${a.name}：未填數量，無法計算市值`); return; }
+    if (C.D(a.quantity) === null) {
+      // 數量可能填在估值紀錄裡：取最近一筆有數量的估值補回資產
+      const { data: qv } = await sb.from('fin_asset_values').select('quantity').eq('asset_id', a.id).not('quantity', 'is', null).order('as_of', { ascending: false }).limit(1);
+      if (qv && qv.length) { a.quantity = qv[0].quantity; await sb.from('fin_assets').update({ quantity: a.quantity }).eq('id', a.id); }
+      else { fails.push(`${a.name}：未填數量，無法計算市值`); return; }
+    }
     const value = C.toNum(C.mul(C.D(a.quantity), C.D(q.price)));
     const row = { asset_id: a.id, as_of: q.date, quantity: a.quantity, price: q.price, value, value_basis: 'market', source: q.source, is_manual: false };
     // 同一天的自動估值只留一筆：盤中更新就覆蓋成最新價（人工覆寫的那筆不動）
@@ -628,6 +633,7 @@ function assetForm(a, preset) {
     if (!/^[A-Z]{3}$/.test(row.currency || '')) throw new Error('幣別請填三碼代號，例如 TWD、USD');
     const meta = {};
     Object.keys(row).filter((k) => k.startsWith('meta_')).forEach((k) => { if (row[k]) meta[k.slice(5)] = row[k]; delete row[k]; });
+    if (row.category !== 'investment_policy') delete meta.value_from_funds;
     row.meta = meta;
     row.share_pct = row.share_pct || 100;
     row.parent_id = row.parent_id || null;
