@@ -176,3 +176,13 @@ test('定點小數：0.1 + 0.2 = 0.3', () => {
   assert.equal(C.add(C.D('0.1'), C.D('0.2')), C.D('0.3'));
   assert.equal(N(C.mul(C.D('10000'), C.D('32.85'))), 328500);
 });
+
+test('每三週一次的排程（回診 6 萬、兩家理賠）依 21 天展開', () => {
+  const r = C.compute({ asOf: '2026-11-20', upcomingTo: '2027-01-31', fx: [],
+    cashSchedules: [
+      { id: 'v', kind: 'medical', direction: 'out', amount: 60000, currency: 'TWD', start_date: '2026-11-25', frequency: 'triweekly' },
+      { id: 'a', kind: 'insurance_claim', direction: 'in', amount: 29700, currency: 'TWD', start_date: '2026-11-25', frequency: 'triweekly' },
+      { id: 'b', kind: 'insurance_claim', direction: 'in', amount: 12500, currency: 'TWD', start_date: '2026-11-25', frequency: 'triweekly' }] });
+  assert.deepEqual([...new Set(r.upcoming.map((x) => x.date))], ['2026-11-25', '2026-12-16', '2027-01-06', '2027-01-27']);
+  assert.equal(r.upcoming.length, 12);
+});

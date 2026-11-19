@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const C = FinCalc;
-  const CATS = { house: '房屋', savings_policy: '儲蓄險', investment_policy: '投資型保單／年金', fund: '基金', stock: '股票／ETF', deposit: '定存', cash: '活存／現金', mcn: 'MCN／待確認商品', other: '其他' };
+  const CATS = { house: '房屋', savings_policy: '儲蓄險', investment_policy: '投資型保單／年金', fund: '基金', stock: '股票／ETF', deposit: '定存', cash: '活存／現金', mcn: 'FCN 結構型商品', other: '其他' };
   const LIAB = { mortgage: '房貸', policy_loan: '保單貸款', securities_loan: '基金／股票質借', other: '其他借款' };
   const PURPOSE = { hot: '熱錢', cold: '冷錢', none: '未分類' };
   const RESTRICT = { none: '未設限', pledged: '質押', locked: '鎖定', repay: '需還款解押', unknown: '待確認' };
@@ -50,7 +50,7 @@
     const trace = (r.trace || []).map((t) => `<tr><td>${esc(t.liability.name || '')}<div class="note">${esc(t.liability.institution || '')}</div></td>
       <td>${t.collateral.map((c) => esc(c.asset ? c.asset.name : '（已刪除）') + (c.link.confirm_status === 'confirmed' ? '' : '（待確認）')).join('、') || '—'}</td>
       <td>${t.uses.map((u) => esc(u.asset ? u.asset.name : '（已刪除）') + (u.link.amount ? ` ${fmt(C.D(u.link.amount), u.link.currency || 'TWD')} ${u.link.currency || ''}` : '')).join('、') || '—'}</td></tr>`).join('');
-    const up = (r.upcoming || []).slice(0, 60).map((u) => `<tr><td>${u.date}</td><td>${esc(u.label)}</td><td>${u.basis === 'contract' ? '契約約定' : '預估'}</td>
+    const up = (r.upcoming || []).slice(0, 80).map((u) => `<tr><td>${u.date}</td><td>${esc(u.note || u.label)}</td>
       <td class="num">${u.direction === 'in' ? '+' : '−'}${u.amount === null ? '金額未知' : fmt(u.amount, u.currency) + ' ' + u.currency}</td></tr>`).join('');
     const avd = (av.detail || []).map((d) => `<tr><td>${esc(d.names.join('、'))}</td><td>${{ free: '未設限', release: '需還款解押', pending: '待確認' }[d.type]}</td>
       <td class="num">${fmt(d.amount)}</td><td class="note">${esc(d.note || '')}${d.repay ? `（需還款 ${fmt(d.repay)}）` : ''}</td></tr>`).join('');
@@ -68,7 +68,7 @@
         <div class="stat em"><span>${bs.complete ? '淨資產' : '淨資產（部分）'}</span><b>${fmt(bs.net)}</b></div>
         <div class="stat"><span>估計可自由動用（熱錢）</span><b>${fmt(av.confirmed)}</b></div>
       </div>
-      ${bs.complete ? '' : '<p class="note warn">資料不完整：總額只包含已估值、已換匯的項目，不代表完整淨值。缺漏清單見第八節。</p>'}
+      ${bs.complete ? '' : '<p class="note warn">資料不完整：總額只包含已估值、已換匯的項目，不代表完整淨值。缺漏清單見第七節。</p>'}
       <div class="grid2">
         <div><table><thead><tr><th>幣別</th><th class="num">資產（原幣）</th><th class="num">負債（原幣）</th></tr></thead><tbody>${ccy || '<tr><td colspan="3">—</td></tr>'}</tbody></table></div>
         <div><table><tbody>${Object.entries(PURPOSE).map(([k, l]) => `<tr><td>${l}</td><td class="num">${fmt(bs.byPurpose[k] || 0n)}</td></tr>`).join('')}
@@ -86,27 +86,13 @@
       <table><thead><tr><th>熱錢部位</th><th>狀態</th><th class="num">估計金額</th><th>說明</th></tr></thead><tbody>${avd || '<tr><td colspan="4">沒有標示為熱錢的部位</td></tr>'}</tbody></table>
       <p class="note">可動用資金為估計值，不是銀行承諾的可提款額；共同擔保的借款只扣一次；解押條件不明的部位列為待確認（${fmt(av.pending)}）。</p>
 
-      <h2>五、期間收支（${r.period.from} ～ ${r.period.to}）</h2>
-      <table><tbody>
-        <tr><td>收入類收款</td><td class="num">${fmt(cf.income)}</td></tr>
-        <tr><td>　其中分配款來源未確認（不視為收益）</td><td class="num">${fmt(cf.unknownDist)}</td></tr>
-        <tr><td>日常／持有支出（含利息）</td><td class="num">−${fmt(cf.expense)}</td></tr>
-        <tr><td>　其中利息費用</td><td class="num">${fmt(cf.interest)}</td></tr>
-        <tr><td>投資流量（贖回−申購）</td><td class="num">${fmt(cf.investIn - cf.investOut)}</td></tr>
-        <tr><td>融資流量（借入−還本）</td><td class="num">${fmt(cf.finIn - cf.finOut)}</td></tr>
-        <tr><td><b>期間現金淨變動</b></td><td class="num"><b>${fmt(cf.netChange)}</b></td></tr>
-        <tr><td>扣除利息與還本後的現金餘額（非投資報酬率）</td><td class="num">${fmt(cf.afterDebtService)}</td></tr>
-      </tbody></table>
-      ${cf.missingFx.length ? `<p class="note warn">${cf.missingFx.length} 筆收支缺匯率，未計入。</p>` : ''}
+      <h2>五、未來 12 個月收支日曆（至 ${r.upcomingTo}）</h2>
+      <table><thead><tr><th>日期</th><th>項目</th><th class="num">金額</th></tr></thead><tbody>${up || '<tr><td colspan="3">—</td></tr>'}</tbody></table>
 
-      <h2>六、未來收支日曆（至 ${r.upcomingTo}）</h2>
-      <table><thead><tr><th>日期</th><th>類型</th><th>性質</th><th class="num">金額</th></tr></thead><tbody>${up || '<tr><td colspan="4">—</td></tr>'}</tbody></table>
-      <p class="note">「預估」為輸入的估計值；歷史配息不代表未來一定發放。</p>
-
-      <h2>七、借款、擔保品與資金用途</h2>
+      <h2>六、借款、擔保品與資金用途</h2>
       <table><thead><tr><th>借款</th><th>擔保品</th><th>資金投入</th></tr></thead><tbody>${trace || '<tr><td colspan="3">—</td></tr>'}</tbody></table>
 
-      <h2>八、資料來源與缺漏</h2>
+      <h2>七、資料來源與缺漏</h2>
       <table><thead><tr><th>幣別</th><th class="num">匯率（1 外幣＝台幣）</th><th>日期</th><th>來源</th></tr></thead><tbody>
         ${[...fxUsed.entries()].filter(([k]) => k !== 'TWD').map(([k, f]) => `<tr><td>${k}</td><td class="num">${C.toNum(f.rate)}</td><td>${f.date}</td><td>${esc(f.source)}${f.manual ? '（手動）' : ''}</td></tr>`).join('') || '<tr><td colspan="4">僅台幣，無需換匯</td></tr>'}
       </tbody></table>

@@ -39,7 +39,7 @@
   }
 
   // ---------- 遺產稅 ----------
-  const est = { exemption: true, necessities: false, tools: false, spouse: false, funeral: false, descendants: [], parents: [], dependents: [] };
+  const est = { exemption: true, necessities: false, tools: false, spouse: false, funeral: true, descendants: [], parents: [], dependents: [] };
 
   function personRow(list, p, i) {
     const withAge = list !== 'parents';
@@ -231,6 +231,21 @@
 
     try {
       const clients = await clientList();
+      // 受贈人：贈與人的同住家人（同地址）＋同群組成員
+      PICK_SOURCES['gift-recipient'] = () => {
+        const id = ($('gf-donor').value.split('｜')[1] || '').trim();
+        const donor = clients.find((c) => c.id === id);
+        if (!donor) return [{ label: '先在上方選「贈與人」，這裡就會列出他的同住家人與群組成員；也可以直接打字', options: [] }];
+        const groups = [];
+        const k = addressKey(donor);
+        const house = k ? clients.filter((c) => c.id !== donor.id && addressKey(c) === k) : [];
+        if (house.length) groups.push({ label: '同住家人', layout: 'list', options: house.map((c) => ({ value: c.name, label: c.name, sub: addressText(c) })) });
+        (donor.groups || []).forEach((g) => {
+          const mem = clients.filter((c) => c.id !== donor.id && (c.groups || []).includes(g) && !house.includes(c));
+          if (mem.length) groups.push({ label: `群組：${g}`, layout: 'list', options: mem.map((c) => ({ value: c.name, label: c.name, sub: g })) });
+        });
+        return groups.length ? groups : [{ label: '這位客戶沒有同住家人或群組成員，請直接輸入受贈人', options: [] }];
+      };
       PICK_SOURCES['tax-client'] = (input) => {
         const kw = input.value.split('｜')[0].trim().toLowerCase();
         return [{ label: '客戶', layout: 'list', options: clients.filter((c) => !kw || `${c.name}${c.id}`.toLowerCase().includes(kw)).slice(0, 60)

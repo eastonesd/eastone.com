@@ -91,13 +91,16 @@ function renderAvatar(user) {
     btn._user = null;
     return;
   }
-  const email = user.email || '';
+  const name = accountName(user.email);
   btn.className = 'ghdr-avatar';
-  btn.textContent = (email.trim()[0] || '?').toUpperCase();
-  btn.title = email;
-  btn.setAttribute('aria-label', `帳號選單（${email}）`);
+  btn.textContent = (name.trim()[0] || '?').toUpperCase();
+  btn.title = name;
+  btn.setAttribute('aria-label', `帳號選單（${name}）`);
   btn._user = user;
 }
+
+// 帳號顯示名稱：只顯示 Email「@」前面那一段（例 dkyp2377）
+function accountName(email) { return String(email || '').split('@')[0]; }
 
 function closeAccountMenu() {
   const m = document.querySelector('.acct-menu');
@@ -134,7 +137,7 @@ function toggleAccountMenu(btn) {
     <div class="acct-sep"></div>
     <button type="button" class="acct-item" data-act="logout" role="menuitem">${ICONS.out}<span>登出</span></button>`;
   menu.querySelector('.acct-badge').textContent = btn.textContent;
-  menu.querySelector('.acct-email').textContent = email;
+  menu.querySelector('.acct-email').textContent = accountName(email);
   // 放在 body 最上層，用頭像的位置定位，不會被頁面內容蓋住
   const r = btn.getBoundingClientRect();
   menu.style.top = `${Math.round(r.bottom + 8)}px`;

@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../shared/auth.css?v=20261118-1">
 <link rel="stylesheet" href="style.css?v=20261119-1">
 <link rel="stylesheet" href="picker.css?v=20261118-1">
-<link rel="stylesheet" href="tax.css?v=20261119-1">
+<link rel="stylesheet" href="tax.css?v=20261120-1">
 </head>
 <body>
 
@@ -80,7 +80,7 @@
       <h2>扣除額</h2>
       <div class="tax-chips">
         <button type="button" class="tax-chip" data-k="spouse"><b>配偶</b><span>553 萬</span></button>
-        <button type="button" class="tax-chip" data-k="funeral"><b>喪葬費</b><span>138 萬</span></button>
+        <button type="button" class="tax-chip on" data-k="funeral"><b>喪葬費</b><span>138 萬</span></button>
       </div>
       <label class="tax-check" id="es-spouse-dis" hidden><input type="checkbox"> 配偶為重度以上身心障礙（加扣 693 萬）</label>
 
@@ -108,12 +108,15 @@
   <section id="mode-gift" hidden>
     <div class="card tax-card">
       <h2>記一筆贈與<small class="tax-h-sub">同一位贈與人、同一年度合併計算</small></h2>
+      <label class="gift-donor">贈與人（選客戶後，受贈人可直接從同住家人、群組成員挑）
+        <input type="text" id="gf-donor" data-pick="tax-client" placeholder="點選客戶（選填）" autocomplete="off">
+      </label>
       <div class="gift-entry">
-        <label>受贈人<input type="text" id="gf-recipient" maxlength="30" placeholder="例：長子"></label>
+        <label>受贈人<input type="text" id="gf-recipient" data-pick="gift-recipient" maxlength="30" placeholder="例：長子" autocomplete="off"></label>
         <div class="gift-forms" role="radiogroup">
           <button type="button" class="tax-chip sm on" data-form="cash"><b>現金贈與</b></button>
           <button type="button" class="tax-chip sm" data-form="policy"><b>保單贈與</b></button>
-          <button type="button" class="tax-chip sm" data-form="securities"><b>股票／基金贈與</b></button>
+          <button type="button" class="tax-chip sm" data-form="securities"><b>股票／<br>基金贈與</b></button>
           <button type="button" class="tax-chip sm" data-form="property"><b>實物贈與</b></button>
         </div>
         <label>贈與金額（萬元）<input type="number" id="gf-amount" min="0" step="any" inputmode="decimal" placeholder="例：244"></label>
@@ -129,12 +132,12 @@
 <p id="tax-load" class="tax-loading" role="status">正在確認登入狀態…</p>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script src="../shared/supabase-client.js?v=20261118-1"></script>
-<script src="../shared/auth.js?v=20261118-1"></script>
+<script src="../shared/auth.js?v=20261120-1"></script>
 <script src="data.js?v=20261118-1"></script>
 <script src="db.js?v=20261118-1"></script>
 <script src="picker.js?v=20261118-1"></script>
 <script src="finance-calc.js?v=20261118-2"></script>
 <script src="tax-calc.js?v=20261119-1"></script>
-<script src="tax.js?v=20261119-1"></script>
+<script src="tax.js?v=20261120-1"></script>
 </body>
 </html>

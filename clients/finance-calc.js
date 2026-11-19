@@ -244,6 +244,8 @@
     loan_payment: { label: '貸款繳款（本金＋利息）', group: 'split' },
     transfer: { label: '自有帳戶轉帳', group: 'transfer' }, fx_exchange: { label: '換匯', group: 'transfer' },
     other_expense: { label: '其他支出', group: 'expense' },
+    fixed_expense: { label: '固定支出', group: 'expense' }, medical: { label: '醫療費用', group: 'expense' },
+    insurance_claim: { label: '保險理賠', group: 'income' },
   };
   const DIST_KINDS = ['fund_dist', 'policy_dist', 'survival'];
 
@@ -303,6 +305,8 @@
 
   // ---------- 未來收支排程（扣掉已入帳配對的期數）----------
   const STEP = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12 };
+  const WEEKS = { weekly: 1, biweekly: 2, triweekly: 3, fourweekly: 4 };
+  function addDays(iso, n) { const t = new Date(iso + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); }
   function addMonths(iso, n) {
     const [y, m, d] = iso.split('-').map(Number);
     const t = new Date(Date.UTC(y, m - 1 + n, 1));
@@ -317,12 +321,15 @@
       while (lte(date, to) && (!s.end_date || lte(date, s.end_date)) && n < 600) {
         if (lte(from, date)) {
           const month = date.slice(0, 7);
-          const done = matched.some((e) => e.schedule_id === s.id && e.event_date.slice(0, 7) === month);
+          // 週期以週計的排程，用「同一天前後 3 天」比對已入帳；以月計的用同一個月
+          const done = matched.some((e) => e.schedule_id === s.id && (WEEKS[s.frequency]
+            ? Math.abs((Date.parse(e.event_date) - Date.parse(date)) / 864e5) <= 3
+            : e.event_date.slice(0, 7) === month));
           if (!done) out.push({ schedule_id: s.id, date, kind: s.kind, label: (KINDS[s.kind] || {}).label || s.kind, direction: s.direction,
             amount: D(s.amount), currency: s.currency, basis: s.basis, note: s.note });
         }
         if (s.frequency === 'once') break;
-        n++; date = addMonths(s.start_date, STEP[s.frequency] * n);
+        n++; date = WEEKS[s.frequency] ? addDays(s.start_date, 7 * WEEKS[s.frequency] * n) : addMonths(s.start_date, STEP[s.frequency] * n);
       }
     }
     return out.sort((a, b) => (a.date < b.date ? -1 : 1));

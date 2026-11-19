@@ -122,3 +122,14 @@
   .fin-bar-row { grid-template-columns: 1fr 1fr 1fr; }
   .fin-client { grid-column: 1 / -1; }
 }
+
+/* 只剩客戶＋基準日兩格 */
+.fin-bar-row { grid-template-columns: 2fr 1fr !important; }
+@media (max-width: 520px) { .fin-bar-row { grid-template-columns: 1fr !important; } }
+.fin-item-val b.in, .fin-month i.in { color: var(--tc-fg-1e6b34); }
+.fin-item-val b.out, .fin-month i.out { color: var(--tc-fg-a2402d); }
+.fin-month { border: 1px solid var(--tc-bd-d8d0bc); border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
+.fin-month-head { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: .86rem; margin-bottom: 4px; }
+.fin-month-head b { color: var(--tc-fg-121d33); }
+.fin-month-head i { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+.fin-month-head em { font-style: normal; color: var(--tc-fg-a2402d); }

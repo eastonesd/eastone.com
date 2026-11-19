@@ -10,7 +10,7 @@ const todayIso = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 
 
 const CATS = {
   house: '房屋', savings_policy: '儲蓄險', investment_policy: '投資型保單／年金', fund: '基金', stock: '股票／ETF',
-  deposit: '定存', cash: '活存／現金', mcn: 'MCN／待確認商品', other: '其他',
+  deposit: '定存', cash: '活存／現金', mcn: 'FCN 結構型商品', other: '其他',
 };
 const LIAB_CATS = { mortgage: '房貸', policy_loan: '保單貸款', securities_loan: '基金／股票質借', other: '其他借款' };
 const PURPOSE = { hot: '熱錢', cold: '冷錢', none: '未分類' };
@@ -18,7 +18,7 @@ const RESTRICT = { none: '未設限', pledged: '質押', locked: '鎖定', repay
 const BASIS = { market: '市價', gross: '扣貸前價值', net_of_loan: '扣貸後淨額', manual: '手動估值', statement: '對帳單', appraisal: '估價文件' };
 const CCYS = ['TWD', 'USD', 'JPY', 'CNY', 'VND', 'EUR', 'AUD', 'HKD', 'GBP', 'SGD', 'CAD', 'CHF', 'NZD', 'ZAR'];
 const CCY_NAMES = { TWD: '台幣', USD: '美元', JPY: '日圓', CNY: '人民幣', VND: '越南盾', EUR: '歐元', AUD: '澳幣', HKD: '港幣', GBP: '英鎊', SGD: '新加坡幣', CAD: '加幣', CHF: '瑞士法郎', NZD: '紐幣', ZAR: '南非幣' };
-const FREQ = { once: '一次', monthly: '每月', quarterly: '每季', semiannual: '每半年', annual: '每年' };
+const FREQ = { once: '一次', weekly: '每週', biweekly: '每兩週', triweekly: '每三週', fourweekly: '每四週', monthly: '每月', quarterly: '每季', semiannual: '每半年', annual: '每年' };
 const STATUS_TEXT = { ok: '', unvalued: '未估值', no_fx: '缺匯率', no_currency: '缺幣別', net_unreconciled: '待核對', display_only: '僅展示', no_balance: '未填餘額' };
 
 let clients = [];
@@ -326,7 +326,7 @@ function renderOverview() {
           <li>已確認負債 ${bs.confirmedLiabCount} ／ ${bs.liabRows.length}</li>
           <li>缺匯率 ${bs.missing.assetNoFx.length + bs.missing.liabNoFx.length} 項</li>
           <li>待確認擔保連結 ${data.collateralLinks.filter((k) => k.confirm_status !== 'confirmed').length} 筆</li>
-          <li>MCN 文件未齊 ${data.assets.filter((a) => a.category === 'mcn' && a.doc_status !== 'complete' && a.status !== 'archived').length} 項</li>
+          <li>FCN 結構型商品文件未齊 ${data.assets.filter((a) => a.category === 'mcn' && a.doc_status !== 'complete' && a.status !== 'archived').length} 項</li>
         </ul>
         ${miss.length ? `<h3>待補項目</h3><ul class="fin-ul fin-miss">${miss.map((x) => `<li>${x}</li>`).join('')}</ul>` : ''}
       </div>
@@ -340,8 +340,7 @@ function renderOverview() {
     </div>
     <h3>幣別分布（原幣）</h3>
     <table class="fin-table"><thead><tr><th>幣別</th><th class="num">資產</th><th class="num">負債</th></tr></thead><tbody>${ccyRows || '<tr><td colspan="3">—</td></tr>'}</tbody></table>
-    <h3>本期收支（${result.period.from} ～ ${result.period.to}）</h3>
-    ${cashSummary(cf)}`;
+`;
 }
 
 function cashSummary(cf) {
@@ -411,34 +410,37 @@ function renderLiabs() {
 
 // 收支
 function renderCash() {
-  const cf = result.cf;
+  const up = result.upcoming;
+  // 依月份小計（換成台幣；缺匯率的另外標示）
+  const months = new Map();
+  up.forEach((u) => {
+    const m = u.date.slice(0, 7);
+    if (!months.has(m)) months.set(m, { in: 0n, out: 0n, missing: 0, rows: [] });
+    const g = months.get(m); g.rows.push(u);
+    if (u.amount === null) return;
+    const t = C.toBase(u.amount, u.currency, fx, u.date);
+    if (t.value === null) { g.missing++; return; }
+    g[u.direction] += t.value;
+  });
   const assetName = (id) => (data.assets.find((a) => a.id === id) || {}).name || '';
-  const liabName = (id) => (data.liabilities.find((a) => a.id === id) || {}).name || '';
   $('sec-cash').innerHTML = `
-    <div class="fin-head"><h2>收支（${result.period.from} ～ ${result.period.to}）</h2>
-      <span><button type="button" class="btn-secondary fin-sm" id="fs-add">＋ 未來排程</button>
-      <button type="button" class="btn-primary fin-sm" id="fe-add">＋ 實際收支</button></span></div>
-    ${cashSummary(cf)}
-    <p class="fin-note">新增收支不會自動改動持倉或借款餘額；入帳後請到資產／負債更新餘額。借款撥入、還本屬融資流量；自有帳戶轉帳與換匯不算收入。</p>
-    <h3>實際收支</h3>
-    ${cf.rows.length ? `<div class="fin-scroll"><table class="fin-table"><thead><tr><th>日期</th><th>類型</th><th>關聯</th><th class="num">金額</th><th class="num">台幣</th><th></th></tr></thead><tbody>
-      ${cf.rows.sort((a, b) => (a.event_date < b.event_date ? 1 : -1)).map((e) => `<tr>
-        <td>${e.event_date}</td><td>${esc(e.label)}${e.nature === 'unknown' && ['fund_dist', 'policy_dist', 'survival'].includes(e.kind) ? '<i class="fin-mini">來源未確認</i>' : ''}${e.splitError ? '<i class="fin-mini">未拆分</i>' : ''}</td>
-        <td>${esc([assetName(e.asset_id), liabName(e.liability_id), e.account].filter(Boolean).join('・'))}</td>
-        <td class="num ${e.direction}">${e.direction === 'in' ? '+' : '−'}${fmtRaw(e.amount, e.currency)} ${e.currency}</td>
-        <td class="num">${e.base === null ? '缺匯率' : fmt(e.base)}${e.estimated ? '<i class="fin-mini">估</i>' : ''}</td>
-        <td><button type="button" class="link-btn" data-ev="${e.id}">編輯</button></td></tr>`).join('')}
-    </tbody></table></div>` : '<p class="fin-empty-row">這段期間沒有收支紀錄。</p>'}
-    <h3>未來 12 個月收支日曆</h3>
-    ${result.upcoming.length ? `<div class="fin-scroll"><table class="fin-table"><thead><tr><th>日期</th><th>類型</th><th>性質</th><th class="num">金額</th><th></th></tr></thead><tbody>
-      ${result.upcoming.map((u) => `<tr><td>${u.date}</td><td>${esc(u.label)}</td><td>${u.basis === 'contract' ? '契約約定' : '預估'}</td>
-        <td class="num ${u.direction}">${u.direction === 'in' ? '+' : '−'}${u.amount === null ? '金額未知' : fmt(u.amount, u.currency) + ' ' + u.currency}</td>
-        <td><button type="button" class="link-btn" data-sch="${u.schedule_id}">排程</button></td></tr>`).join('')}
-    </tbody></table></div>` : '<p class="fin-empty-row">沒有未來排程。</p>'}
-    <p class="fin-note">歷史配息不代表未來一定會發；「預估」是您輸入的估計值。</p>`;
-  $('fe-add').addEventListener('click', () => eventForm());
+    <div class="fin-head"><h2>未來 12 個月收支日曆</h2>
+      <button type="button" class="btn-primary fin-sm" id="fs-add">＋ 新增固定收支</button></div>
+    <p class="fin-note">記錄個人固定支出與固定收入，例如每三週回診 6 萬、保險每次理賠的金額。金額以台幣小計，外幣依最新匯率換算。</p>
+    ${data.cashSchedules.length ? `<h3>固定收支項目</h3><div class="fin-list">${data.cashSchedules.map((s) => `
+      <button type="button" class="fin-item" data-sch="${s.id}">
+        <div class="fin-item-main"><b>${esc(s.note || (C.KINDS[s.kind] || {}).label || s.kind)}</b>
+          <small>${esc((C.KINDS[s.kind] || {}).label || s.kind)}・${FREQ[s.frequency] || s.frequency}・${s.start_date} 起${s.end_date ? ' 至 ' + s.end_date : ''}${s.asset_id ? '・' + esc(assetName(s.asset_id)) : ''}</small></div>
+        <div class="fin-item-val"><b class="${s.direction}">${s.direction === 'in' ? '+' : '−'}${s.amount === null ? '金額未知' : fmtRaw(s.amount, s.currency) + ' ' + s.currency}</b></div>
+      </button>`).join('')}</div>` : ''}
+    ${months.size ? [...months.entries()].map(([m, g]) => `
+      <div class="fin-month">
+        <div class="fin-month-head"><b>${m.replace('-', ' 年 ')} 月</b>
+          <span>收入 <i class="in">+${fmt(g.in)}</i>　支出 <i class="out">−${fmt(g.out)}</i>　淨額 <i class="${g.in - g.out < 0n ? 'out' : 'in'}">${fmt(g.in - g.out)}</i>${g.missing ? `　<em>${g.missing} 筆缺匯率</em>` : ''}</span></div>
+        <table class="fin-table"><tbody>${g.rows.map((u) => `<tr><td>${u.date.slice(5)}</td><td>${esc(u.note || u.label)}</td>
+          <td class="num ${u.direction}">${u.direction === 'in' ? '+' : '−'}${u.amount === null ? '金額未知' : fmt(u.amount, u.currency) + ' ' + u.currency}</td></tr>`).join('')}</tbody></table>
+      </div>`).join('') : '<p class="fin-empty-row">還沒有固定收支，按「新增固定收支」開始記。</p>'}`;
   $('fs-add').addEventListener('click', () => scheduleForm());
-  document.querySelectorAll('[data-ev]').forEach((b) => b.addEventListener('click', () => eventForm(data.cashEvents.find((e) => e.id === b.dataset.ev))));
   document.querySelectorAll('[data-sch]').forEach((b) => b.addEventListener('click', () => scheduleForm(data.cashSchedules.find((s) => s.id === b.dataset.sch))));
 }
 
@@ -788,23 +790,25 @@ function eventForm(e) {
   const form = $('fin-form');
   if (!e) form.elements.kind.addEventListener('change', () => { form.elements.direction.value = DEFAULT_DIR[form.elements.kind.value] || 'out'; });
 }
+// 收支日曆用的類型（個人固定收支）
+const SCHED_KINDS = ['fixed_expense', 'medical', 'insurance_claim', 'premium', 'loan_payment', 'loan_interest', 'rent', 'living', 'tax', 'property_expense', 'salary', 'survival', 'dividend', 'fund_dist', 'policy_dist', 'interest_income', 'other_income', 'other_expense'];
+const SCHED_DIR = { insurance_claim: 'in', rent: 'in', salary: 'in', survival: 'in', dividend: 'in', fund_dist: 'in', policy_dist: 'in', interest_income: 'in', other_income: 'in' };
 function scheduleForm(s) {
   openModal(s ? '編輯未來排程' : '新增未來排程', [
-    { k: 'kind', label: '類型', type: 'select', opts: KIND_OPTS(), req: true },
-    { k: 'direction', label: '流向', type: 'select', opts: [['in', '流入'], ['out', '流出']] },
+    { k: 'kind', label: '類型', type: 'select', opts: SCHED_KINDS.map((k) => [k, C.KINDS[k].label]), req: true },
+    { k: 'direction', label: '流向', type: 'select', opts: [['out', '支出'], ['in', '收入']] },
     { k: 'amount', label: '每期金額（未知可留空）', type: 'number' },
     ccyField(),
     { k: 'start_date', label: '第一期日期', type: 'date', req: true },
     { k: 'frequency', label: '頻率', type: 'select', opts: optsOf(FREQ) },
     { k: 'end_date', label: '結束日（選填）', type: 'date' },
-    { k: 'basis', label: '性質', type: 'select', opts: [['estimate', '預估'], ['contract', '契約約定']] },
-    { k: 'asset_id', label: '關聯資產', type: 'select', opts: [['', '（無）'], ...assetOptions()], nullable: true },
-    { k: 'liability_id', label: '關聯負債', type: 'select', opts: [['', '（無）'], ...liabOptions()], nullable: true },
-    { k: 'note', label: '備註', type: 'textarea', wide: true },
-  ], s || { direction: 'in', frequency: 'monthly', basis: 'estimate' }, async (row) => {
+    { k: 'note', label: '說明', wide: true, ph: '例：回診、A 公司實支理賠' },
+  ], s || { direction: 'out', frequency: 'monthly', kind: 'fixed_expense' }, async (row) => {
     validNumbers(row, ['amount']);
     await save('fin_cash_schedules', row, s && s.id);
   }, '', s ? async () => remove('fin_cash_schedules', s.id) : null);
+  const f = $('fin-form');
+  f.elements.kind.addEventListener('change', () => { f.elements.direction.value = SCHED_DIR[f.elements.kind.value] || 'out'; });
 }
 function collForm(k) {
   if (!data.liabilities.length || !data.assets.length) { toast('需要先有負債與資產'); return; }

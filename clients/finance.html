@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../shared/auth.css?v=20261118-1">
 <link rel="stylesheet" href="picker.css?v=20261118-1">
 <link rel="stylesheet" href="style.css?v=20261119-1">
-<link rel="stylesheet" href="finance.css?v=20261119-2">
+<link rel="stylesheet" href="finance.css?v=20261120-1">
 </head>
 <body>
 
@@ -55,8 +55,7 @@
         <input type="text" id="fin-client" data-pick="fin-client" placeholder="點選或輸入客戶姓名／ID" autocomplete="off">
       </label>
       <label>基準日<input type="date" id="fin-asof"></label>
-      <label>收支期間（起）<input type="date" id="fin-from"></label>
-      <label>收支期間（迄）<input type="date" id="fin-to"></label>
+      <input type="hidden" id="fin-from"><input type="hidden" id="fin-to">
     </div>
     <div class="fin-bar-actions">
       <span class="fin-status" id="fin-status"></span>
@@ -74,7 +73,7 @@
       <button type="button" class="fin-tab active" data-sec="overview">總覽</button>
       <button type="button" class="fin-tab" data-sec="assets">資產</button>
       <button type="button" class="fin-tab" data-sec="liabs">負債</button>
-      <button type="button" class="fin-tab" data-sec="cash">收支</button>
+      <button type="button" class="fin-tab" data-sec="cash">收支日曆</button>
       <button type="button" class="fin-tab" data-sec="links">資金關聯</button>
       <button type="button" class="fin-tab" data-sec="snaps">報表紀錄</button>
     </div>
@@ -98,11 +97,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script src="../shared/supabase-client.js?v=20261118-1"></script>
-<script src="../shared/auth.js?v=20261118-1"></script>
+<script src="../shared/auth.js?v=20261120-1"></script>
 <script src="data.js?v=20261118-1"></script>
 <script src="db.js?v=20261118-1"></script>
 <script src="picker.js?v=20261118-1"></script>
-<script src="finance-calc.js?v=20261118-2"></script>
-<script src="finance.js?v=20261119-3"></script>
+<script src="finance-calc.js?v=20261120-1"></script>
+<script src="finance.js?v=20261120-1"></script>
 </body>
 </html>

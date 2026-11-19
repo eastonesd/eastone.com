@@ -137,3 +137,15 @@
 .tax-imported p { margin: 0 0 4px; }
 .tax-imported ul { margin: 0; padding-left: 18px; color: var(--tc-fg-6b6656); }
 .tax-imported li.warn { color: var(--tc-fg-a2402d); }
+/* 贈與：形式按鈕一行（股票／基金兩行），受贈人與金額欄縮小 */
+.gift-donor { display: grid; gap: 6px; font-size: .82rem; font-weight: 700; margin: 0 0 12px; }
+.gift-donor input { height: 42px; max-width: 420px; }
+.gift-entry { grid-template-columns: minmax(120px, 1fr) auto minmax(110px, .8fr) auto; }
+.gift-forms { grid-template-columns: repeat(4, auto); }
+.gift-forms .tax-chip { white-space: nowrap; display: flex; align-items: center; justify-content: center; min-height: 54px; padding: 8px 14px; }
+.gift-forms .tax-chip b { line-height: 1.3; text-align: center; }
+@media (max-width: 860px) {
+  .gift-entry { grid-template-columns: 1fr; }
+  .gift-forms { grid-template-columns: repeat(4, 1fr); }
+  .gift-forms .tax-chip { padding: 8px 6px; }
+}
