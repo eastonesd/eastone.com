@@ -133,3 +133,4 @@
 .fin-month-head b { color: var(--tc-fg-121d33); }
 .fin-month-head i { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
 .fin-month-head em { font-style: normal; color: var(--tc-fg-a2402d); }
+.fin-mini-sub { font-size: .72rem; color: var(--tc-fg-6b6656); }

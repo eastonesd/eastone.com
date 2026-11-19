@@ -19,7 +19,7 @@ const BASIS = { market: '市價', gross: '扣貸前價值', net_of_loan: '扣貸
 const CCYS = ['TWD', 'USD', 'JPY', 'CNY', 'VND', 'EUR', 'AUD', 'HKD', 'GBP', 'SGD', 'CAD', 'CHF', 'NZD', 'ZAR'];
 const CCY_NAMES = { TWD: '台幣', USD: '美元', JPY: '日圓', CNY: '人民幣', VND: '越南盾', EUR: '歐元', AUD: '澳幣', HKD: '港幣', GBP: '英鎊', SGD: '新加坡幣', CAD: '加幣', CHF: '瑞士法郎', NZD: '紐幣', ZAR: '南非幣' };
 const FREQ = { once: '一次', weekly: '每週', biweekly: '每兩週', triweekly: '每三週', fourweekly: '每四週', monthly: '每月', quarterly: '每季', semiannual: '每半年', annual: '每年' };
-const STATUS_TEXT = { ok: '', unvalued: '未估值', no_fx: '缺匯率', no_currency: '缺幣別', net_unreconciled: '待核對', display_only: '僅展示', no_balance: '未填餘額' };
+const STATUS_TEXT = { ok: '', unvalued: '未估值', funds_sum: '', no_fx: '缺匯率', no_currency: '缺幣別', net_unreconciled: '待核對', display_only: '僅展示', no_balance: '未填餘額' };
 
 let clients = [];
 let client = null;      // 目前客戶
@@ -373,7 +373,7 @@ function renderAssets() {
         <div class="fin-item-main"><b>${esc(r.name || '（未命名）')}</b>
           <small>${esc([a.institution, a.identifier, a.policy_ref && '保單 ' + a.policy_ref].filter(Boolean).join('・'))}</small>
           <span class="fin-chips"><i>${PURPOSE[r.purpose]}</i>${r.restriction !== 'none' ? `<i class="warn">${RESTRICT[r.restriction]}</i>` : ''}${tag}${r.flags.map((f) => `<i class="soft">${esc(f)}</i>`).join('')}</span></div>
-        <div class="fin-item-val"><b>${r.original !== null ? fmt(r.original, r.currency) + ' ' + r.currency : '—'}</b>
+        <div class="fin-item-val"><b>${r.status === 'funds_sum' ? (r.fundsTotal !== null ? fmt(r.fundsTotal) + ' TWD' : '基金未估值') : r.original !== null ? fmt(r.original, r.currency) + ' ' + r.currency : '—'}</b>
           <small>${r.base !== null && r.currency !== 'TWD' ? '≈ ' + fmt(r.base) + ' TWD' : ''}${r.valueDate ? ` ・${r.valueDate}` : ''}</small></div>
       </button>`;
     }).join('')}</div>`;
@@ -580,7 +580,7 @@ function assetOptions(excludeId) {
 }
 function liabOptions() { return data.liabilities.filter((l) => l.status !== 'archived').map((l) => [l.id, `${l.name || LIAB_CATS[l.category]}（${l.institution || ''}）`]); }
 
-function assetForm(a) {
+function assetForm(a, preset) {
   const isNew = !a;
   openModal(isNew ? '新增資產' : '編輯資產', [
     { k: 'category', label: '類別', type: 'select', opts: optsOf(CATS), req: true },
@@ -592,6 +592,7 @@ function assetForm(a) {
     { k: 'identifier', label: '代號', ph: '股票代號（例 2330、AAPL）', upper: true, when: 'category=stock|mcn|other' },
     { k: 'fund_pick', label: '基金（從東石診股清單選，含完整級別與幣別）', when: 'category=fund', pick: 'fin-fund', hint: '可輸入名稱、ISIN 或代碼搜尋；選定後會自動填幣別，淨值每天自動更新' },
     { k: 'meta_class', label: '基金級別', ph: '例：A 累積 美元', when: 'category=fund' },
+    { k: 'meta_value_from_funds', label: '保單價值＝連結基金加總（勾選後保單本身不另計，改由底下各檔基金計入）', type: 'check', when: 'category=investment_policy' },
     { k: 'share_pct', label: '持分（%）', type: 'number', def: 100, when: 'category=house', hint: '估值填整體市值時，系統只換算一次持分' },
     { k: 'meta_region', label: '地區描述', when: 'category=house' },
     { k: 'quantity', label: '持有數量（股數／單位數）', type: 'number', when: 'category=stock|fund|mcn|other' },
@@ -610,7 +611,7 @@ function assetForm(a) {
     { k: 'parent_id', label: '上層部位（例：投資型保單的底層基金）', type: 'select', opts: [['', '（無）'], ...assetOptions(a && a.id)], nullable: true },
     { k: 'include_in_total', label: '計入資產總額（銀行總覽、帳戶彙總這類只看不加的，請取消勾選）', type: 'check', def: true },
     { k: 'note', label: '備註', type: 'textarea', wide: true },
-  ], a ? { ...a, fund_pick: a.category === 'fund' && a.identifier ? `${a.identifier}｜${(a.meta || {}).fund_name || a.name}` : '', ...Object.fromEntries(Object.entries(a.meta || {}).map(([k, v]) => ['meta_' + k, v])) } : { include_in_total: true, purpose: 'none', restriction: 'none' }, async (row) => {
+  ], a ? { ...a, fund_pick: a.category === 'fund' && a.identifier ? `${a.identifier}｜${(a.meta || {}).fund_name || a.name}` : '', ...Object.fromEntries(Object.entries(a.meta || {}).map(([k, v]) => ['meta_' + k, v])) } : { include_in_total: true, purpose: 'none', restriction: 'none', ...(preset || {}) }, async (row) => {
     validNumbers(row, ['share_pct', 'quantity', 'cost', 'liquidity_days', 'exit_cost']);
     if (row.category === 'fund') {
       const fid = (row.fund_pick || '').split('｜')[0].trim();
@@ -653,6 +654,18 @@ function assetDetail(id) {
       <p>用途：${PURPOSE[a.purpose]}・限制：${RESTRICT[a.restriction]}${a.exit_cost !== null ? `・退出成本 ${fmtRaw(a.exit_cost, a.currency)}` : ''}${a.cost !== null ? `・成本 ${fmtRaw(a.cost, a.currency)}` : ''}</p>
       ${coll.length ? `<p>擔保：${coll.map((k) => esc((data.liabilities.find((l) => l.id === k.liability_id) || {}).name || '')).join('、')}</p>` : ''}
       ${funding.length ? `<p>資金來源：${funding.map((k) => (k.liability_id ? esc((data.liabilities.find((l) => l.id === k.liability_id) || {}).name || '借款') : '自有資金') + (k.amount ? ` ${fmtRaw(k.amount, k.currency)}` : '')).join('、')}</p>` : ''}
+      ${a.category === 'investment_policy' ? (() => {
+        const kids = data.assets.filter((k) => k.parent_id === a.id && k.status !== 'archived');
+        const rows = result.bs.assetRows;
+        return `<div class="fin-form-sec">連結基金（投資標的）</div>
+        ${kids.length ? `<table class="fin-table"><thead><tr><th>基金</th><th class="num">單位數</th><th class="num">現值</th><th></th></tr></thead><tbody>
+          ${kids.map((k) => { const r = rows.find((x) => x.id === k.id) || {}; return `<tr><td>${esc(k.name)}<div class="fin-mini-sub">${esc((k.meta || {}).isin || k.identifier || '')}</div></td>
+            <td class="num">${k.quantity === null ? '—' : fmtRaw(k.quantity, 'USD')}</td>
+            <td class="num">${r.original != null ? fmt(r.original, k.currency) + ' ' + k.currency : '未估值'}</td>
+            <td><button type="button" class="link-btn" data-kid="${k.id}">開啟</button></td></tr>`; }).join('')}</tbody></table>` : '<p class="fin-empty-row">還沒有連結基金。</p>'}
+        <p class="fin-note">${(a.meta || {}).value_from_funds ? '保單價值＝這些基金的合計（保單本身不另計）。' : '目前保單價值以下方估值紀錄為準，基金只展示、不重複計入；若要以基金加總當保單價值，請在「編輯資產資料」勾選。'}基金淨值會跟著「更新行情」自動更新。</p>
+        <div class="fin-form-actions"><span></span><button type="button" class="btn-secondary" id="fd-fund">＋ 連結基金</button></div>`;
+      })() : ''}
       <div class="fin-form-sec">估值紀錄</div>
       ${vals.length ? `<table class="fin-table"><thead><tr><th>日期</th><th>口徑</th><th class="num">現值</th><th>來源</th><th></th></tr></thead><tbody>
         ${vals.map((v) => `<tr><td>${v.as_of}</td><td>${BASIS[v.value_basis]}${v.is_manual ? '' : '<i class="fin-mini">自動</i>'}${v.override_reason ? `<i class="fin-mini">覆寫</i>` : ''}</td>
@@ -666,6 +679,8 @@ function assetDetail(id) {
   onSubmit = null;
   $('fd-edit').onclick = () => assetForm(a);
   $('fd-val').onclick = () => valueForm(a);
+  if ($('fd-fund')) $('fd-fund').onclick = () => assetForm(null, { category: 'fund', parent_id: a.id, institution: a.institution, purpose: a.purpose, restriction: a.restriction, name: '' });
+  $('fin-form').querySelectorAll('[data-kid]').forEach((b) => b.onclick = () => assetDetail(b.dataset.kid));
   $('fin-form').querySelectorAll('[data-val]').forEach((b) => b.onclick = () => valueForm(a, vals.find((v) => v.id === b.dataset.val)));
 }
 

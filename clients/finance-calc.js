@@ -82,11 +82,15 @@
     const byId = new Map(assets.map((a) => [a.id, a]));
 
     // 父子部位：上層已計入總額時，底層只展示
+    // 投資型保單勾了「價值＝連結基金加總」：保單本身只展示，改由底下的基金各自計入（避免重複）
+    const hasKids = new Set(assets.filter((x) => x.parent_id).map((x) => x.parent_id));
+    const fromFunds = (x) => !!(x && x.meta && x.meta.value_from_funds && hasKids.has(x.id));
     const counted = (a) => {
       if (!a.include_in_total) return false;
+      if (fromFunds(a)) return false;
       let p = a.parent_id && byId.get(a.parent_id);
       const seen = new Set();
-      while (p && !seen.has(p.id)) { if (p.include_in_total) return false; seen.add(p.id); p = p.parent_id && byId.get(p.parent_id); }
+      while (p && !seen.has(p.id)) { if (p.include_in_total && !fromFunds(p)) return false; seen.add(p.id); p = p.parent_id && byId.get(p.parent_id); }
       return true;
     };
 
@@ -126,6 +130,16 @@
       if (b.value === null) { if (row.counted) row.status = 'no_fx'; row.flags.push(`缺 ${a.currency} 匯率`); return row; }
       row.base = b.value;
       return row;
+    });
+
+    // 「價值＝連結基金加總」的保單：顯示底下基金的台幣合計（不另外計入）
+    assetRows.forEach((row) => {
+      const a = byId.get(row.id);
+      if (!fromFunds(a)) return;
+      const kids = assetRows.filter((k) => byId.get(k.id).parent_id === a.id);
+      row.status = 'funds_sum';
+      row.fundsTotal = kids.every((k) => k.base !== null) ? sum(kids.map((k) => k.base)) : null;
+      row.flags.push(`價值＝連結基金 ${kids.length} 檔加總`);
     });
 
     const liabRows = liabilities.map((l) => {

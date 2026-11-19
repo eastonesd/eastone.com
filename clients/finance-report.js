@@ -10,7 +10,7 @@
   const LIAB = { mortgage: '房貸', policy_loan: '保單貸款', securities_loan: '基金／股票質借', other: '其他借款' };
   const PURPOSE = { hot: '熱錢', cold: '冷錢', none: '未分類' };
   const RESTRICT = { none: '未設限', pledged: '質押', locked: '鎖定', repay: '需還款解押', unknown: '待確認' };
-  const ST = { ok: '', unvalued: '未估值・未納入', no_fx: '缺匯率・未納入', no_currency: '缺幣別', net_unreconciled: '扣貸口徑待核對・未納入', display_only: '僅展示（上層已計入）', no_balance: '未填餘額・未納入' };
+  const ST = { ok: '', funds_sum: '價值＝連結基金加總', unvalued: '未估值・未納入', no_fx: '缺匯率・未納入', no_currency: '缺幣別', net_unreconciled: '扣貸口徑待核對・未納入', display_only: '僅展示（上層已計入）', no_balance: '未填餘額・未納入' };
   const fmt = (big, ccy = 'TWD') => {
     if (big === null || big === undefined) return '—';
     const dp = ['TWD', 'JPY'].includes(ccy) ? 0 : 2;
