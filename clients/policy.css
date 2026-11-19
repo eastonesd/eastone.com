@@ -173,3 +173,4 @@
 .pf-occhint.warn { background:var(--tc-bg-fbedea); color:var(--tc-fg-a2402d); }
 .pf-occhint.muted { background:var(--tc-bg-ede8dc); color:var(--tc-fg-6b6656); }
 .pf-occhint .link-btn { margin-left: 6px; font-weight: 700; }
+html[data-theme="dark"] .pf-savebar { background: rgba(22, 27, 38, .96); box-shadow: 0 -4px 14px rgba(0, 0, 0, .35); }
