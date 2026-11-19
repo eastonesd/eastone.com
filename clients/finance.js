@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.fin-tab').forEach((b) => b.addEventListener('click', () => { section = b.dataset.sec; render(); }));
   $('fin-fx-btn').addEventListener('click', refreshFx);
   $('fin-fx-manual').addEventListener('click', manualFxForm);
-  $('fin-quote-btn').addEventListener('click', refreshQuotes);
+  $('fin-quote-btn').addEventListener('click', () => refreshQuotes(false));
   $('fin-snap-btn').addEventListener('click', saveSnapshot);
   $('fin-modal-close').addEventListener('click', closeModal);
   $('fin-modal').addEventListener('click', (e) => { if (e.target.id === 'fin-modal') closeModal(); });
@@ -137,12 +137,21 @@ async function openClient(id) {
   $('fin-empty').hidden = true; $('fin-body').hidden = false;
   showFxStatus();
   recompute();
+  // 打開客戶就自動向東石診股更新一次行情；台股交易時段每 5 分鐘再更新
+  refreshQuotes(true);
+  clearInterval(quoteTimer);
+  quoteTimer = setInterval(() => {
+    const t = new Date(Date.now() + 8 * 3600e3), d = t.getUTCDay(), hm = t.getUTCHours() * 100 + t.getUTCMinutes();
+    if (d >= 1 && d <= 5 && hm >= 900 && hm <= 1335 && !document.hidden) refreshQuotes(true);
+  }, 5 * 60e3);
 }
 async function reload() { showFxStatus(); if (!client) return; data = await loadClientData(client.id); recompute(); }
 
 function showFxStatus() {
   const usd = fx.filter((q) => q.currency === 'USD' && !q.owner)[0];
-  setStatus(usd ? `匯率：${usd.source}，${usd.quote_date}（1 USD = ${Number(usd.rate)} TWD）` : '尚無自動匯率，請按「更新匯率」');
+  let token = ''; try { token = localStorage.getItem('eastone.finmindToken') || ''; } catch { /* 無痕模式 */ }
+  setStatus((usd ? `匯率：${usd.source}，${usd.quote_date}（1 USD = ${Number(usd.rate)} TWD）` : '尚無自動匯率，請按「更新匯率」')
+    + `｜行情：已連接東石診股${token ? '' : '（未設定 FinMind 金鑰，美股查詢次數較少）'}${lastQuoteAt ? `，${lastQuoteAt.toTimeString().slice(0, 5)} 更新` : ''}`);
 }
 
 // ---------- 自動資料 ----------
@@ -187,6 +196,8 @@ async function refreshFx() {
 const STOCK_SITE = 'https://eastonesd.github.io/eastone.stock/';
 const FINMIND = 'https://api.finmindtrade.com/api/v4/data';
 let fundIndex = null;
+let lastQuoteAt = null;
+let quoteTimer = null;
 async function loadFundIndex() {
   if (fundIndex) return fundIndex;
   const res = await fetch(STOCK_SITE + 'data/funds/index.json', { cache: 'no-cache' });
@@ -210,20 +221,25 @@ async function finmindClose(market, symbol) {
   const last = rows[rows.length - 1];
   return { price: Number(last.close ?? last.Close), date: last.date, currency: market === 'US' ? 'USD' : 'TWD', source: `FinMind ${market === 'US' ? '美股' : '台股'}收盤價（東石診股）` };
 }
-async function refreshQuotes() {
-  if (!data) { toast('請先選擇客戶'); return; }
+// silent：開啟客戶時自動更新，不跳提示、找不到報價也不打擾
+async function refreshQuotes(silent = false) {
+  if (silent !== true) silent = false;
+  if (!data) { if (!silent) toast('請先選擇客戶'); return; }
   const live = data.assets.filter((a) => a.status !== 'archived' && a.identifier);
   const stocks = live.filter((a) => a.category === 'stock' && ['TWSE', 'TPEX', 'US'].includes(a.market));
   const funds = live.filter((a) => a.category === 'fund' && /^[TF]-/.test(a.identifier));
-  if (!stocks.length && !funds.length) { toast('沒有可自動更新的部位（股票需填市場與代號；基金需從東石診股清單選取）'); return; }
-  setStatus('更新行情中…');
+  if (!stocks.length && !funds.length) { if (!silent) toast('沒有可自動更新的部位（股票需填市場與代號；基金需從東石診股清單選取）'); return; }
+  setStatus('從東石診股更新行情中…');
   let saved = 0; const fails = [];
   const store = async (a, q) => {
     if (q.currency !== a.currency) { fails.push(`${a.name}：報價幣別 ${q.currency} 與資產幣別 ${a.currency} 不同，未更新`); return; }
     if (C.D(a.quantity) === null) { fails.push(`${a.name}：未填數量，無法計算市值`); return; }
-    if (data.assetValues.some((v) => v.asset_id === a.id && v.as_of === q.date && !v.is_manual)) return;
     const value = C.toNum(C.mul(C.D(a.quantity), C.D(q.price)));
-    await save('fin_asset_values', { asset_id: a.id, as_of: q.date, quantity: a.quantity, price: q.price, value, value_basis: 'market', source: q.source, is_manual: false });
+    const row = { asset_id: a.id, as_of: q.date, quantity: a.quantity, price: q.price, value, value_basis: 'market', source: q.source, is_manual: false };
+    // 同一天的自動估值只留一筆：盤中更新就覆蓋成最新價（人工覆寫的那筆不動）
+    const same = data.assetValues.find((v) => v.asset_id === a.id && v.as_of === q.date && !v.is_manual);
+    if (same && Number(same.price) === Number(q.price) && same.source === q.source) return;
+    await save('fin_asset_values', row, same && same.id);
     saved++;
   };
   // 基金
@@ -237,29 +253,35 @@ async function refreshQuotes() {
       }
     } catch (e) { fails.push('基金：' + e.message); }
   }
+  // 台股：先查證交所基本市況報價（盤中最新成交價），查不到再用 FinMind、最後用證交所／櫃買中心收盤價
+  const tw = stocks.filter((a) => a.market !== 'US');
+  const rt = new Map();
+  if (tw.length) {
+    try {
+      const out = await callFn('fin-quotes', { realtime: true, items: [...new Map(tw.map((a) => [a.market + a.identifier.toUpperCase(), { market: a.market, symbol: a.identifier }])).values()] });
+      out.results.filter((q) => q.ok).forEach((q) => rt.set(q.market + q.symbol, q));
+    } catch { /* 改用 FinMind */ }
+  }
   // 股票（同一代號只查一次）
   const cache = new Map();
   for (const a of stocks) {
     const mk = a.market === 'US' ? 'US' : 'TW';
     const key = mk + a.identifier.toUpperCase();
+    const live = rt.get(a.market + a.identifier.toUpperCase());
+    if (live) { await store(a, { price: live.price, date: live.date, currency: live.currency, source: live.source }); continue; }
     try {
       if (!cache.has(key)) cache.set(key, await finmindClose(mk, a.identifier.toUpperCase()));
       await store(a, cache.get(key));
     } catch (e) {
-      // 台股 FinMind 失敗時改用證交所／櫃買中心公開收盤價
-      if (mk === 'TW') {
-        try {
-          const out = await callFn('fin-quotes', { items: [{ market: a.market, symbol: a.identifier }] });
-          const q = out.results[0];
-          if (q && q.ok) { await store(a, { price: q.price, date: q.date, currency: q.currency, source: q.source }); continue; }
-        } catch { /* 兩個來源都失敗 */ }
-      }
       fails.push(`${a.name || a.identifier}：${e.message}`);
     }
   }
-  await reload();
-  toast(`已更新 ${saved} 筆行情` + (fails.length ? `；${fails.length} 筆未更新` : ''));
-  if (fails.length) alert('以下項目沒有自動更新（原本的估值保留不變）：\n\n' + fails.join('\n'));
+  lastQuoteAt = new Date();
+  if (saved) await reload();
+  if (!silent) {
+    toast(`已更新 ${saved} 筆行情` + (fails.length ? `；${fails.length} 筆未更新` : ''));
+    if (fails.length) alert('以下項目沒有自動更新（原本的估值保留不變）：\n\n' + fails.join('\n'));
+  }
   showFxStatus();
 }
 
