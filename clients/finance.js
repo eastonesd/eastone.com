@@ -322,7 +322,7 @@ function renderOverview() {
       ${statBox('已估值資產', fmt(bs.assetsTotal), wan(bs.assetsTotal))}
       ${statBox('已確認負債', fmt(bs.liabTotal), wan(bs.liabTotal))}
       ${statBox(bs.complete ? '淨資產' : '淨資產（部分）', fmt(bs.net), wan(bs.net), 'em')}
-      ${statBox('估計可自由動用（熱錢）', fmt(av.confirmed), av.pending > 0n ? `另有 ${wan(av.pending)} 待確認` : '估計值，非銀行承諾')}
+      ${statBox('估計可自由動用（熱錢）', fmt(av.confirmed), av.pending > 0n ? `另有 ${wan(av.pending)} 待確認（受質押或限制、解押條件未填齊）` : '估計值，非銀行承諾')}
     </div>
     <div class="fin-grid2">
       <div><h3>資料完整度</h3>
@@ -597,7 +597,6 @@ function assetForm(a, preset) {
     { k: 'identifier', label: '代號', ph: '股票代號（例 2330、AAPL）', upper: true, when: 'category=stock|mcn|other' },
     { k: 'fund_pick', label: '基金（從東石診股清單選，含完整級別與幣別）', when: 'category=fund', pick: 'fin-fund', hint: '可輸入名稱、ISIN 或代碼搜尋；選定後會自動填幣別，淨值每天自動更新' },
     { k: 'meta_class', label: '基金級別', ph: '例：A 累積 美元', when: 'category=fund' },
-    { k: 'meta_value_from_funds', label: '保單價值＝連結基金加總（勾選後保單本身不另計，改由底下各檔基金計入）', type: 'check', when: 'category=investment_policy' },
     { k: 'share_pct', label: '持分（%）', type: 'number', def: 100, when: 'category=house', hint: '估值填整體市值時，系統只換算一次持分' },
     { k: 'meta_region', label: '地區描述', when: 'category=house' },
     { k: 'quantity', label: '持有數量（股數／單位數）', type: 'number', when: 'category=stock|fund|mcn|other' },
@@ -669,7 +668,7 @@ function assetDetail(id) {
             <td class="num">${k.quantity === null ? '—' : fmtRaw(k.quantity, 'USD')}</td>
             <td class="num">${r.original != null ? fmt(r.original, k.currency) + ' ' + k.currency : '未估值'}</td>
             <td><button type="button" class="link-btn" data-kid="${k.id}">開啟</button></td></tr>`; }).join('')}</tbody></table>` : '<p class="fin-empty-row">還沒有連結基金。</p>'}
-        <p class="fin-note">${(a.meta || {}).value_from_funds ? '保單價值＝這些基金的合計（保單本身不另計）。' : '目前保單價值以下方估值紀錄為準，基金只展示、不重複計入；若要以基金加總當保單價值，請在「編輯資產資料」勾選。'}基金淨值會跟著「更新行情」自動更新。</p>
+        <p class="fin-note">保單價值＝這些基金的合計（保單本身不另計）。基金淨值會跟著「更新行情」自動更新。</p>
         <div class="fin-form-actions"><span></span><button type="button" class="btn-secondary" id="fd-fund">＋ 連結基金</button></div>`;
       })() : ''}
       <div class="fin-form-sec">估值紀錄</div>

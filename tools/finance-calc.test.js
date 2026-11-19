@@ -187,13 +187,13 @@ test('每三週一次的排程（回診 6 萬、兩家理賠）依 21 天展開'
   assert.equal(r.upcoming.length, 12);
 });
 
-test('投資型保單連結基金：未勾「價值＝基金加總」時只算保單；勾了改算基金、保單不重複', () => {
+test('投資型保單連結基金：一律改算基金、保單不重複', () => {
   const kids = [asset('F1', { parent_id: 'IP', currency: 'USD' }), asset('F2', { parent_id: 'IP' })];
   const vals = [val('IP', 300 * W), val('F1', 5000), val('F2', 100 * W)];
   const fx = [{ currency: 'USD', quote_date: '2026-11-01', rate: 32 }];
-  const a = run({ fx, assets: [asset('IP', { category: 'investment_policy' }), ...kids], assetValues: vals });
+  const a = run({ fx, assets: [asset('IP', { category: 'investment_policy' })], assetValues: vals.slice(0, 1) });
   assert.equal(N(a.bs.assetsTotal), 300 * W);
-  const b = run({ fx, assets: [asset('IP', { category: 'investment_policy', meta: { value_from_funds: true } }), ...kids], assetValues: vals });
+  const b = run({ fx, assets: [asset('IP', { category: 'investment_policy' }), ...kids], assetValues: vals });
   assert.equal(N(b.bs.assetsTotal), 16 * W + 100 * W);
   const ip = b.bs.assetRows.find((r) => r.id === 'IP');
   assert.equal(ip.status, 'funds_sum');

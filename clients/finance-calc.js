@@ -82,9 +82,9 @@
     const byId = new Map(assets.map((a) => [a.id, a]));
 
     // 父子部位：上層已計入總額時，底層只展示
-    // 投資型保單勾了「價值＝連結基金加總」：保單本身只展示，改由底下的基金各自計入（避免重複）
+    // 投資型保單只要有連結基金，一律「價值＝連結基金加總」：保單本身只展示，改由底下的基金各自計入（避免重複）
     const hasKids = new Set(assets.filter((x) => x.parent_id).map((x) => x.parent_id));
-    const fromFunds = (x) => !!(x && x.meta && x.meta.value_from_funds && hasKids.has(x.id));
+    const fromFunds = (x) => !!(x && (x.category === 'investment_policy' || (x.meta && x.meta.value_from_funds)) && hasKids.has(x.id));
     const counted = (a) => {
       if (!a.include_in_total) return false;
       if (fromFunds(a)) return false;
