@@ -162,6 +162,7 @@
 ## 七、維護規則
 
 - 修改前先 `git pull`；commit 作者用 `eastonesd` / `eastone.sd@gmail.com`；直接推 `main`，不走手動合併 PR。
+- 登入狀態存在瀏覽器的 `eastone-insurance-auth`（`shared/supabase-client.js`），和同網域的亞瑟智能管家分開；登出只登出本站（`signOut({ scope: "local" })`）。
 - 網頁不可放 service_role／secret key。LINE、GitHub、Anthropic 金鑰與 Discord webhook 一律由管理員在 Supabase 後台設定，不在對話或程式碼中出現。
 - **深色模式**：`shared/theme.js`（放在 `<head>` 最前面）＋ `shared/theme-tokens.css`。頁首有切換鈕：自動（跟隨系統，預設）→ 淺色 → 深色，記在瀏覽器 `localStorage`。
   - 各頁 CSS 的顏色都寫成 `var(--tc-<用途>-<原色>)`（用途 bg 背景／fg 文字／bd 框線），淺色＝原色、深色值在 `theme-tokens.css` 的 `html[data-theme="dark"]` 區塊。**新增樣式時也請用這些變數**，或另外補 `html[data-theme="dark"]` 規則，否則深色模式會出現亮白區塊。

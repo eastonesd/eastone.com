@@ -148,7 +148,7 @@ function toggleAccountMenu(btn) {
   menu.querySelector('[data-act="pw"]').addEventListener('click', () => { closeAccountMenu(); openPasswordDialog(); });
   menu.querySelector('[data-act="logout"]').addEventListener('click', async () => {
     closeAccountMenu();
-    await sb.auth.signOut();
+    await sb.auth.signOut({ scope: 'local' }); // 只登出東石保險這邊，不影響亞瑟
     // 需要登入的頁面回到登入頁；公開頁面（理賠／契變）留在原地，頭像變回未登入
     if (AUTH_REQUIRED) location.replace(loginUrl());
     else renderAvatar(null);

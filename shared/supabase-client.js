@@ -13,7 +13,11 @@ const SUPABASE_KEY = 'sb_publishable_n309GkhFeBRtg7thi9cSdQ_m6MiBpoU';
 const LINE_OA_ID = '@686icngd';
 
 // supabase-js 的 UMD 版會建立全域變數 supabase，這裡建立連線物件 sb 給其他檔案使用
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// 登入狀態用自己的名稱存（eastone-insurance-auth），和同網域的亞瑟智能管家分開：
+// 兩邊各自登入、各自登出，互不影響
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { storageKey: 'eastone-insurance-auth', persistSession: true, autoRefreshToken: true },
+});
 
 // 把 Supabase 回傳的錯誤轉成看得懂的中文訊息後丟出
 function sbThrow(error, action) {
