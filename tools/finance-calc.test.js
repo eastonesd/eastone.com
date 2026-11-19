@@ -57,11 +57,11 @@ test('05 只有扣貸後淨額 70 萬＋貸款 30 萬 → 不會算成 40 萬；
   assert.equal(N(ok.bs.net), 70 * W);
 });
 
-test('06 投資型保單與底層基金都有明細 → 不重複加總', () => {
+test('06 投資型保單與底層基金都有明細 → 以基金加總、不重複', () => {
   const r = run({ assets: [asset('IP', { category: 'investment_policy' }), asset('F1', { parent_id: 'IP' }), asset('F2', { parent_id: 'IP' })],
     assetValues: [val('IP', 200 * W), val('F1', 120 * W), val('F2', 80 * W)] });
   assert.equal(N(r.bs.assetsTotal), 200 * W);
-  assert.equal(r.bs.assetRows.filter((x) => x.status === 'display_only').length, 2);
+  assert.equal(r.bs.assetRows.find((x) => x.id === 'IP').status, 'funds_sum');
 });
 
 test('07 USD 10,000、1 USD = 32 → 320,000，原幣保留', () => {
