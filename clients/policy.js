@@ -72,6 +72,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   eraDateInput("pf-effective");
   eraDateInput("pf-r-effective");
+  // 這位客戶其他保單用過的非客戶要保人／繳費人，直接列進下拉
+  (client.policies || []).forEach((p) => { const L = p.life || {}; [L.applicant_id, L.payer_id].forEach((id) => { if (isExt(id)) extPeople.add(id.slice(EXT.length)); }); });
   buildStaticOptions();
   bindForm();
   renderClient();
@@ -134,7 +136,7 @@ function buildStaticOptions() {
   const html = `<optgroup label="本人">${opt(client, "本人")}</optgroup>`
     + (house.length ? `<optgroup label="同住址">${house.map((c) => opt(c)).join("")}</optgroup>` : "")
     + (rest.length ? `<optgroup label="其他客戶">${rest.map((c) => opt(c)).join("")}</optgroup>` : "");
-  ["pf-applicant", "pf-insured", "pf-r-person"].forEach((id) => { $(id).innerHTML = html; $(id).value = client.id; });
+  ["pf-applicant", "pf-insured", "pf-r-person"].forEach((id) => { $(id).innerHTML = html + (id === "pf-applicant" ? extGroup() : ""); $(id).value = client.id; });
 
   // 商品代號／名稱提示
   // 主約：同一商品的各版本整合成一個商品（IAT、IAT1、IAT2 → IAT）
@@ -214,7 +216,27 @@ function setMainCode(code) {
   syncMainNew();
 }
 
+// 非客戶（例如替客戶投保的父母）：不建客戶檔，只記姓名；值存成 "ext:姓名"
+const EXT = "ext:";
+const EXT_NEW = "__ext_new__";
+const isExt = (id) => String(id || "").startsWith(EXT);
+const extPeople = new Set();
+function extGroup() {
+  return `<optgroup label="非客戶（只記姓名）">${[...extPeople].map((n) => `<option value="${esc(EXT + n)}">${esc(n)}（非客戶）</option>`).join("")}<option value="${EXT_NEW}">＋ 新增非客戶（例：父母）…</option></optgroup>`;
+}
+function addExtOption(sel, id) {
+  if (!isExt(id) || [...sel.options].some((o) => o.value === id)) return;
+  extPeople.add(id.slice(EXT.length));
+  const o = document.createElement("option"); o.value = id; o.textContent = `${id.slice(EXT.length)}（非客戶）`;
+  sel.insertBefore(o, sel.querySelector(`option[value="${EXT_NEW}"]`) || null);
+}
+function askExt(sel, fallback) {
+  const n = (prompt("要保人／繳費人不是您的客戶時，直接輸入姓名即可（例：王大明）") || "").trim();
+  if (!n) { sel.value = fallback; return false; }
+  addExtOption(sel, EXT + n); sel.value = EXT + n; return true;
+}
 function personName(id) {
+  if (isExt(id)) return id.slice(EXT.length);
   const c = allClients.find((x) => x.id === id) || (id === client.id ? client : null);
   return c ? c.name : "";
 }
@@ -225,10 +247,10 @@ function fillPayerOptions(pick) {
   const sel = $("pf-payer");
   const keep = pick || sel.value || $("pf-applicant").value;
   const appId = $("pf-applicant").value;
-  const app = personRecord(appId);
+  const app = personRecord(appId) || (isExt(appId) ? { id: appId, name: appId.slice(EXT.length) } : null);
   const ins = personRecord($("pf-insured").value);
   const keys = new Set([addressKey(app), addressKey(ins)].filter(Boolean));
-  const label = (c) => `${c.name}（${c.id === client.id ? "本人" : c.id}）`;
+  const label = (c) => `${c.name}（${c.id === client.id ? "本人" : isExt(c.id) ? "非客戶" : c.id}）`;
   const everyone = [client, ...allClients.filter((c) => c.id !== client.id)];
   const house = everyone.filter((c) => c.id !== appId && keys.has(addressKey(c)));
   const houseIds = new Set(house.map((c) => c.id));
@@ -237,7 +259,8 @@ function fillPayerOptions(pick) {
   const opt = (c) => `<option value="${esc(c.id)}">${esc(label(c))}</option>`;
   sel.innerHTML = (app ? `<optgroup label="要保人">${opt(app)}</optgroup>` : "")
     + (house.length ? `<optgroup label="同住址">${house.map(opt).join("")}</optgroup>` : "")
-    + `<optgroup label="其他客戶">${rest.map(opt).join("")}</optgroup>`;
+    + `<optgroup label="其他客戶">${rest.map(opt).join("")}</optgroup>` + extGroup();
+  addExtOption(sel, keep);
   sel.value = [...sel.options].some((o) => o.value === keep) ? keep : appId;
 }
 
@@ -277,8 +300,16 @@ function bindForm() {
   // 基本資料的被保人／職等／生效日，順手帶到附約的預設值
   $("pf-insured").addEventListener("change", () => { $("pf-r-person").value = $("pf-insured").value; fillPayerOptions(); });
   // 繳費人預設同要保人；手動改成別人之後，就不再跟著要保人變
-  $("pf-applicant").addEventListener("change", () => fillPayerOptions(payerFollows ? $("pf-applicant").value : undefined));
-  $("pf-payer").addEventListener("change", () => { payerFollows = $("pf-payer").value === $("pf-applicant").value; });
+  let lastApp = null, lastPayer = null;
+  $("pf-applicant").addEventListener("focus", () => { lastApp = $("pf-applicant").value; });
+  $("pf-payer").addEventListener("focus", () => { lastPayer = $("pf-payer").value; });
+  $("pf-applicant").addEventListener("change", () => {
+    if ($("pf-applicant").value === EXT_NEW && !askExt($("pf-applicant"), lastApp || client.id)) return;
+    fillPayerOptions(payerFollows ? $("pf-applicant").value : undefined);
+  });
+  $("pf-payer").addEventListener("change", () => {
+    if ($("pf-payer").value === EXT_NEW && !askExt($("pf-payer"), lastPayer || $("pf-applicant").value)) return;
+    payerFollows = $("pf-payer").value === $("pf-applicant").value; });
   $("pf-occ").addEventListener("change", () => { $("pf-r-occ").value = $("pf-occ").value; });
   $("pf-effective").addEventListener("change", () => { $("pf-r-effective").value = $("pf-effective").value; });
 
@@ -727,6 +758,7 @@ function fillForm(p) {
   syncDiscount();
 
   const setPerson = (sel, id) => { $(sel).value = id && [...$(sel).options].some((o) => o.value === id) ? id : client.id; };
+  if (isExt(L.applicant_id)) addExtOption($("pf-applicant"), L.applicant_id);
   setPerson("pf-applicant", L.applicant_id);
   setPerson("pf-insured", L.insured_id);
   // 繳費人：沒填過或跟要保人同一人 → 之後換要保人時繳費人跟著換
