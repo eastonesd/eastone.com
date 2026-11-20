@@ -228,7 +228,8 @@ function addExtOption(sel, id) {
   if (!isExt(id) || [...sel.options].some((o) => o.value === id)) return;
   extPeople.add(id.slice(EXT.length));
   const o = document.createElement("option"); o.value = id; o.textContent = `${id.slice(EXT.length)}（非客戶）`;
-  sel.insertBefore(o, sel.querySelector(`option[value="${EXT_NEW}"]`) || null);
+  const ref = sel.querySelector(`option[value="${EXT_NEW}"]`);
+  if (ref) ref.parentNode.insertBefore(o, ref); else sel.appendChild(o);
 }
 function askExt(sel, fallback) {
   const n = (prompt("要保人／繳費人不是您的客戶時，直接輸入姓名即可（例：王大明）") || "").trim();
