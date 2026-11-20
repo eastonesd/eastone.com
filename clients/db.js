@@ -32,29 +32,30 @@ function nowStamp() {
   return new Date().toISOString().slice(0, 19);
 }
 
-// ---------- 保單代號（insurance_codes，全公司共用） ----------
+// ---------- 保單代號（insurance_codes，依保險公司分開：主鍵 company + code） ----------
+const DEFAULT_CODE_COMPANY = '富邦人壽';
 
 // 預設代號已經由 schema.sql 寫進資料庫；這裡只是保險起見，萬一資料表是空的才補上
 async function seedInsuranceCodesIfEmpty() {
   const { count, error } = await sb.from('insurance_codes').select('code', { count: 'exact', head: true });
   sbThrow(error, '讀取保單代號');
   if (count > 0) return;
-  const rows = Object.entries(INSURANCE_CODES_SEED).map(([code, name]) => ({ code: code.toUpperCase(), name }));
-  const { error: e2 } = await sb.from('insurance_codes').upsert(rows, { onConflict: 'code', ignoreDuplicates: true });
+  const rows = Object.entries(INSURANCE_CODES_SEED).map(([code, name]) => ({ company: DEFAULT_CODE_COMPANY, code: code.toUpperCase(), name }));
+  const { error: e2 } = await sb.from('insurance_codes').upsert(rows, { onConflict: 'company,code', ignoreDuplicates: true });
   sbThrow(e2, '建立預設保單代號');
 }
 
-// 保單代號列：[{ code, name, kind: 'main' | 'rider', cat1, cat2, auto_created }]
+// 保單代號列：[{ company, code, name, kind: 'main' | 'rider', cat1, cat2, auto_created }]
 async function codeRows() {
-  const rows = await fetchAllRows('insurance_codes', 'code,name,kind,cat1,cat2,auto_created', '讀取保單代號');
-  rows.forEach((r) => { r.kind = r.kind === 'rider' ? 'rider' : 'main'; r.cat1 = r.cat1 || ''; r.cat2 = r.cat2 || ''; });
-  rows.sort((a, b) => (a.code < b.code ? -1 : 1));
+  const rows = await fetchAllRows('insurance_codes', 'company,code,name,kind,cat1,cat2,auto_created', '讀取保單代號');
+  rows.forEach((r) => { r.company = r.company || DEFAULT_CODE_COMPANY; r.kind = r.kind === 'rider' ? 'rider' : 'main'; r.cat1 = r.cat1 || ''; r.cat2 = r.cat2 || ''; });
+  rows.sort((a, b) => (a.company === b.company ? (a.code < b.code ? -1 : 1) : (a.company < b.company ? -1 : 1)));
   return rows;
 }
 
-async function codeList() {
+async function codeList(company) {
   const map = {};
-  (await codeRows()).forEach((r) => { map[r.code] = r.name; });
+  (await codeRows()).filter((r) => !company || r.company === company).forEach((r) => { map[r.code] = r.name; });
   return map;
 }
 
@@ -65,11 +66,11 @@ function codeFamily(code) {
 }
 
 // cats 省略時保留原本的類別（例如「改為主約／附約」只改 kind）
-async function codeAdd(code, name, kind = 'main', cats = null, autoCreated = false) {
-  const row = { code, name, kind };
+async function codeAdd(code, name, kind = 'main', cats = null, autoCreated = false, company = DEFAULT_CODE_COMPANY) {
+  const row = { company: company || DEFAULT_CODE_COMPANY, code, name, kind };
   if (cats) { row.cat1 = cats.cat1 || ''; row.cat2 = cats.cat2 || ''; }
   if (autoCreated) row.auto_created = true;
-  const { error } = await sb.from('insurance_codes').upsert(row, { onConflict: 'code' });
+  const { error } = await sb.from('insurance_codes').upsert(row, { onConflict: 'company,code' });
   sbThrow(error, '儲存保單代號');
   await codeAddEarlierVersions(row);
 }
@@ -87,8 +88,8 @@ function codeEarlierVersions(code) {
 async function codeAddEarlierVersions(row) {
   const list = codeEarlierVersions(row.code);
   if (!list.length) return [];
-  const rows = list.map((code) => ({ code, name: row.name, kind: row.kind, cat1: row.cat1 || '', cat2: row.cat2 || '', auto_created: true }));
-  const { error } = await sb.from('insurance_codes').upsert(rows, { onConflict: 'code', ignoreDuplicates: true });
+  const rows = list.map((code) => ({ company: row.company, code, name: row.name, kind: row.kind, cat1: row.cat1 || '', cat2: row.cat2 || '', auto_created: true }));
+  const { error } = await sb.from('insurance_codes').upsert(rows, { onConflict: 'company,code', ignoreDuplicates: true });
   sbThrow(error, '補建前面版本的保單代號');
   return list;
 }
@@ -146,8 +147,8 @@ const COVER_OPTIONS = ['終身', '110歲', '99歲', '95歲', '90歲', '85歲', '
 const WAIVER_TERM = '同主約繳費期滿日';
 function isLifeCat(cat1, cat2) { return LIFE_CATS.includes(cat1) || LIFE_CATS.includes(cat2); }
 
-async function codeDelete(code) {
-  const { error } = await sb.from('insurance_codes').delete().eq('code', code);
+async function codeDelete(code, company = DEFAULT_CODE_COMPANY) {
+  const { error } = await sb.from('insurance_codes').delete().eq('company', company).eq('code', code);
   sbThrow(error, '刪除保單代號');
 }
 
@@ -319,8 +320,11 @@ async function clientImportAll(records) {
 
 // 匯入保單代號備份
 async function codeImportAll(codesMap) {
-  const rows = Object.entries(codesMap || {}).map(([code, name]) => ({ code, name }));
-  await upsertInChunks('insurance_codes', rows, 'code', '匯入保單代號');
+  // 新版備份是代號列陣列（含保險公司）；舊版是 { 代號: 名稱 }，一律歸富邦
+  const rows = Array.isArray(codesMap)
+    ? codesMap.map((r) => ({ company: r.company || DEFAULT_CODE_COMPANY, code: r.code, name: r.name, kind: r.kind || 'main', cat1: r.cat1 || '', cat2: r.cat2 || '' }))
+    : Object.entries(codesMap || {}).map(([code, name]) => ({ company: DEFAULT_CODE_COMPANY, code, name }));
+  await upsertInChunks('insurance_codes', rows, 'company,code', '匯入保單代號');
 }
 
 // ============================================================

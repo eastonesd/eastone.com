@@ -366,6 +366,8 @@ th { color:var(--tc-fg-6b6656); font-weight: 600; background:var(--tc-bg-f6f3ec)
 
 /* 保單代號：主約／附約 */
 .code-kind-tabs { display: inline-flex; border:1px solid var(--tc-bd-121d33); border-radius:999px; overflow: hidden; margin-bottom: 12px; }
+.code-company { display: inline-flex; align-items: center; gap: 8px; margin: 0 14px 12px 0; font-weight: 600; }
+.code-company select { min-width: 160px; padding: 6px 10px; border-radius: 8px; }
 .code-kind { border:0; background:transparent; padding: 7px 22px; font-weight: 700; cursor: pointer; color:var(--tc-fg-121d33); font-family: inherit; font-size: .95rem; }
 .code-kind.active { background:var(--tc-bg-121d33); color:var(--tc-fg-ffffff); }
 .code-table tr.fam-more td { border-top-color:transparent; }

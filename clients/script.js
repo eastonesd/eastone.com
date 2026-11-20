@@ -150,6 +150,8 @@ async function loadInsuranceCodes() {
 
 let codeKind = "main";      // 保單代號維護目前顯示主約或附約
 let codeRowsCache = [];
+let codeCompany = (() => { try { return localStorage.getItem("eastone.codeCompany") || "富邦人壽"; } catch { return "富邦人壽"; } })();
+const CODE_COMPANIES = ["富邦人壽", "國泰人壽", "南山人壽", "新光人壽", "台灣人壽", "中國人壽", "凱基人壽", "全球人壽", "遠雄人壽", "三商美邦人壽", "安聯人壽", "台銀人壽", "宏泰人壽", "元大人壽", "保誠人壽", "第一金人壽", "合作金庫人壽", "法國巴黎人壽", "安達人壽", "友邦人壽", "康健人壽", "保德信人壽", "中華郵政", "其他"];
 
 async function refreshCodeList() {
   codeRowsCache = await codeRows();
@@ -165,14 +167,19 @@ function renderCodeList() {
   const other = codeKind === "rider" ? "主約" : "附約";
   document.querySelectorAll(".code-kind").forEach((b) => b.classList.toggle("active", b.dataset.kind === codeKind));
   document.getElementById("btn-add-code").textContent = `新增/更新${label}`;
-  const rows = codeRowsCache.filter((r) => r.kind === codeKind);
+  const sel = document.getElementById("code-company");
+  const known = [...new Set([...CODE_COMPANIES, ...codeRowsCache.map((r) => r.company)])];
+  const count = (c) => codeRowsCache.filter((r) => r.company === c).length;
+  sel.innerHTML = known.map((c) => `<option value="${escHtml(c)}">${escHtml(c)}${count(c) ? `（${count(c)}）` : ""}</option>`).join("");
+  sel.value = codeCompany;
+  const rows = codeRowsCache.filter((r) => r.kind === codeKind && r.company === codeCompany);
   // 依險種（去掉版本數字的代號）分組；多個版本的只顯示一列，點開才看到各版本
   const fams = new Map();
   rows.forEach((r) => { const f = codeFamily(r.code); if (!fams.has(f)) fams.set(f, []); fams.get(f).push(r); });
   const tbody = document.getElementById("code-list-body");
   tbody.innerHTML = "";
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="code-empty">還沒有${label}代號，請在上方新增。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="code-empty">${escHtml(codeCompany)}還沒有${label}代號，請在上方新增。</td></tr>`;
     return;
   }
   const catCells = (r) => `<td>${escHtml(r.cat1 || "—")}</td><td>${escHtml(r.cat2 || "")}</td>`;
@@ -182,13 +189,13 @@ function renderCodeList() {
     tr.querySelector("[data-del]").addEventListener("click", async (e) => {
       e.stopPropagation();
       if (!confirm(`確定刪除代號 ${r.code}？`)) return;
-      await codeDelete(r.code);
+      await codeDelete(r.code, r.company);
       showToast(`已刪除代號 ${r.code}`);
       refreshCodeList();
     });
     tr.querySelector("[data-move]").addEventListener("click", async (e) => {
       e.stopPropagation();
-      await codeAdd(r.code, r.name, codeKind === "rider" ? "main" : "rider");
+      await codeAdd(r.code, r.name, codeKind === "rider" ? "main" : "rider", null, false, r.company);
       showToast(`${r.code} 已改為${other}`);
       refreshCodeList();
     });
@@ -226,6 +233,12 @@ function renderCodeList() {
 function bindCodeMaintenance() {
   // 類別欄：依目前是主約或附約，顯示各自的類別
   PICK_SOURCES["code-cat"] = () => CAT_LISTS[codeKind === "rider" ? "rider" : "main"];
+  document.getElementById("code-company").addEventListener("change", (e) => {
+    codeCompany = e.target.value;
+    try { localStorage.setItem("eastone.codeCompany", codeCompany); } catch { /* 無痕模式 */ }
+    codeOpen.clear();
+    renderCodeList();
+  });
   document.querySelectorAll(".code-kind").forEach((b) => b.addEventListener("click", () => {
     codeKind = b.dataset.kind;
     renderCodeList();
@@ -241,14 +254,14 @@ function bindCodeMaintenance() {
     }
     // 類別留白：已有代號就保留原本的類別
     const cats = !c1 ? null : c2 ? { cat1: splitCategory(c1, codeKind).cat1, cat2: splitCategory(c2, codeKind).cat1 } : splitCategory(c1, codeKind);
-    const before = new Set(codeRowsCache.map((r) => r.code));
-    await codeAdd(code, name, codeKind, cats);
+    const before = new Set(codeRowsCache.filter((r) => r.company === codeCompany).map((r) => r.code));
+    await codeAdd(code, name, codeKind, cats, false, codeCompany);
     const added = codeEarlierVersions(code).filter((c) => !before.has(c));
     document.getElementById("code-input").value = "";
     document.getElementById("code-name-input").value = "";
     document.getElementById("code-cat-input").value = "";
     document.getElementById("code-cat2-input").value = "";
-    showToast(`已儲存${codeKind === "rider" ? "附約" : "主約"}代號 ${code}` + (added.length ? `，並補上前面版本 ${added.join("、")}` : ""));
+    showToast(`已儲存${codeCompany}${codeKind === "rider" ? "附約" : "主約"}代號 ${code}` + (added.length ? `，並補上前面版本 ${added.join("、")}` : ""));
     refreshCodeList();
   });
 }
@@ -651,7 +664,7 @@ function bindFileList() {
 function bindBackup() {
   document.getElementById("btnExportBackup").addEventListener("click", async () => {
     const clients = await clientList();
-    const codes = await codeList();
+    const codes = await codeRows();
     const payload = { clients, insurance_codes: codes };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);

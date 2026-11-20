@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="../shared/site-header.css?v=20261118-1">
 <link rel="stylesheet" href="../shared/auth.css?v=20261118-1">
 <link rel="stylesheet" href="picker.css?v=20261118-1">
-<link rel="stylesheet" href="style.css?v=20261119-1">
+<link rel="stylesheet" href="style.css?v=20261121-1">
 </head>
 <body>
 
@@ -200,11 +200,12 @@
   <!-- ============ 保單資料庫 ============ -->
   <section id="tab-codes" class="tab-panel">
     <div class="card">
+      <label class="code-company">保險公司<select id="code-company"></select></label>
       <div class="code-kind-tabs" role="tablist">
         <button type="button" class="code-kind active" data-kind="main">主約</button>
         <button type="button" class="code-kind" data-kind="rider">附約</button>
       </div>
-      <p class="hint" id="code-hint">同一險種的各版本（例如 IAT、IAT1、IAT2）收成一列，點一下展開或收合。主約與附約各有自己的類別選項；登打保單遇到新代號時會自動建檔並標示「自動建立」。</p>
+      <p class="hint" id="code-hint">每家保險公司的商品分開存放，先選上方的保險公司。同一險種的各版本（例如 IAT、IAT1、IAT2）收成一列，點一下展開或收合。主約與附約各有自己的類別選項；登打保單遇到新代號時會自動建檔並標示「自動建立」。</p>
       <div class="code-add-row">
         <input type="text" id="code-input" placeholder="險種代號（例 IAT2）" maxlength="10">
         <input type="text" id="code-name-input" placeholder="險種名稱（例 新吉好利）">
@@ -238,8 +239,8 @@
 <script src="../shared/auth.js?v=20261120-2"></script>
 <script src="../shared/migrate-local.js?v=20261118-1"></script>
 <script src="data.js?v=20261118-1"></script>
-<script src="db.js?v=20261118-1"></script>
+<script src="db.js?v=20261121-1"></script>
 <script src="picker.js?v=20261118-1"></script>
-<script src="script.js?v=20261118-1"></script>
+<script src="script.js?v=20261121-1"></script>
 </body>
 </html>

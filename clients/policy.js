@@ -35,6 +35,8 @@ let allClients = [];    // 這位業務員的所有客戶（要保人／被保�
 let codes = {};         // 保單代號 { CODE: 名稱 }
 let codeKinds = {};     // { CODE: 'main' | 'rider' }
 let codeCats = {};      // { CODE: { cat1, cat2 } }（代號表的險種類別）
+let allCodeRows = [];  // 全部保險公司的代號列；codes／codeKinds／codeCats 只放目前選的那家
+let codeCompanyNow = "";
 let editIndex = null;   // null = 新增；數字 = 修改第幾張
 let riders = [];        // 附約清單
 
@@ -55,20 +57,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const id = (params.get("id") || "").toUpperCase();
   if (!id) { location.href = "index.html"; return; }
 
-  let rows;
-  [client, allClients, rows] = await Promise.all([clientGet(id), clientList(), codeRows()]);
-  rows.forEach((r) => { codes[r.code] = r.name; codeKinds[r.code] = r.kind; if (r.cat1) codeCats[r.code] = { cat1: r.cat1, cat2: r.cat2 }; });
+  [client, allClients, allCodeRows] = await Promise.all([clientGet(id), clientList(), codeRows()]);
   if (!client) { alert("查無此客戶"); location.href = "index.html"; return; }
   // 返回時直接打開這位客戶的資料卡
   document.querySelectorAll(".pf-back").forEach((a) => { a.href = `index.html#client=${encodeURIComponent(client.id)}`; a.textContent = "← 返回客戶資料卡"; });
   // 保單知識庫：讀不到（例如還沒建好）也不影響填表，只是不能自動帶入與試算
   try {
     await KB.load();
-    KB.products.forEach((p) => {
-      if (!codes[p.code]) codes[p.code] = p.name;
-      if (!codeKinds[p.code]) codeKinds[p.code] = p.kind === "rider" ? "rider" : "main";
-    });
   } catch (err) { console.warn("知識庫讀取失敗", err); }
+  useCompanyCodes("富邦人壽");
 
   eraDateInput("pf-effective");
   eraDateInput("pf-r-effective");
@@ -140,10 +137,9 @@ function buildStaticOptions() {
 
   // 商品代號／名稱提示
   // 主約：同一商品的各版本整合成一個商品（IAT、IAT1、IAT2 → IAT）
-  const mains = Object.entries(codes).filter(([c]) => codeKinds[c] !== "rider");
-  const fams = mainFamilies();
   // 險種代號／險種名稱：點選面板，打字即時篩選（代號、名稱、類別都能搜），最多列 40 筆
-  const famList = [...fams.entries()].map(([f, list]) => {
+  //（每次打開都依目前選的保險公司重算）
+  const famListOf = () => [...mainFamilies().entries()].map(([f, list]) => {
     const latest = list[list.length - 1];
     const cat = codeCats[latest] ? [codeCats[latest].cat1, codeCats[latest].cat2].filter(Boolean).join("／") : "";
     return { fam: f, latest, name: codes[latest] || "", versions: list.length, cat };
@@ -151,6 +147,7 @@ function buildStaticOptions() {
   const match = (x, kw) => !kw || x.fam.includes(kw.toUpperCase()) || x.name.includes(kw) || x.cat.includes(kw);
   PICK_SOURCES["main-code"] = (input) => {
     const kw = input.value.trim();
+    const famList = famListOf();
     const hit = famList.filter((x) => match(x, kw));
     return [{ label: kw ? `符合「${kw}」・${hit.length} 筆${hit.length > 40 ? "（只列前 40 筆，再多打幾個字）" : ""}` : `主約險種・共 ${famList.length} 筆，打字可篩選`, layout: "list",
       options: hit.slice(0, 40).map((x) => ({ value: x.fam, label: x.fam, sub: `${x.name}${x.versions > 1 ? `・${x.versions} 版` : ""}` })) }];
@@ -158,12 +155,27 @@ function buildStaticOptions() {
   PICK_SOURCES["main-name"] = (input) => {
     const kw = input.value.trim();
     const seen = new Set();
+    const famList = famListOf();
     const hit = famList.filter((x) => match(x, kw) && x.name && !seen.has(x.name) && seen.add(x.name));
     return [{ label: kw ? `符合「${kw}」・${hit.length} 筆${hit.length > 40 ? "（只列前 40 筆）" : ""}` : "主約險種名稱，打字可篩選", layout: "list",
       options: hit.slice(0, 40).map((x) => ({ value: x.name, label: x.name, sub: `${x.fam}${x.cat ? "・" + x.cat : ""}` })) }];
   };
   $("pf-rel-list").innerHTML = BENE_RELATIONS.map((n) => `<option value="${n}">`).join("");
   $("pf-bene-list").innerHTML = [...new Set(allClients.map((c) => c.name).filter(Boolean))].map((n) => `<option value="${esc(n)}">`).join("");
+}
+
+// ---------------- 保險公司：各家商品分開 ----------------
+function useCompanyCodes(company) {
+  if (company === codeCompanyNow) return;
+  codeCompanyNow = company;
+  [codes, codeKinds, codeCats].forEach((m) => Object.keys(m).forEach((k) => delete m[k]));
+  allCodeRows.filter((r) => r.company === company).forEach((r) => {
+    codes[r.code] = r.name; codeKinds[r.code] = r.kind; if (r.cat1) codeCats[r.code] = { cat1: r.cat1, cat2: r.cat2 };
+  });
+  if (KB.loaded) KB.products.filter((p) => p.company === company).forEach((p) => {
+    if (!codes[p.code]) codes[p.code] = p.name;
+    if (!codeKinds[p.code]) codeKinds[p.code] = p.kind === "rider" ? "rider" : "main";
+  });
 }
 
 // ---------------- 主約：商品 → 版本 ----------------
@@ -298,6 +310,14 @@ function bindForm() {
   $("pf-disc-on").addEventListener("change", syncDiscount);
   $("pf-disc-pct").addEventListener("input", updateTotal);
 
+  // 換保險公司：代號清單、版本、知識庫都改用那家的
+  $("pf-company").addEventListener("change", () => {
+    useCompanyCodes($("pf-company").value);
+    setMainCode($("pf-main-code").value);
+    syncMainNew();
+    applyKbMain(false);
+  });
+
   // 基本資料的被保人／職等／生效日，順手帶到附約的預設值
   $("pf-insured").addEventListener("change", () => { $("pf-r-person").value = $("pf-insured").value; fillPayerOptions(); });
   // 繳費人預設同要保人；手動改成別人之後，就不再跟著要保人變
@@ -373,7 +393,7 @@ function bindForm() {
 // ---------------- 保單知識庫：自動帶入與保費試算 ----------------
 // at：生效日，同代號有多個版本時用來挑當時銷售的那一版
 function kbProductOf(code, at) {
-  try { return KB.loaded ? KB.product(code, undefined, at || $("pf-effective").value || undefined) : null; } catch { return null; }
+  try { return KB.loaded ? KB.product(code, $("pf-company").value || undefined, at || $("pf-effective").value || undefined) : null; } catch { return null; }
 }
 function kbBadge(product) {
   if (!product) return "";
@@ -540,7 +560,7 @@ async function autoCreateMainCode(p) {
   const M = p.life.main;
   if (!M.code || codes[M.code]) return null;
   const cats = M.cat2 ? { cat1: M.cat1, cat2: M.cat2 } : splitCategory(M.cat1, "main");
-  await codeAdd(M.code, M.name || M.code, "main", cats, true);
+  await codeAdd(M.code, M.name || M.code, "main", cats, true, M.company || codeCompanyNow);
   [M.code, ...codeEarlierVersions(M.code)].forEach((c) => { if (!codes[c]) { codes[c] = M.name || M.code; codeKinds[c] = "main"; codeCats[c] = cats; } });
   return M.code;
 }
@@ -550,7 +570,7 @@ async function autoCreateRiderCodes(list) {
   const made = [];
   for (const r of list) {
     if (!r._new || !r.code || codes[r.code]) continue;
-    await codeAdd(r.code, r.name, "rider", { cat1: r.cat1, cat2: r.cat2 }, true);
+    await codeAdd(r.code, r.name, "rider", { cat1: r.cat1, cat2: r.cat2 }, true, codeCompanyNow);
     [r.code, ...codeEarlierVersions(r.code)].forEach((c) => { if (!codes[c]) { codes[c] = r.name; codeKinds[c] = "rider"; codeCats[c] = { cat1: r.cat1, cat2: r.cat2 }; } });
     made.push(r.code);
   }
@@ -770,6 +790,7 @@ function fillForm(p) {
   $("pf-mode-pay").value = L.pay_mode || "年繳";
 
   $("pf-company").value = M.company || "富邦人壽";
+  useCompanyCodes($("pf-company").value);
   $("pf-currency").value = M.currency || p.currency || "TWD";
   setMainCode(M.code || p.main_code || "");
   $("pf-main-name").value = M.name || p.main_name || codes[(p.main_code || "").toUpperCase()] || "";
