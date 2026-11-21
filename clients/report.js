@@ -360,7 +360,7 @@ function render() {
 
   // 結論與下一步（填滿整頁）
   const keep = lit.map((a) => a.name);
-  const confirm = [...legalPolicies.map((no) => `${no} 受益人為法定繼承人，確認是否指定`), ...noKb.map((c) => `核對 ${c.code} ${c.name || ""} 條款`),
+  const confirm = [...legalPolicies.map((no) => `${no} 受益人為法定，確認是否指定`), ...noKb.map((c) => `核對 ${c.code} ${c.name || ""} 條款`),
     ...RES.foreign.filter((f) => !f.rate).map((f) => `${f.currency} 匯率`)];
   const pEnd = page("", "CONCLUSION & ACTIONS", "健診結論與下一步", "哪些保障值得維持、哪些問題要確認、哪些需求值得後續討論？", `
     <div class="cols3">
@@ -370,7 +370,7 @@ function render() {
     </div>
     <h3>共同確認的待辦事項</h3>
     <table class="rp-table todo"><thead><tr><th style="width:46%">事項</th><th>負責人</th><th>期限</th><th>狀態</th></tr></thead>
-      <tbody>${[1, 2, 3, 4, 5, 6].map(() => `<tr><td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td></tr>`).join("")}</tbody></table>
+      <tbody>${[1, 2, 3, 4, 5].map(() => `<tr><td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td></tr>`).join("")}</tbody></table>
     <div class="sign"><div>客戶簽名<span></span></div><div>業務員簽名<span></span></div></div>
     <p class="rp-note">不因缺口指標自動建議解約或替換既有保單；涉及舊保單轉換時，應評估重新核保、等待期間、既有權益與成本。資料基準日 ${fmtDate(RES.asOf)}；本報告非理賠承諾。</p>`, { cls: "fill-page" });
 
