@@ -997,7 +997,9 @@ async function openDetail(clientId) {
       <button type="button" class="btn-primary" id="btn-policy-client">新增／修改保單</button>
       <button type="button" class="btn-secondary" id="btn-edit-client">編輯資料</button>
       <button type="button" class="btn-secondary btn-checkup" id="btn-checkup">保單健診報告</button>
+      <button type="button" class="btn-secondary" id="btn-portal">邀請客戶查看保單</button>
     </div>
+    <div id="portal-box" class="portal-box" hidden></div>
   `;
 
   const policyUrl = (i) => `policy.html?id=${encodeURIComponent(c.id)}${i == null ? "" : "&i=" + i}`;
@@ -1043,10 +1045,46 @@ async function openDetail(clientId) {
     closeModal();
     startEditClient(c.id);
   });
+  document.getElementById("btn-portal").addEventListener("click", () => portalInvite(c));
   // 保單健診報告：目前是試算版（以被保人為單位、跨客戶抓保單）
   document.getElementById("btn-checkup").addEventListener("click", () => {
     location.href = `checkup.html?id=${encodeURIComponent(c.id)}`;
   });
 
   document.getElementById("detail-modal").hidden = false;
+}
+
+
+// ---------- 客戶專區（my/）：產生邀請碼，客戶註冊後唯讀查看自己的保單 ----------
+async function portalInvite(c) {
+  const box = document.getElementById("portal-box");
+  box.hidden = false;
+  box.textContent = "產生邀請碼中…";
+  try {
+    const { data: links } = await sb.from("portal_links").select("email,created_at").eq("client_id", c.id);
+    const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const rnd = crypto.getRandomValues(new Uint8Array(8));
+    const code = [...rnd].map((n) => abc[n % abc.length]).join("");
+    const { error } = await sb.from("portal_invites").insert({ code, client_id: c.id });
+    if (error) throw error;
+    const url = new URL(`../my/index.html?invite=${code}`, location.href).href;
+    const msg = `${c.name} 您好，這是東石保險的「我的保單」查詢連結，點開後用您的信箱註冊即可查看保單（唯讀）：\n${url}\n邀請碼：${code}（14 天內有效，限用一次）`;
+    box.innerHTML = `<div><b>邀請碼 ${code}</b>（14 天內有效、限用一次）</div>
+      <div class="portal-url">${escHtml(url)}</div>
+      <button type="button" class="btn-primary" id="portal-copy">複製邀請訊息</button>
+      ${links && links.length ? `<div class="portal-linked">已綁定帳號：${links.map((l) => escHtml(l.email || "")).join("、")}
+        <button type="button" class="btn-secondary" id="portal-unlink">解除綁定</button></div>` : ""}`;
+    document.getElementById("portal-copy").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(msg); showToast("已複製，貼到 LINE 傳給客戶即可"); } catch { prompt("請手動複製：", msg); }
+    });
+    const ub = document.getElementById("portal-unlink");
+    if (ub) ub.addEventListener("click", async () => {
+      if (!confirm(`確定解除 ${c.name} 的客戶專區綁定？解除後對方就看不到保單。`)) return;
+      const { error: e2 } = await sb.from("portal_links").delete().eq("client_id", c.id);
+      if (e2) return showToast("解除失敗：" + e2.message);
+      showToast("已解除綁定"); portalInvite(c);
+    });
+  } catch (err) {
+    box.textContent = "產生邀請碼失敗：" + (err.message || err);
+  }
 }

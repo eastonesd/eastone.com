@@ -432,3 +432,7 @@ th { color:var(--tc-fg-6b6656); font-weight: 600; background:var(--tc-bg-f6f3ec)
   .code-add-row { grid-template-columns: 1fr 1.6fr 1fr 1fr; }
   .code-add-row #btn-add-code { grid-column: 1 / -1; width: 100%; }
 }
+
+.portal-box { margin-top: 12px; padding: 12px 14px; border: 1px dashed var(--tc-bd-121d33, #ccc); border-radius: 12px; display: grid; gap: 8px; }
+.portal-url { font-size: .85rem; word-break: break-all; opacity: .8; }
+.portal-linked { font-size: .9rem; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }

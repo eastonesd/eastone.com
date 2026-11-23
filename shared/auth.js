@@ -33,6 +33,11 @@ async function requireLogin(rootPrefix) {
     location.replace(loginUrl());
     return new Promise(() => {}); // 停在這裡，不要繼續執行頁面初始化
   }
+  // 客戶帳號（綁定在客戶專區）不能進業務員頁面，導去「我的保單」
+  try {
+    const { data: me } = await sb.from('portal_links').select('user_id').eq('user_id', session.user.id).maybeSingle();
+    if (me) { location.replace(`${AUTH_ROOT}my/index.html`); return new Promise(() => {}); }
+  } catch { /* 查不到就照常 */ }
   renderAvatar(session.user);
   // 在其他分頁登出、或登入過期時，這頁也跟著回到登入頁
   sb.auth.onAuthStateChange((event) => {

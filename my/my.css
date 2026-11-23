@@ -1,0 +1,27 @@
+.auth-page main { padding-bottom: 40px; }
+.auth-card a { color: var(--accent, #B8892B); }
+.auth-msg.ok { color: #1E6B34; }
+.my-wrap { max-width: 880px; margin: 20px auto; padding: 0 16px; }
+.my-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.my-head h1 { margin: 0; font-size: 1.5rem; }
+.my-sub { color: var(--soft, #6B6656); font-size: .85rem; margin-top: 4px; }
+.my-actions { display: flex; gap: 8px; }
+.my-line { display: inline-block; background: #06C755; color: #fff; font-weight: 700; padding: 9px 16px; border-radius: 999px; text-decoration: none; }
+.my-out { font: inherit; padding: 9px 16px; border-radius: 999px; border: 1px solid #ccc; background: transparent; color: inherit; cursor: pointer; }
+.my-card { background: var(--card, #fff); color: inherit; border: 1px solid rgba(128,128,128,.25); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+.my-card header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+.my-card header b { font-size: 1.1rem; }
+.my-co { margin-left: 8px; font-size: .85rem; opacity: .7; }
+.my-st { font-size: .8rem; padding: 2px 10px; border-radius: 999px; background: #E3F1E6; color: #1E6B34; white-space: nowrap; }
+.my-st.warn { background: #F8E5E0; color: #A2402D; }
+.my-card dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 12px; margin: 0 0 10px; }
+.my-card dl div.wide { grid-column: span 2; }
+.my-card dt { font-size: .75rem; opacity: .65; }
+.my-card dd { margin: 2px 0 0; font-weight: 600; word-break: break-all; }
+.my-card table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.my-card th { text-align: left; font-weight: 600; opacity: .7; border-bottom: 1px solid rgba(128,128,128,.3); padding: 5px 4px; }
+.my-card td { border-bottom: 1px solid rgba(128,128,128,.15); padding: 6px 4px; vertical-align: top; }
+.my-card .num { text-align: right; white-space: nowrap; }
+.my-mini { font-size: .75rem; opacity: .6; }
+.my-empty, .my-foot { text-align: center; opacity: .75; padding: 16px; font-size: .9rem; }
+@media (max-width: 640px) { .my-card dl { grid-template-columns: 1fr 1fr; } .my-card table { font-size: .82rem; } }
