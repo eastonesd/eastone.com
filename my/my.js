@@ -127,14 +127,20 @@
     const code = $('su-code').value.trim().toUpperCase();
     try {
       if (!/^[A-Z0-9]{6,12}$/.test(code)) throw new Error('邀請碼格式不正確');
-      store.set(code);
-      const { data, error } = await sb.auth.signUp({
-        email: $('su-email').value.trim(), password: $('su-pass').value,
-        options: { emailRedirectTo: `${location.origin}${location.pathname}?invite=${code}` },
-      });
-      if (error) throw error;
-      if (data.session) await enter();
-      else { $('su-msg').classList.add('ok'); $('su-msg').textContent = '註冊成功！請到信箱點擊確認信，回到這裡登入後就能看到保單。'; }
+      // 不開放公開註冊：由後端函式驗證邀請碼後才建立帳號並綁定
+      const email = $('su-email').value.trim(), password = $('su-pass').value;
+      const { data, error } = await sb.functions.invoke('portal-signup', { body: { code, email, password } });
+      if (error) {
+        let m = '註冊失敗，請稍後再試';
+        try { m = (await error.context.json()).error || m; } catch { /* 讀不到原因 */ }
+        throw new Error(m);
+      }
+      if (!data || !data.ok) throw new Error((data && data.error) || '註冊失敗');
+      store.set('');
+      if (invite) history.replaceState(null, '', location.pathname);
+      const { error: e2 } = await sb.auth.signInWithPassword({ email, password });
+      if (e2) throw e2;
+      await enter();
     } catch (err) { $('su-msg').textContent = errText(err); } finally { busy(e.target, false); }
   });
 
