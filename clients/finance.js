@@ -481,9 +481,19 @@ function renderSnaps() {
       <div class="fin-item static"><div class="fin-item-main"><b>${esc(s.title || '資產負債報表')}</b>
         <small>基準日 ${s.as_of}・收支 ${s.period_from || ''} ～ ${s.period_to || ''}・存於 ${new Date(s.created_at).toLocaleString('zh-TW')}</small>
         ${s.summary ? `<span class="fin-chips"><i>淨資產 ${esc(s.summary.net)}</i>${s.summary.complete ? '' : '<i class="soft">資料不完整</i>'}</span>` : ''}</div>
+        ${s.shared_at ? `<span class="fin-chips"><i>客戶可見（${new Date(s.shared_at).toLocaleDateString('zh-TW')} 分享）</i></span>` : ''}
         <div class="fin-item-val"><a class="btn-secondary fin-sm" href="finance-report.html?snap=${s.id}" target="_blank" rel="noopener">開啟報表</a>
+          <button type="button" class="btn-secondary fin-sm" data-snapshare="${s.id}">${s.shared_at ? '取消分享' : '分享給客戶'}</button>
           <button type="button" class="icon-btn" data-snapdel="${s.id}">刪除</button></div></div>`).join('')}</div>` : '<p class="fin-empty-row">尚未存過報表。</p>'}`;
   $('fsn-add').addEventListener('click', saveSnapshot);
+  document.querySelectorAll('[data-snapshare]').forEach((b) => b.addEventListener('click', async () => {
+    const s = data.snapshots.find((x) => x.id === b.dataset.snapshare);
+    const on = !s.shared_at;
+    if (on && !confirm(`把「${s.title || '資產負債報表'}」（基準日 ${s.as_of}）分享到客戶的「我的保單」？\n客戶需已用邀請碼綁定才看得到。`)) return;
+    const { error } = await sb.from('fin_snapshots').update({ shared_at: on ? new Date().toISOString() : null }).eq('id', s.id);
+    if (error) { toast('更新失敗：' + error.message); return; }
+    toast(on ? '已分享給客戶' : '已取消分享'); await reload();
+  }));
   document.querySelectorAll('[data-snapdel]').forEach((b) => b.addEventListener('click', async () => {
     if (!confirm('刪除這份報表快照？')) return;
     await remove('fin_snapshots', b.dataset.snapdel); await reload();

@@ -37,7 +37,14 @@
   async function enter() {
     const { data, error } = await sb.rpc('portal_policies');
     if (error) throw error;
-    if (data) return render(data);
+    if (data) {
+      render(data);
+      const { data: reps } = await sb.rpc('portal_reports');
+      const ymd = (d) => { const [y, m, dd] = String(d).split('-').map(Number); return `${y} 年 ${m} 月 ${dd} 日`; };
+      $('my-reports').innerHTML = (reps || []).length ? `<h2 class="my-h2">我的資產負債報表</h2>${reps.map((r) =>
+        `<a class="my-rep" href="report.html?snap=${encodeURIComponent(r.id)}"><b>${esc(r.title || '資產負債報表')}</b><span>${ymd(r.as_of)} 的資料</span></a>`).join('')}<h2 class="my-h2">我的保單</h2>` : '';
+      return;
+    }
     const pending = store.get();
     if (pending) {
       try { await redeem(pending); return enter(); } catch (e) { $('bd-code').value = pending; $('bd-msg').textContent = errText(e); store.set(''); }

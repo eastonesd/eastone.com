@@ -18,10 +18,12 @@
   };
 
   document.addEventListener('DOMContentLoaded', async () => {
-    await requireLogin('../');
+    // 客戶專區（my/report.html）只能透過 portal_report 讀業務員分享出來的報表
+    const PORTAL = !!window.FIN_REPORT_PORTAL;
+    if (!PORTAL) await requireLogin('../');
     $('print').addEventListener('click', async () => { await document.fonts.ready; window.print(); });
     const id = new URLSearchParams(location.search).get('snap');
-    const { data, error } = await sb.from('fin_snapshots').select('*').eq('id', id).maybeSingle();
+    const { data, error } = PORTAL ? await sb.rpc('portal_report', { p_id: id }) : await sb.from('fin_snapshots').select('*').eq('id', id).maybeSingle();
     if (error || !data) { $('doc').innerHTML = '<div id="loading">找不到這份報表，或您沒有權限查看。</div>'; return; }
     render(data, C.revive(data.result), C.revive(data.payload));
   });
@@ -55,7 +57,9 @@
     const avd = (av.detail || []).map((d) => `<tr><td>${esc(d.names.join('、'))}</td><td>${{ free: '未設限', release: '需還款解押', pending: '待確認' }[d.type]}</td>
       <td class="num">${fmt(d.amount)}</td><td class="note">${esc(d.note || '')}${d.repay ? `（需還款 ${fmt(d.repay)}）` : ''}</td></tr>`).join('');
 
+    const [yy, mm, dd] = String(snap.as_of).split('-').map(Number);
     $('doc').innerHTML = `
+      ${window.FIN_REPORT_PORTAL ? `<p class="asof-banner">本報表為 ${yy} 年 ${mm} 月 ${dd} 日（民國 ${yy - 1911} 年 ${mm} 月 ${dd} 日）的資料，之後的行情與資產變動不會反映在這份報表上。</p>` : ''}
       <h1>資產負債報表</h1>
       <div class="meta">${esc(p.client ? `${p.client.name}（${p.client.id}）` : snap.client_id)}・基準日 ${snap.as_of}・收支期間 ${r.period.from} ～ ${r.period.to}<br>
         報表名稱：${esc(snap.title)}・產生時間 ${new Date(snap.created_at).toLocaleString('zh-TW')}・計價幣別 TWD・計算規則 ${esc(snap.rules_version)}<br>
