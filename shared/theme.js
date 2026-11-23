@@ -35,7 +35,9 @@
 
   function place(header, btn) {
     const avatar = header.querySelector('.ghdr-avatar');
-    if (avatar) { if (avatar.previousElementSibling !== btn) avatar.before(btn); }
+    const tools = header.querySelector('.ghdr-tools');
+    if (tools) { if (tools.firstElementChild !== btn) tools.prepend(btn); }
+    else if (avatar) { if (avatar.previousElementSibling !== btn) avatar.before(btn); }
     else if (btn.parentElement !== header) header.appendChild(btn);
   }
   function mount() {

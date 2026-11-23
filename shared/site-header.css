@@ -127,6 +127,17 @@
 .ghdr-wrap .theme-toggle span { display: inline-flex; color: #E4C77E; }
 .ghdr-wrap .theme-toggle:hover { background: rgba(228, 199, 126, .15); }
 .ghdr-right .theme-toggle { margin-left: 0; }
-@media (max-width: 600px) { .ghdr-wrap .theme-toggle b { display: none; } .ghdr-wrap .theme-toggle { padding: 0 10px; } }
+@media (max-width: 600px) {
+  .ghdr-wrap .theme-toggle b { display: none; }
+  /* 手機只留圓形圖示，不要被頁首撐成一整條 */
+  .ghdr-wrap .theme-toggle { width: 34px; padding: 0; justify-content: center; align-self: flex-start; margin-left: 0; }
+}
+/* 登入頁：深淺色切換＋業務員／客戶登入切換 同一列 */
+.ghdr-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-left: auto; }
+.ghdr-tools .theme-toggle { margin-left: 0; }
+.role-switch { display: inline-flex; padding: 3px; border-radius: 999px; border: 1px solid rgba(228, 199, 126, .55); background: rgba(255, 255, 255, .06); }
+.role-switch a { padding: 6px 14px; border-radius: 999px; color: #F6F3EC; text-decoration: none; font: 500 13px 'Noto Sans TC', sans-serif; white-space: nowrap; }
+.role-switch a.active { background: #B8892B; color: #121D33; font-weight: 700; }
+@media (max-width: 560px) { .ghdr-tools { margin-left: 0; } }
 /* 深色模式時頁首再沉一點，跟頁面融在一起 */
 html[data-theme="dark"] .ghdr-wrap { background: #0E1626; }
