@@ -221,3 +221,8 @@ body { background: #E9E6DF; color: var(--ink); font-family: "Noto Sans TC", "Pin
 .bene-warn { margin-top: 3px; font-size: 10pt; color: #A2402D; font-weight: 700; }
 .bene-box { margin: 10px 0; padding: 10px 14px; border: 2px solid #A2402D; border-radius: 8px; background: #FBEFEC; color: #5A2418; font-size: 12.5pt; line-height: 1.55; }
 .bene-box b { color: #A2402D; }
+
+/* 醫療前中後的小分組 */
+.mg { margin: 6px 0 8px; }
+.mg-h { font-size: 11pt; font-weight: 800; color: var(--navy); border-left: 4px solid var(--gold); padding-left: 8px; margin-bottom: 5px; }
+.mg-none { font-size: 10pt; color: var(--soft); padding: 4px 12px; }
