@@ -140,10 +140,17 @@ async function kbCalcPremium(product, { sex, issueAge, term, mode, sa, saUnit, o
     if (!units) return { error: '請先填保額' };
     if (issueAge == null) return { error: '缺少被保人生日或生效日' };
     const lv = Number(occ) || 1;
-    const band = issueAge <= 14 ? '0-14' : issueAge === 15 ? '15' : '16+';
+    // 年齡段寫在 term：「0-14」「15」「16+」或「16-44」「45-59」這類區間
+    const inBand = (t) => {
+      const x = String(t || '').trim();
+      let m = x.match(/^(\d+)\s*[-~～]\s*(\d+)$/); if (m) return issueAge >= +m[1] && issueAge <= +m[2];
+      m = x.match(/^(\d+)\+$/); if (m) return issueAge >= +m[1];
+      return /^\d+$/.test(x) && issueAge === +x;
+    };
     const rows = await KB.rates(product.id);
-    const row = rows.find((r) => r.age === lv && r.term === band);
-    if (!row) return { error: `費率表查無：${band} 歲／職業 ${lv} 級（14 歲以下限 1 級）` };
+    const row = rows.find((r) => r.age === lv && inBand(r.term));
+    const band = row ? row.term : `${issueAge}`;
+    if (!row) return { error: `費率表查無：${issueAge} 歲／職業 ${lv} 級（14 歲以下限 1 級）` };
     const factor = (product.modal_factors || {})[mode || '年繳'] ?? 1;
     const annual = Number(row.rate) * units;
     return { annual: Math.round(annual), modal: Math.round(annual * factor), rate: Number(row.rate), units, term: term || (product.pay_terms || [])[0] || '', factor };
