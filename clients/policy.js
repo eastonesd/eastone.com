@@ -412,7 +412,8 @@ function applyKbMain(fill) {
   if (COMPANIES.includes(product.company)) $("pf-company").value = product.company;
   if (product.coverage_to) $("pf-main-cover").value = product.coverage_to;
   if (product.currency && [...$("pf-currency").options].some((o) => o.value === product.currency)) $("pf-currency").value = product.currency;
-  if (SA_UNITS.includes(product.unit)) $("pf-main-sa-unit").value = product.unit;
+  if (product.unit === "百元") $("pf-main-sa-unit").value = "元"; // 每百元日額：直接填日額
+  else if (SA_UNITS.includes(product.unit)) $("pf-main-sa-unit").value = product.unit;
   if (product.pay_terms && product.pay_terms.length === 1) $("pf-main-term").value = product.pay_terms[0];
   syncDividend();
 }
@@ -502,7 +503,7 @@ function addCheckedRiders() {
       cat1: (codeCats[cb.dataset.code] || {}).cat1 || "", cat2: (codeCats[cb.dataset.code] || {}).cat2 || "",
       term: product && product.pay_terms && product.pay_terms.length === 1 ? product.pay_terms[0] : "",
       coverage: (product && product.coverage_to) || "", sum_assured: product && product.unit === "附加" ? "1" : "",
-      sa_unit: product && SA_UNITS.includes(product.unit) ? product.unit : "萬", premium: "",
+      sa_unit: product && product.unit === "百元" ? "元" : product && SA_UNITS.includes(product.unit) ? product.unit : "萬", premium: "",
     });
   });
   riders.forEach(applyWaiver);

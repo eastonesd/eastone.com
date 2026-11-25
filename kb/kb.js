@@ -7,7 +7,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const NATURE = { protection: "保障型", wealth: "理財型" };
 const KIND = { main: "主約", rider: "附約" };
-const RATE_MODE = { level: "平準（依投保年齡）", attained: "逐年調整（依到達年齡）", occ: "依職業等級", occ_age: "依職業等級＋年齡段", occ_tier: "依職業等級（前 3 萬＋每加 1 萬）", none: "無費率表" };
+const RATE_MODE = { level: "平準（依投保年齡）", attained: "逐年調整（依到達年齡）", occ: "依職業等級", occ_age: "依職業等級＋年齡段", occ_tier: "依職業等級（前 3 萬＋每加 1 萬）", plan_band: "依計劃數＋年齡段＋性別", none: "無費率表" };
 let isAdmin = false;
 let canVerify = false;   // 管理員或稽核員：可以在商品頁直接標「已驗證」
 let current = null; // 目前打開的商品 id
@@ -109,6 +109,13 @@ async function openProduct(id) {
           ${keys.map((k) => `<tr><td>${esc(k)}</td>${[1, 2, 3, 4, 5, 6].map((n) => { const r = rates.find((x) => (x.sex !== "不分" ? x.sex + "・" : "") + x.term === k && x.age === n); return `<td class="num">${r ? Number(r.rate).toLocaleString() : "—"}</td>`; }).join("")}</tr>`).join("")}
           </tbody></table></div>`; })()
       : `<p class="kb-empty">尚未建立費率表</p>`)
+    : p.rate_mode === "plan_band" ? (rates.length
+      ? (() => { const bands = [...new Set(rates.map((r) => r.term))].sort((a, b) => parseInt(a) - parseInt(b));
+          const plans = [...new Set(rates.map((r) => r.age))].sort((a, b) => a - b);
+          return ["男", "女"].map((sx) => `<details class="kb-rates"><summary>${sx}性（年繳總保費）</summary><div class="kb-scroll"><table class="kb-table"><thead><tr><th>計劃數</th>${bands.map((b) => `<th>${esc(b)} 歲</th>`).join("")}</tr></thead><tbody>
+            ${plans.map((n) => `<tr><td>${n}</td>${bands.map((b) => { const r = rates.find((x) => x.sex === sx && x.age === n && x.term === b); return `<td class="num">${r ? Number(r.rate).toLocaleString() : "—"}</td>`; }).join("")}</tr>`).join("")}
+            </tbody></table></div></details>`).join(""); })()
+      : `<p class="kb-empty">尚未建立費率表</p>`)
     : p.rate_mode === "occ" ? (rates.length
       ? `<div class="kb-rate-grid">${[...rates].sort((a, b) => a.age - b.age).map((r) => `<div><span>${r.age} 級</span><b>${Number(r.rate).toLocaleString()}</b></div>`).join("")}</div><p class="kb-sub">每格：職業等級｜年繳費率</p>`
       : `<p class="kb-empty">尚未建立費率表</p>`)
@@ -190,7 +197,7 @@ function editProduct(p, opts = {}) {
       <label>保障型／理財型<select id="e-nature">${opt(NATURE, p.nature)}</select></label>
       <label>類別<input id="e-category" value="${esc(p.category)}" placeholder="例 壽險、癌症、醫療"></label>
       <label>幣別<select id="e-currency">${["TWD", "USD", "AUD", "CNY", "EUR", "JPY"].map((c) => `<option${c === (p.currency || "TWD") ? " selected" : ""}>${c}</option>`).join("")}</select></label>
-      <label>保額單位<select id="e-unit">${["萬", "單位", "計劃", "附加"].map((u) => `<option${u === p.unit ? " selected" : ""}>${u}</option>`).join("")}</select></label>
+      <label>保額單位<select id="e-unit">${["萬", "百元", "單位", "計劃", "附加"].map((u) => `<option${u === p.unit ? " selected" : ""}>${u}</option>`).join("")}</select></label>
       <label>保障期間<input id="e-coverage" value="${esc(p.coverage_to)}" placeholder="例 終身、95歲、繳費期滿"></label>
       <label>繳費年期（逗號分隔）<input id="e-terms" value="${esc((p.pay_terms || []).join(","))}" placeholder="例 6年,10年,20年"></label>
       <label>費率型態<select id="e-ratemode">${opt(RATE_MODE, p.rate_mode)}</select></label>

@@ -127,6 +127,8 @@ function kbUnits(product, sa, saUnit) {
   if (!isFinite(n) || n <= 0) return null;
   if (!product) return n;
   if (product.unit === '萬') return saUnit === '元' ? n / 10000 : n;
+  // 每百元日額計價：業務員直接填日額（例 2000 元）→ 20 個百元；選「單位」則照填
+  if (product.unit === '百元') return saUnit === '單位' ? n : n / 100;
   return n; // 單位、計劃
 }
 
@@ -170,6 +172,20 @@ async function kbCalcPremium(product, { sex, issueAge, term, mode, sa, saUnit, o
     const factor = (product.modal_factors || {})[mode || '年繳'] ?? 1;
     const annual = Number(base.rate) + Math.max(0, units - 3) * Number(add.rate);
     return { annual: Math.round(annual), modal: Math.round(annual * factor), rate: Number(base.rate), units, term: term || (product.pay_terms || [])[0] || '', factor, plan: kind };
+  }
+  // 依計劃數＋年齡段＋性別（例 南山 HSG 住院醫療）：費率表 age＝計劃數、term＝年齡段、存的是該計劃的年繳總保費
+  if (product.rate_mode === 'plan_band') {
+    const n = kbUnits(product, sa, saUnit);
+    if (!n) return { error: '請先填計劃數' };
+    if (!sex || !['男', '女'].includes(sex)) return { error: '被保人性別需為男或女' };
+    if (issueAge == null) return { error: '缺少被保人生日或生效日' };
+    const rows = await KB.rates(product.id);
+    const inBand = (t) => { const m = String(t || '').match(/^(\d+)\s*-\s*(\d+)$/); return m && issueAge >= +m[1] && issueAge <= +m[2]; };
+    const row = rows.find((r) => r.age === n && r.sex === sex && inBand(r.term));
+    if (!row) return { error: `費率表查無：${n} 計劃／${sex}／${issueAge} 歲` };
+    const factor = (product.modal_factors || {})[mode || '年繳'] ?? 1;
+    const annual = Number(row.rate);
+    return { annual: Math.round(annual), modal: Math.round(annual * factor), rate: annual, units: n, term: term || (product.pay_terms || [])[0] || '', factor };
   }
   // 依職業等級計價（不分性別年齡）：費率表 age 欄存職業等級 1～6
   if (product.rate_mode === 'occ') {
