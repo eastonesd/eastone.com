@@ -285,8 +285,11 @@ function kbCompute({ allClients, insured, asOf, fx }) {
     const inactive = ['失效', '解約'].includes(ct.status);
     const started = py >= 1;
     const covered = started && !inactive && (coverEnd == null || age == null || age < coverEnd);
-    const paying = started && !inactive && !['繳清', '躉繳', '展期'].includes(ct.status) && (payYears == null || py <= payYears);
-    const payingNext = paying && (payYears == null || py + 1 <= payYears);
+    // 一年期附約（繳費年期「1年」、保障到某歲）是逐年續保、每年都要繳，不能當成繳 1 年就繳清
+    const yearly = String(ct.term || '').trim() === '1年' && coverEnd != null && coverEnd > (issueAge ?? 0) + 1;
+    const paying = started && !inactive && !['繳清', '躉繳', '展期'].includes(ct.status)
+      && (yearly ? covered : (payYears == null || py <= payYears));
+    const payingNext = paying && (yearly ? (age == null || age + 1 < coverEnd) : (payYears == null || py + 1 <= payYears));
     const units = kbUnits(product, ct.sa, ct.saUnit);
     const periods = KB_MODE_PERIODS[ct.pay_mode] || 1;
     const currency = (product && product.currency) || ct.currency || 'TWD';
