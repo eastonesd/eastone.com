@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>東石診股｜東石保險服務平台</title>
+  <meta name="theme-color" content="#1B2A4A">
+  <!-- iOS「加入主畫面」專用設定（與東石系統相同做法） -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="東石診股">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=2">
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <!-- 東石保險服務平台共用頁首與登入（同網域，登入一次兩邊通用） -->
+  <link rel="stylesheet" href="../shared/site-header.css?v=20261123-1">
+  <link rel="stylesheet" href="../shared/auth.css?v=20261116-1">
+  <style>
+    .ghdr-wrap { position: relative; z-index: 5; }
+    body.auth-wait > *:not(.ghdr-wrap) { visibility: hidden; }
+  </style>
+</head>
+<body class="auth-wait">
+  <div class="ghdr-wrap">
+    <div class="ghdr-brand">
+      <img class="ghdr-mark" src="../icons/logo.png" alt="東石保險服務平台">
+      <div>
+        <div class="ghdr-title">東石保險服務平台</div>
+        <div class="ghdr-sub">EASTONE INSURANCE</div>
+      </div>
+    </div>
+    <nav class="ghdr-nav">
+      <button onclick="location.href='../index.html#claim'">文件下載</button>
+      <button onclick="location.href='../market/index.html'">財經日報</button>
+      <button onclick="location.href='../clients/index.html'">人壽管理</button>
+      <button onclick="location.href='../policies/index.html'">產險管理</button>
+      <button class="active" onclick="location.href='index.html'">東石診股</button>
+    </nav>
+  </div>
+  <header class="topbar">
+    <a class="brand" href="./">
+      <img src="assets/icon.png" alt="">
+      <span>東石診股</span>
+    </a>
+    <nav class="market-tabs" id="marketTabs" aria-label="切換市場">
+      <button type="button" data-m="tw" class="on">台股</button>
+      <button type="button" data-m="us">美股</button>
+      <button type="button" data-m="fund">基金</button>
+    </nav>
+    <button id="installBtn" class="ghost install-btn" type="button" hidden style="display:none">安裝 APP</button>
+    <button id="tokenBtn" class="ghost token-btn" type="button">金鑰</button>
+  </header>
+
+  <dialog id="iosDlg" class="token-dlg">
+    <form method="dialog">
+      <h3>安裝到 iPhone 主畫面</h3>
+      <ol class="ios-steps">
+        <li>建議用 <b>Safari</b> 開這個頁面</li>
+        <li>點下方工具列的 <b>分享</b> 按鈕 <span class="ios-share" aria-hidden="true"></span></li>
+        <li>往下滑，選 <b>加入主畫面</b>，再按右上角 <b>加入</b></li>
+      </ol>
+      <p class="small">裝好之後從主畫面開，就是全螢幕的 APP，自選股和金鑰都會保留。</p>
+      <div class="dlg-actions"><button value="ok" class="primary" type="submit">知道了</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="tokenDlg" class="token-dlg">
+    <form method="dialog">
+      <h3>FinMind 金鑰</h3>
+      <p>不填也能用，但匿名查詢每小時次數較少。<br>
+        到 <a href="https://finmindtrade.com/analysis/#/account/user" target="_blank" rel="noopener">FinMind 會員頁</a>
+        免費註冊後複製 API Token 貼在這裡。</p>
+      <input id="tokenInput" type="password" autocomplete="off" spellcheck="false" placeholder="eyJ0eXAiOiJKV1Qi…">
+      <p class="small">金鑰只存在這台裝置的瀏覽器裡，不會存到 GitHub 或任何伺服器（查詢時只送給 FinMind）。</p>
+      <div class="dlg-actions">
+        <button value="clear" class="ghost" type="submit">清除</button>
+        <button value="cancel" class="ghost" type="submit">取消</button>
+        <button value="save" class="primary" type="submit">儲存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <main class="wrap">
+    <section class="search-row">
+      <div class="search">
+        <input id="q" type="text" autocomplete="off" spellcheck="false"
+               placeholder="輸入代號或名稱，例如 2330、台積電、NVDA、輝達">
+        <button id="go" type="button">診斷</button>
+        <ul id="suggest" class="suggest" hidden></ul>
+      </div>
+    </section>
+
+    <section class="watch" id="watch">
+      <div class="watch-head">
+        <span id="watchLabel">自選股</span>
+        <button id="refreshAll" class="ghost" type="button" hidden>全部更新</button>
+      </div>
+      <div class="chips" id="chips"></div>
+    </section>
+
+    <section id="empty" class="empty">
+      <div class="lamp-house big demo" aria-hidden="true">
+        <i class="lamp red"></i><i class="lamp yellow"></i><i class="lamp green"></i>
+      </div>
+      <h1 id="emptyTitle">一眼看出一檔股票現在是什麼燈</h1>
+      <p id="emptyText">健康面看財報、估值與籌碼，投資面看量價與趨勢，各 5 項指標，<br>每一項都會告訴你落在哪個級距、離下一個燈號還差多少。</p>
+      <div class="quick" id="quick"></div>
+    </section>
+
+    <section id="fund" class="empty fund-empty" hidden>
+      <div class="lamp-house big demo" aria-hidden="true">
+        <i class="lamp red"></i><i class="lamp yellow"></i><i class="lamp green"></i>
+      </div>
+      <h1>基金淨值，一眼看完</h1>
+      <p>境內 4 千多檔、境外 5 千多檔基金，淨值每天自動更新。<br>投資型保單連結的標的，打名稱、投信或 ISIN 就找得到。</p>
+      <div class="quick" id="fundQuick"></div>
+      <p class="small">資料來源：投信投顧公會（境內）、集保結算所（境外）政府開放資料。<br>來源只提供最近幾天的淨值，歷史走勢自 2026-11-18 起每天累積。</p>
+    </section>
+
+    <section id="fundResult" hidden>
+      <div class="card fund-hero">
+        <div class="fund-tags"><span class="etf-tag" id="fKind"></span><span class="etf-tag f-other" id="fCur"></span></div>
+        <h2 id="fName"></h2>
+        <p class="fund-co" id="fCo"></p>
+        <div class="price"><span id="fNav"></span><span id="fChg" class="chg"></span></div>
+        <p class="meta" id="fMeta"></p>
+        <div class="hero-actions">
+          <button id="fWatchBtn" class="ghost" type="button">☆ 加入自選</button>
+          <button id="fRefreshBtn" class="ghost" type="button">重新抓取</button>
+        </div>
+      </div>
+      <div class="card fund-stats">
+        <div class="card-head"><h3>報酬率</h3><small id="fRetsNote">以淨值計算</small></div>
+        <div class="ret-grid" id="fRets"></div>
+        <div class="fund-div" id="fDiv" hidden></div>
+        <div class="fund-lamp" id="fLamp"></div>
+      </div>
+      <div class="card chart-card fund-chart-card">
+        <div class="card-head"><h3>淨值走勢</h3><div class="fund-range" id="fRange"></div><div class="legend" id="fLegend"></div></div>
+        <div class="chart" id="fChart"></div>
+        <p class="fund-chart-note" id="fChartNote"></p>
+      </div>
+    </section>
+
+    <section id="loading" class="loading" hidden>
+      <div class="lamp-house big cycling" aria-hidden="true">
+        <i class="lamp red"></i><i class="lamp yellow"></i><i class="lamp green"></i>
+      </div>
+      <p id="loadingText">診斷中…</p>
+    </section>
+
+    <section id="error" class="error" hidden></section>
+
+    <section id="result" hidden>
+      <div class="hero card">
+        <div class="lamp-house big" id="heroLamp" aria-hidden="true">
+          <i class="lamp red"></i><i class="lamp yellow"></i><i class="lamp green"></i>
+        </div>
+        <div class="hero-main">
+          <div class="hero-name">
+            <h2 id="stockName"></h2>
+            <span class="code" id="stockCode"></span>
+            <span class="etf-tag" id="etfTag" hidden></span>
+          </div>
+          <div class="price">
+            <span id="close"></span>
+            <span id="change" class="chg"></span>
+          </div>
+          <p class="verdict" id="verdict"></p>
+          <p class="meta" id="meta"></p>
+        </div>
+        <div class="hero-score">
+          <div class="score-ring" id="ring">
+            <svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="52"/><circle class="arc" id="arc" cx="60" cy="60" r="52"/></svg>
+            <div><b id="overallScore"></b><small>綜合分</small></div>
+          </div>
+          <div class="dim-mini" id="dimMini"></div>
+          <div class="dim-lamps" id="dimLamps"></div>
+          <div class="hero-actions">
+            <button id="watchBtn" class="ghost" type="button"></button>
+            <button id="refreshBtn" class="ghost" type="button">重新抓取</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dims" id="dims"></div>
+
+      <div class="card chart-card">
+        <div class="card-head">
+          <h3>近一年走勢</h3>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="chart" id="chart"></div>
+        <ul class="warnings" id="warnings"></ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- 共用登入：沒登入會帶去東石保險的登入頁，登入後自動回到診股 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+  <script src="../shared/supabase-client.js?v=20261120-2"></script>
+  <script src="../shared/auth.js?v=20261126-1"></script>
+  <script>requireLogin('../', { allowPortal: true }).then(() => document.body.classList.remove('auth-wait'));</script>
+  <script src="assets/scoring.js"></script>
+  <script src="assets/finmind.js"></script>
+  <script src="assets/funds.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

@@ -28,7 +28,7 @@
     <button onclick="location.href='market/index.html'">財經日報</button>
     <button onclick="location.href='clients/index.html'">人壽管理</button>      
     <button onclick="location.href='policies/index.html'">產險管理</button>
-    <button onclick="location.href='/eastone.stock/'">東石診股</button>
+    <button onclick="location.href='stock/index.html'">東石診股</button>
   </nav>
   <div class="ghdr-tools"><nav class="role-switch" aria-label="登入身分"><a href="login.html" class="active">業務員登入</a><a href="my/index.html">客戶登入</a></nav></div>
 </div>
@@ -58,7 +58,7 @@
     // 系統內的頁面才導回去（可帶 ?id=… 與 #分頁），其他一律回首頁
     // 東石診股（另一個 repo，同網域）登入後回到診股
     if (/^eastone\.stock\/index\.html/.test(next)) return '../eastone.stock/';
-    return /^(index\.html|clients\/(index|policy|checkup|report|finance|tax)\.html|policies\/index\.html|kb\/index\.html)(\?[\w=&%.-]*)?(#[\w=-]*)?$/.test(next) ? next : 'index.html';
+    return /^(index\.html|clients\/(index|policy|checkup|report|finance|tax)\.html|stock\/index\.html|policies\/index\.html|kb\/index\.html)(\?[\w=&%.-]*)?(#[\w=-]*)?$/.test(next) ? next : 'index.html';
   }
 
   // 已經登入的話直接進去
