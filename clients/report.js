@@ -239,13 +239,14 @@ const MED_AFTER = [
   ["失能給付", ["dis_lump", "dis_monthly", "dis_yearly", "acc_disability"]],
   ["出院療養與其他", ["post_discharge", "cancer_post", "cancer_care", "specific_monthly", "specific_yearly"]],
 ];
-function medGroups(groups) {
-  return groups.map(([title, codes]) => {
+function medGroups(groups, cols) {
+  const html = groups.map(([title, codes]) => {
     const has = codes.filter((c) => val(c));
     return `<div class="mg"><div class="mg-h">${esc(title)}</div>${has.length
       ? `<div class="vc-grid">${has.map((c) => valueCard(c)).join("")}</div>`
       : `<div class="mg-none">目前沒有對應保障${RES.contracts.some((c) => c.pending || !c.product) ? "（尚有保單資料待確認）" : ""}</div>`}</div>`;
   }).join("");
+  return cols ? `<div class="mg-cols">${html}</div>` : html;
 }
 
 // ---------------- 各頁 ----------------
@@ -410,7 +411,7 @@ function render() {
     <div class="ph ph-before"><div class="ph-h"><b>前</b>診斷與確診<span>確診後的一次性資金</span></div>
       <div class="vc-grid">${MED_BEFORE.map((c) => valueCard(c)).join("")}</div></div>
     <div class="ph ph-during"><div class="ph-h"><b>中</b>住院與治療<span>住院、意外、癌症治療期間</span></div>${medGroups(MED_DURING)}</div>
-    <div class="ph ph-after"><div class="ph-h"><b>後</b>康復與照護<span>長期照顧與失能</span></div>${medGroups(MED_AFTER)}</div>
+    <div class="ph ph-after"><div class="ph-h"><b>後</b>康復與照護<span>長期照顧與失能</span></div>${medGroups(MED_AFTER, true)}</div>
     <p class="rp-note">不同保單對「癌症」「重大疾病」的認定條件不一定相同；實支實付的多張限額不代表單次事故必然可領取總和。每日、每次、每年度的單位請留意。</p>`);
 
   // 保障年齡時間軸（依保險公司分組）

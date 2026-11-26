@@ -241,3 +241,7 @@ body { background: #E9E6DF; color: var(--ink); font-family: "Noto Sans TC", "Pin
 
 /* 保單目錄：保額、年期不換行 */
 .rp-table td.nw { white-space: nowrap; }
+/* 醫療「後」：左長照、中失能、右出院療養與其他，三欄並排、卡片各自往下排 */
+.mg-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: start; }
+.mg-cols .mg { margin: 2px 0 0; }
+.mg-cols .vc-grid { grid-template-columns: 1fr; }
