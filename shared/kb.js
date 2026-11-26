@@ -316,7 +316,10 @@ function kbCompute({ allClients, insured, asOf, fx }) {
       if (!item) return;
       const v = values[b.item_code] || (values[b.item_code] = { item, total: 0, low: 0, hasLow: false, min: false, unconverted: false, rows: [] });
       // 原幣金額：每單位 × 單位數，或「已繳保費總和 × amount」
-      const orig = b.basis === 'paid_premium' ? Number(b.amount) * ct.annualStd * ct.paidYears : Number(b.amount) * ct.units;
+      // basis 'plan'：計劃別給付不成比例（例 HSV 手術限額 4萬／6萬／8萬），金額依計劃數查 product.plans[項目]
+      const planArr = b.basis === 'plan' && ct.product && ct.product.plans && ct.product.plans[b.item_code];
+      const orig = planArr ? Number(planArr[Math.max(1, Math.min(planArr.length, Math.round(ct.units))) - 1] || 0)
+        : b.basis === 'paid_premium' ? Number(b.amount) * ct.annualStd * ct.paidYears : Number(b.amount) * ct.units;
       const origLow = b.amount_low != null ? Number(b.amount_low) * ct.units : null;
       const rate = ct.fxRate ?? 1;
       const value = Math.round(orig * rate);
