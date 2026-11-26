@@ -134,3 +134,25 @@
 .fin-month-head i { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
 .fin-month-head em { font-style: normal; color: var(--tc-fg-a2402d); }
 .fin-mini-sub { font-size: .72rem; color: var(--tc-fg-6b6656); }
+/* 全資產總表：可信度、不動產、文件 */
+.fin-chips i.vf-estimate { background: var(--tc-bg-fff6dd); color: var(--tc-fg-b8892b); }
+.fin-chips i.vf-doc { background: #E3ECF8; color: #2F5687; }
+.fin-chips i.vf-verified { background: #E2F3E8; color: #22774A; }
+.fin-ul li.warn, .fin-doc .warn, .fin-detail .warn, em.warn { color: var(--tc-fg-a2402d); font-style: normal; }
+.fin-docs { display: grid; gap: 8px; margin: 6px 0; }
+.fin-doc { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--tc-bd-d8d0bc); border-radius: 10px; }
+.fin-doc b { display: block; color: var(--tc-fg-121d33); }
+.fin-doc small { color: var(--tc-fg-6b6656); font-size: .76rem; }
+.fin-doc p { margin: 4px 0 0; font-size: .82rem; line-height: 1.6; }
+.fin-doc > span { display: flex; flex-wrap: wrap; gap: 2px; justify-content: flex-end; flex: none; }
+.link-btn.danger { color: var(--tc-fg-a2402d); }
+.fin-re-total { margin: 8px 0; padding: 10px 14px; border-radius: 10px; background: var(--tc-bg-fff6dd); color: var(--tc-fg-1b2a4a); }
+.fin-re-total.ok { background: #E2F3E8; }
+.fin-re-total b { font-size: 1.15rem; margin: 0 4px; }
+.fin-re-total span { font-size: .8rem; color: var(--tc-fg-6b6656); }
+.fin-re-rows { display: grid; gap: 8px; }
+.fin-re-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 8px; border: 1px dashed var(--tc-bd-d8d0bc); border-radius: 10px; align-items: center; }
+.fin-re-row input { width: 100%; height: 38px; padding: 0 8px; font: inherit; font-size: .85rem; border: 1px solid var(--tc-bd-d8d0bc); border-radius: 8px; background: var(--tc-bg-ffffff); color: var(--tc-fg-2a2a26); }
+@media (max-width: 640px) { .fin-re-row { grid-template-columns: 1fr 1fr; } .fin-doc { flex-direction: column; } }
+html[data-theme="dark"] .fin-chips i.vf-doc { background: #22324d; color: #b9cdee; }
+html[data-theme="dark"] .fin-chips i.vf-verified, html[data-theme="dark"] .fin-re-total.ok { background: #1f3a2b; color: #b9e0c0; }

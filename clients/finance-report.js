@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const C = FinCalc;
-  const CATS = { house: '房屋', savings_policy: '儲蓄險', investment_policy: '投資型保單／年金', fund: '基金', stock: '股票／ETF', deposit: '定存', cash: '活存／現金', mcn: 'FCN 結構型商品', other: '其他' };
+  const CATS = { house: '房屋（含基地）', land: '土地', savings_policy: '儲蓄險', investment_policy: '投資型保單／年金', fund: '基金', stock: '股票／ETF', deposit: '定存', cash: '活存／現金', mcn: 'FCN 結構型商品', equity: '公司股權／未上市', vehicle: '車輛', other: '其他' };
   const LIAB = { mortgage: '房貸', policy_loan: '保單貸款', securities_loan: '基金／股票質借', other: '其他借款' };
   const PURPOSE = { hot: '熱錢', cold: '冷錢', none: '未分類' };
   const RESTRICT = { none: '未設限', pledged: '質押', locked: '鎖定', repay: '需還款解押', unknown: '待確認' };

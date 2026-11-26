@@ -9,9 +9,11 @@ const C = FinCalc;
 const todayIso = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
 
 const CATS = {
-  house: '房屋', savings_policy: '儲蓄險', investment_policy: '投資型保單／年金', fund: '基金', stock: '股票／ETF',
-  deposit: '定存', cash: '活存／現金', mcn: 'FCN 結構型商品', other: '其他',
+  house: '房屋（含基地）', land: '土地', savings_policy: '儲蓄險', investment_policy: '投資型保單／年金', fund: '基金', stock: '股票／ETF',
+  deposit: '定存', cash: '活存／現金', mcn: 'FCN 結構型商品', equity: '公司股權／未上市', vehicle: '車輛', other: '其他',
 };
+const VERIFY = { estimate: '估計', doc: '已補文件', verified: '已核實' };
+const RE_CATS = ['house', 'land'];
 const LIAB_CATS = { mortgage: '房貸', policy_loan: '保單貸款', securities_loan: '基金／股票質借', other: '其他借款' };
 const PURPOSE = { hot: '熱錢', cold: '冷錢', none: '未分類' };
 const RESTRICT = { none: '未設限', pledged: '質押', locked: '鎖定', repay: '需還款解押', unknown: '待確認' };
@@ -47,7 +49,7 @@ function setStatus(msg) { $('fin-status').textContent = msg || ''; }
 const TABLES = {
   assets: 'fin_assets', assetValues: 'fin_asset_values', liabilities: 'fin_liabilities', liabilityBalances: 'fin_liability_balances',
   collateralLinks: 'fin_collateral_links', fundingLinks: 'fin_funding_links', cashEvents: 'fin_cash_events',
-  cashSchedules: 'fin_cash_schedules', snapshots: 'fin_snapshots',
+  cashSchedules: 'fin_cash_schedules', snapshots: 'fin_snapshots', documents: 'fin_documents',
 };
 async function loadClientData(id) {
   const entries = await Promise.all(Object.entries(TABLES).map(async ([k, t]) => {
@@ -331,6 +333,8 @@ function renderOverview() {
           <li>已確認負債 ${bs.confirmedLiabCount} ／ ${bs.liabRows.length}</li>
           <li>缺匯率 ${bs.missing.assetNoFx.length + bs.missing.liabNoFx.length} 項</li>
           <li>待確認擔保連結 ${data.collateralLinks.filter((k) => k.confirm_status !== 'confirmed').length} 筆</li>
+          <li>可信度：估計 ${countVerify('estimate')}・已補文件 ${countVerify('doc')}・已核實 ${countVerify('verified')}</li>
+          ${reMissing() ? `<li class="warn">不動產缺課稅價值（遺產稅試算會改用市價）${reMissing()} 項</li>` : ''}
           <li>FCN 結構型商品文件未齊 ${data.assets.filter((a) => a.category === 'mcn' && a.doc_status !== 'complete' && a.status !== 'archived').length} 項</li>
         </ul>
         ${miss.length ? `<h3>待補項目</h3><ul class="fin-ul fin-miss">${miss.map((x) => `<li>${x}</li>`).join('')}</ul>` : ''}
@@ -377,18 +381,27 @@ function renderAssets() {
       return `<button type="button" class="fin-item" data-asset="${r.id}">
         <div class="fin-item-main"><b>${esc(r.name || '（未命名）')}</b>
           <small>${esc([a.institution, a.identifier, a.policy_ref && '保單 ' + a.policy_ref].filter(Boolean).join('・'))}</small>
-          <span class="fin-chips"><i>${PURPOSE[r.purpose]}</i>${r.restriction !== 'none' ? `<i class="warn">${RESTRICT[r.restriction]}</i>` : ''}${tag}${r.flags.map((f) => `<i class="soft">${esc(f)}</i>`).join('')}</span></div>
+          <span class="fin-chips"><i class="vf-${a.verify || 'estimate'}">${VERIFY[a.verify || 'estimate']}</i>${RE_CATS.includes(a.category) ? reChip(a) : ''}${docCount(a.id) ? `<i class="soft">文件 ${docCount(a.id)}</i>` : ''}<i>${PURPOSE[r.purpose]}</i>${r.restriction !== 'none' ? `<i class="warn">${RESTRICT[r.restriction]}</i>` : ''}${tag}${r.flags.map((f) => `<i class="soft">${esc(f)}</i>`).join('')}</span></div>
         <div class="fin-item-val"><b>${r.status === 'funds_sum' ? (r.fundsTotal !== null ? fmt(r.fundsTotal) + ' TWD' : '基金未估值') : r.original !== null ? fmt(r.original, r.currency) + ' ' + r.currency : '—'}</b>
           <small>${r.base !== null && r.currency !== 'TWD' ? '≈ ' + fmt(r.base) + ' TWD' : ''}${r.valueDate ? ` ・${r.valueDate}` : ''}</small></div>
       </button>`;
     }).join('')}</div>`;
   }).join('');
   $('sec-assets').innerHTML = `
-    <div class="fin-head"><h2>資產</h2><button type="button" class="btn-primary fin-sm" id="fa-add">＋ 新增資產</button></div>
+    <div class="fin-head"><h2>資產</h2><span><button type="button" class="btn-secondary fin-sm" id="fa-deed">📄 上傳權狀建立不動產</button> <button type="button" class="btn-primary fin-sm" id="fa-add">＋ 新增資產</button></span></div>
+    <p class="fin-note">每一項資產都標示可信度：<b>估計</b>（先填數字，文件還沒拿到）→ <b>已補文件</b>（權狀、對帳單已上傳）→ <b>已核實</b>（您核對過文件與數字）。報表照樣能出，只是會標示哪些是估計。</p>
     <p class="fin-note">現值與成本分開記；保額、累計繳費不會被當成現值。每次估值是一筆紀錄，報表依基準日自動選用當時有效的那一筆（同一天以人工覆寫優先）。</p>
     ${byCat || '<p class="fin-empty-row">尚無資產。</p>'}
+    ${(() => { const loose = (data.documents || []).filter((d) => !d.asset_id); return loose.length ? `<h3>未歸檔文件</h3><div class="fin-docs">${loose.map((d) => `<div class="fin-doc"><div><b>${esc(DOC_KINDS[d.kind] || d.kind)}</b><small>${esc(d.file_name)}・${new Date(d.created_at).toLocaleDateString('zh-TW')}</small></div><span><button type="button" class="link-btn" data-looseview="${d.id}">開啟</button><button type="button" class="link-btn danger" data-loosedel="${d.id}">刪除</button></span></div>`).join('')}</div>` : ''; })()}
     ${archived.length ? `<details class="fin-archived"><summary>已封存 ${archived.length} 項</summary>${archived.map((a) => `<button type="button" class="fin-item" data-asset="${a.id}"><b>${esc(a.name)}</b></button>`).join('')}</details>` : ''}`;
   $('fa-add').addEventListener('click', () => assetForm());
+  $('fa-deed').addEventListener('click', () => pickFile((f) => newAssetFromDoc(f)));
+  document.querySelectorAll('[data-looseview]').forEach((b) => b.addEventListener('click', () => viewDoc(b.dataset.looseview)));
+  document.querySelectorAll('[data-loosedel]').forEach((b) => b.addEventListener('click', async () => {
+    if (!confirm('刪除這份文件？')) return;
+    const d = data.documents.find((x) => x.id === b.dataset.loosedel);
+    await sb.storage.from('fin-docs').remove([d.file_path]); await remove('fin_documents', d.id); await reload();
+  }));
   document.querySelectorAll('[data-asset]').forEach((b) => b.addEventListener('click', () => assetDetail(b.dataset.asset)));
 }
 
@@ -607,14 +620,16 @@ function assetForm(a, preset) {
     { k: 'identifier', label: '代號', ph: '股票代號（例 2330、AAPL）', upper: true, when: 'category=stock|mcn|other' },
     { k: 'fund_pick', label: '基金（從東石診股清單選，含完整級別與幣別）', when: 'category=fund', pick: 'fin-fund', hint: '可輸入名稱、ISIN 或代碼搜尋；選定後會自動填幣別，淨值每天自動更新' },
     { k: 'meta_class', label: '基金級別', ph: '例：A 累積 美元', when: 'category=fund' },
-    { k: 'share_pct', label: '持分（%）', type: 'number', def: 100, when: 'category=house', hint: '估值填整體市值時，系統只換算一次持分' },
-    { k: 'meta_region', label: '地區描述', when: 'category=house' },
+    { k: 'share_pct', label: '持分（%）', type: 'number', def: 100, when: 'category=house|land|equity', hint: '估值填整體市值時，系統只換算一次持分' },
+    { k: 'meta_region', label: '地區描述', when: 'category=house|land' },
+    { k: 'meta_plate', label: '車牌', when: 'category=vehicle' },
     { k: 'quantity', label: '持有數量（股數／單位數）', type: 'number', when: 'category=stock|fund|mcn|other' },
     { k: 'meta_start', label: '起日', type: 'date', when: 'category=deposit' },
     { k: 'meta_end', label: '到期日', type: 'date', when: 'category=deposit' },
     { k: 'meta_interest', label: '利息方式', when: 'category=deposit', ph: '例：年利率 1.7%，到期領息' },
     { k: 'cost', label: '原始成本（選填）', type: 'number', hint: '成本不會被當成現值' },
     { k: 'doc_status', label: '文件狀態', type: 'select', opts: [['', '未取得'], ['partial', '部分取得'], ['complete', '已取得並核對']], when: 'category=mcn' },
+    { k: 'verify', label: '資料可信度', type: 'select', opts: optsOf(VERIFY), hint: '先填估計值沒關係，之後補文件再升級' },
     { type: 'section', label: '用途、流動性與限制' },
     { k: 'purpose', label: '用途', type: 'select', opts: optsOf(PURPOSE) },
     { k: 'restriction', label: '限制', type: 'select', opts: optsOf(RESTRICT) },
@@ -625,7 +640,7 @@ function assetForm(a, preset) {
     { k: 'parent_id', label: '上層部位（例：投資型保單的底層基金）', type: 'select', opts: [['', '（無）'], ...assetOptions(a && a.id)], nullable: true },
     { k: 'include_in_total', label: '計入資產總額（銀行總覽、帳戶彙總這類只看不加的，請取消勾選）', type: 'check', def: true },
     { k: 'note', label: '備註', type: 'textarea', wide: true },
-  ], a ? { ...a, fund_pick: a.category === 'fund' && a.identifier ? `${a.identifier}｜${(a.meta || {}).fund_name || a.name}` : '', ...Object.fromEntries(Object.entries(a.meta || {}).map(([k, v]) => ['meta_' + k, v])) } : { include_in_total: true, purpose: 'none', restriction: 'none', ...(preset || {}) }, async (row) => {
+  ], a ? { ...a, fund_pick: a.category === 'fund' && a.identifier ? `${a.identifier}｜${(a.meta || {}).fund_name || a.name}` : '', ...Object.fromEntries(Object.entries(a.meta || {}).map(([k, v]) => ['meta_' + k, v])) } : { include_in_total: true, purpose: 'none', restriction: 'none', verify: 'estimate', ...(preset || {}) }, async (row) => {
     validNumbers(row, ['share_pct', 'quantity', 'cost', 'liquidity_days', 'exit_cost']);
     if (row.category === 'fund') {
       const fid = (row.fund_pick || '').split('｜')[0].trim();
@@ -641,6 +656,7 @@ function assetForm(a, preset) {
     delete row.fund_pick;
     if (!/^[A-Z]{3}$/.test(row.currency || '')) throw new Error('幣別請填三碼代號，例如 TWD、USD');
     const meta = {};
+    if (a && a.meta) ['parcels', 'bldg'].forEach((k) => { if (a.meta[k] !== undefined && row['meta_' + k] === undefined) meta[k] = a.meta[k]; });
     Object.keys(row).filter((k) => k.startsWith('meta_')).forEach((k) => { if (row[k]) meta[k.slice(5)] = row[k]; delete row[k]; });
     if (row.category !== 'investment_policy') delete meta.value_from_funds;
     row.meta = meta;
@@ -681,6 +697,8 @@ function assetDetail(id) {
         <p class="fin-note">保單價值＝這些基金的合計（保單本身不另計）。基金淨值會跟著「更新行情」自動更新。</p>
         <div class="fin-form-actions"><span></span><button type="button" class="btn-secondary" id="fd-fund">＋ 連結基金</button></div>`;
       })() : ''}
+      ${RE_CATS.includes(a.category) ? reSection(a) : ''}
+      ${docSection(a)}
       <div class="fin-form-sec">估值紀錄</div>
       ${vals.length ? `<table class="fin-table"><thead><tr><th>日期</th><th>口徑</th><th class="num">現值</th><th>來源</th><th></th></tr></thead><tbody>
         ${vals.map((v) => `<tr><td>${v.as_of}</td><td>${BASIS[v.value_basis]}${v.is_manual ? '' : '<i class="fin-mini">自動</i>'}${v.override_reason ? `<i class="fin-mini">覆寫</i>` : ''}</td>
@@ -694,6 +712,7 @@ function assetDetail(id) {
   onSubmit = null;
   $('fd-edit').onclick = () => assetForm(a);
   $('fd-val').onclick = () => valueForm(a);
+  bindDocSection(a);
   if ($('fd-fund')) $('fd-fund').onclick = () => assetForm(null, { category: 'fund', parent_id: a.id, institution: a.institution, purpose: a.purpose, restriction: a.restriction, name: '' });
   $('fin-form').querySelectorAll('[data-kid]').forEach((b) => b.onclick = () => assetDetail(b.dataset.kid));
   $('fin-form').querySelectorAll('[data-val]').forEach((b) => b.onclick = () => valueForm(a, vals.find((v) => v.id === b.dataset.val)));
@@ -872,4 +891,229 @@ function fundForm(k) {
     if (row.currency && !/^[A-Z]{3}$/.test(row.currency)) throw new Error('幣別請填三碼代號');
     await save('fin_funding_links', row, k && k.id);
   }, '', k ? async () => remove('fin_funding_links', k.id) : null);
+}
+
+// ============================================================
+// 全資產總表：可信度、不動產課稅價值、文件（權狀／謄本／稅單）上傳與 AI 判讀
+// 檔案放在 Supabase Storage 私有 bucket「fin-docs」，路徑 <業務員 uid>/<客戶ID>/<檔名>，只有上傳的人讀得到
+// ============================================================
+const DOC_KINDS = {
+  land_deed: '土地所有權狀', bldg_deed: '建物所有權狀', land_transcript: '土地登記謄本', bldg_transcript: '建物登記謄本',
+  house_tax: '房屋稅單', land_tax: '地價稅單', statement: '對帳單', other: '其他文件',
+};
+const docCount = (assetId) => (data.documents || []).filter((d) => d.asset_id === assetId).length;
+const countVerify = (v) => data.assets.filter((a) => a.status !== 'archived' && (a.verify || 'estimate') === v).length;
+const reMissing = () => data.assets.filter((a) => a.status !== 'archived' && RE_CATS.includes(a.category) && !C.reTaxValue(a).complete).length;
+const yuan = (n) => Math.round(Number(n) || 0).toLocaleString('zh-TW');
+function reChip(a) {
+  const t = C.reTaxValue(a);
+  return t.complete ? `<i>課稅價值 ${wan(C.D(t.total))}</i>` : '<i class="warn">缺課稅價值</i>';
+}
+const shareText = (n, d) => (Number(n) > 0 && Number(d) > 0 ? (Number(n) === Number(d) ? '全部' : `${d}分之${n}`) : '—');
+
+function reSection(a) {
+  const m = a.meta || {}, t = C.reTaxValue(a);
+  const parcels = m.parcels || [], b = m.bldg;
+  return `<div class="fin-form-sec">不動產資料與課稅價值</div>
+    <p class="fin-note">遺產稅、贈與稅不用市價，而是用「公告土地現值 × 面積 × 權利範圍」加上「房屋評定現值」。公告土地現值在<b>土地登記謄本</b>上，房屋評定現值在<b>房屋稅單</b>（課稅現值）上，權狀上沒有。</p>
+    ${parcels.length ? `<table class="fin-table"><thead><tr><th>土地</th><th class="num">面積㎡</th><th>權利範圍</th><th class="num">公告現值／㎡</th><th class="num">課稅價值</th></tr></thead><tbody>
+      ${parcels.map((p) => { const ok = p.area_m2 > 0 && p.share_den > 0 && p.announced_value > 0;
+        return `<tr><td>${esc([p.district, p.section].filter(Boolean).join(' '))} ${esc(p.lot_no || '')}地號</td><td class="num">${p.area_m2 || '—'}</td><td>${shareText(p.share_num, p.share_den)}</td>
+        <td class="num">${p.announced_value ? yuan(p.announced_value) : '<em class="warn">缺</em>'}${p.announced_date ? `<div class="fin-mini-sub">${esc(p.announced_date)}</div>` : ''}</td>
+        <td class="num">${ok ? yuan(p.area_m2 * p.share_num / p.share_den * p.announced_value) : '—'}</td></tr>`; }).join('')}</tbody></table>` : '<p class="fin-empty-row">尚無土地資料。</p>'}
+    ${b ? `<table class="fin-table"><tbody><tr><td>建物 ${esc(b.bldg_no || '')}建號${b.address ? '・' + esc(b.address) : ''}</td><td>總面積 ${b.total_area_m2 || '—'}㎡（約 ${b.total_area_m2 ? (b.total_area_m2 * 0.3025).toFixed(2) : '—'} 坪）・權利範圍 ${shareText(b.share_num, b.share_den)}</td>
+      <td class="num">房屋評定現值 ${b.tax_value ? yuan(b.tax_value) : '<em class="warn">缺</em>'}</td></tr></tbody></table>` : (a.category === 'house' ? '<p class="fin-empty-row">尚無建物資料。</p>' : '')}
+    <div class="fin-re-total ${t.complete ? 'ok' : ''}">課稅價值合計 <b>${yuan(t.total)}</b> 元${t.complete ? '' : '<span>（資料未齊，遺產稅試算會改用市價）</span>'}</div>
+    <div class="fin-form-actions"><span></span><button type="button" class="btn-secondary" id="fd-re">編輯不動產資料</button></div>`;
+}
+
+function docSection(a) {
+  const docs = (data.documents || []).filter((d) => d.asset_id === a.id);
+  return `<div class="fin-form-sec">文件</div>
+    ${docs.length ? `<div class="fin-docs">${docs.map((d) => { const x = d.extracted || {};
+      return `<div class="fin-doc"><div><b>${esc(DOC_KINDS[d.kind] || d.kind)}</b><small>${esc(d.file_name)}・${new Date(d.created_at).toLocaleDateString('zh-TW')}</small>
+        ${x.summary ? `<p>${esc(x.summary)}</p>` : ''}${(x.warnings || []).length ? `<p class="warn">⚠ ${x.warnings.map(esc).join('；')}</p>` : ''}</div>
+        <span><button type="button" class="link-btn" data-docview="${d.id}">開啟</button>
+          ${RE_CATS.includes(a.category) ? `<button type="button" class="link-btn" data-docread="${d.id}">${d.read_at ? '重新判讀' : 'AI 判讀'}</button>${d.read_at ? `<button type="button" class="link-btn" data-docapply="${d.id}">套用</button>` : ''}` : ''}
+          <button type="button" class="link-btn danger" data-docdel="${d.id}">刪除</button></span></div>`; }).join('')}</div>` : '<p class="fin-empty-row">尚無文件。可上傳權狀、謄本、稅單、對帳單（拍照或 PDF）。</p>'}
+    <div class="fin-form-actions"><span></span><button type="button" class="btn-secondary" id="fd-doc">＋ 上傳文件</button></div>`;
+}
+
+function bindDocSection(a) {
+  const f = $('fin-form');
+  if ($('fd-re')) $('fd-re').onclick = () => reForm(a);
+  $('fd-doc').onclick = () => pickFile(async (file) => {
+    const doc = await uploadDoc(file, a.id);
+    if (RE_CATS.includes(a.category)) await readAndApply(doc, a);
+    else { if ((a.verify || 'estimate') === 'estimate') await save('fin_assets', { verify: 'doc' }, a.id); await reload(); assetDetail(a.id); }
+  });
+  f.querySelectorAll('[data-docview]').forEach((b) => b.onclick = () => viewDoc(b.dataset.docview));
+  f.querySelectorAll('[data-docread]').forEach((b) => b.onclick = () => readAndApply(data.documents.find((d) => d.id === b.dataset.docread), a));
+  f.querySelectorAll('[data-docapply]').forEach((b) => b.onclick = async () => { const d = data.documents.find((x) => x.id === b.dataset.docapply); await applyExtract(a, d.extracted); });
+  f.querySelectorAll('[data-docdel]').forEach((b) => b.onclick = async () => {
+    if (!confirm('刪除這份文件？（檔案會一併刪除）')) return;
+    const d = data.documents.find((x) => x.id === b.dataset.docdel);
+    await sb.storage.from('fin-docs').remove([d.file_path]);
+    await remove('fin_documents', d.id); await reload(); assetDetail(a.id);
+  });
+}
+
+function pickFile(cb) {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*,application/pdf';
+  inp.onchange = async () => {
+    const file = inp.files && inp.files[0]; if (!file) return;
+    try { setStatus('上傳中…'); await cb(file); } catch (e) { alert(e.message || e); } finally { showFxStatus(); }
+  };
+  inp.click();
+}
+
+// 手機照片常常 5～10MB：先縮到長邊 2400px、JPEG，AI 讀得清楚也傳得快
+async function shrinkImage(file) {
+  if (!/^image\//.test(file.type) || file.type === 'image/gif') return file;
+  const img = await createImageBitmap(file).catch(() => null);
+  if (!img) return file;
+  const k = Math.min(1, 2400 / Math.max(img.width, img.height));
+  if (k === 1 && file.size < 3.5e6 && file.type === 'image/jpeg') return file;
+  const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+  cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+  const blob = await new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.85));
+  return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+}
+
+async function uploadDoc(file, assetId) {
+  if (file.size > 25 * 1024 * 1024) throw new Error('檔案超過 25MB');
+  const f = await shrinkImage(file);
+  const { data: { user } } = await sb.auth.getUser();
+  const ext = f.type === 'application/pdf' ? 'pdf' : (f.type.split('/')[1] || 'jpg');
+  const path = `${user.id}/${client.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await sb.storage.from('fin-docs').upload(path, f, { contentType: f.type });
+  if (error) throw new Error('上傳失敗：' + error.message);
+  const { data: row, error: e2 } = await sb.from('fin_documents').insert({ client_id: client.id, asset_id: assetId || null, file_path: path, file_name: file.name, mime: f.type, size: f.size }).select().single();
+  if (e2) throw new Error('存檔失敗：' + e2.message);
+  return row;
+}
+async function viewDoc(id) {
+  const d = data.documents.find((x) => x.id === id);
+  const { data: s, error } = await sb.storage.from('fin-docs').createSignedUrl(d.file_path, 300);
+  if (error) { alert('開啟失敗：' + error.message); return; }
+  window.open(s.signedUrl, '_blank', 'noopener');
+}
+
+async function aiRead(doc) {
+  setStatus('AI 判讀中（約 20～60 秒）…');
+  try { return (await callFn('fin-doc-read', { doc_id: doc.id })).extracted; }
+  finally { showFxStatus(); }
+}
+async function readAndApply(doc, a) {
+  let x;
+  try { x = await aiRead(doc); } catch (e) { alert('AI 判讀失敗：' + (e.message || e) + '\n文件已保存，可稍後再按「AI 判讀」。'); await reload(); assetDetail(a.id); return; }
+  await reload();
+  await applyExtract(data.assets.find((q) => q.id === a.id), x);
+}
+
+// 把判讀結果合併進資產：土地依地號合併、建物覆寫有值的欄位、房屋稅單帶入評定現值
+function mergeExtract(meta, x) {
+  const m = { ...meta };
+  const parcels = [...(m.parcels || [])];
+  (x.land || []).forEach((p) => {
+    const row = { district: p.district || '', section: p.section || '', lot_no: p.lot_no || '', area_m2: p.area_m2 || 0,
+      share_num: (p.share && p.share.num) || 0, share_den: (p.share && p.share.den) || 0,
+      announced_value: p.announced_value || 0, announced_date: p.announced_date || '', declared_price: p.declared_price || 0 };
+    const i = parcels.findIndex((q) => q.lot_no && q.lot_no === row.lot_no && (q.section || '') === (row.section || ''));
+    if (i < 0) parcels.push(row);
+    else Object.keys(row).forEach((k) => { if (row[k]) parcels[i][k] = row[k]; });
+  });
+  if (parcels.length) m.parcels = parcels;
+  const b = x.building;
+  if (b && (b.bldg_no || b.total_area_m2)) {
+    m.bldg = { ...(m.bldg || {}) };
+    const add = { district: b.district, section: b.section, bldg_no: b.bldg_no, total_area_m2: b.total_area_m2, main_area_m2: b.main_area_m2, annex_area_m2: b.annex_area_m2,
+      common_area_m2: b.common_area_m2, share_num: b.share && b.share.num, share_den: b.share && b.share.den, use: b.use, floors: b.floors, completed: b.completed };
+    Object.entries(add).forEach(([k, v]) => { if (v) m.bldg[k] = v; });
+  }
+  if (x.address) { m.bldg = m.bldg || {}; if (!m.bldg.address) m.bldg.address = x.address; }
+  if (x.house_tax && Number(x.house_tax.taxable_value) > 0) { m.bldg = m.bldg || {}; m.bldg.tax_value = Number(x.house_tax.taxable_value); m.bldg.tax_year = x.house_tax.year || ''; }
+  return m;
+}
+function extractPreview(x) {
+  const land = (x.land || []).map((p) => `<li>${esc(p.section || '')} ${esc(p.lot_no || '')}地號：${p.area_m2 || '?'}㎡，權利範圍 ${shareText(p.share && p.share.num, p.share && p.share.den)}${p.announced_value ? `，公告現值 ${yuan(p.announced_value)} 元／㎡` : ''}</li>`).join('');
+  const b = x.building && (x.building.bldg_no || x.building.total_area_m2) ? `<li>建物 ${esc(x.building.bldg_no || '')}建號：總面積 ${x.building.total_area_m2 || '?'}㎡，權利範圍 ${shareText(x.building.share && x.building.share.num, x.building.share && x.building.share.den)}</li>` : '';
+  const ht = x.house_tax && Number(x.house_tax.taxable_value) > 0 ? `<li>房屋稅單課稅現值 ${yuan(x.house_tax.taxable_value)} 元</li>` : '';
+  return `<p><b>${esc(DOC_KINDS[x.doc_type] || '文件')}</b>${x.owner_name ? `・所有權人 ${esc(x.owner_name)}` : ''}${x.register_date ? `・${esc(x.register_reason || '登記')} ${esc(x.register_date)}` : ''}</p>
+    ${x.summary ? `<p>${esc(x.summary)}</p>` : ''}<ul class="fin-ul">${land}${b}${ht}</ul>
+    ${(x.warnings || []).length ? `<p class="warn">⚠ ${x.warnings.map(esc).join('；')}</p>` : ''}`;
+}
+async function applyExtract(a, x) {
+  if (!x || !x.doc_type) { alert('這份文件還沒有判讀結果'); return; }
+  const owner = x.owner_name && client.name && !x.owner_name.includes(client.name) ? `<p class="warn">⚠ 文件上的所有權人「${esc(x.owner_name)}」和客戶「${esc(client.name)}」不同，請確認。</p>` : '';
+  $('fin-modal-title').textContent = 'AI 判讀結果';
+  $('fin-form').innerHTML = `<div class="fin-detail">${extractPreview(x)}${owner}
+    <p class="fin-note">AI 判讀可能出錯，套用前請對照原文件。套用後可在「編輯不動產資料」修改。</p>
+    <div class="fin-form-actions"><button type="button" class="btn-secondary" id="fx-skip">先不要</button><button type="button" class="btn-primary" id="fx-apply">套用到「${esc(a.name)}」</button></div></div>`;
+  $('fin-modal').hidden = false; onSubmit = null;
+  $('fx-skip').onclick = () => assetDetail(a.id);
+  $('fx-apply').onclick = async () => {
+    const row = { meta: mergeExtract(a.meta || {}, x) };
+    if ((a.verify || 'estimate') === 'estimate') row.verify = 'doc';
+    await save('fin_assets', row, a.id);
+    await reload(); toast('已套用'); assetDetail(a.id);
+  };
+}
+
+// 先上傳權狀 → AI 判讀 → 自動建立一筆不動產
+async function newAssetFromDoc(file) {
+  const doc = await uploadDoc(file, null);
+  let x;
+  try { x = await aiRead(doc); } catch (e) { await reload(); throw new Error('AI 判讀失敗：' + (e.message || e) + '\n文件已保存，請先手動新增資產。'); }
+  const isLand = ['land_deed', 'land_transcript', 'land_tax'].includes(x.doc_type) && !(x.building && x.building.bldg_no);
+  const p0 = (x.land || [])[0];
+  const name = x.address || (p0 ? `${p0.section || ''}${p0.lot_no || ''}地號` : '不動產');
+  const meta = mergeExtract({}, x);
+  if (p0 && p0.district) meta.region = p0.district;
+  const { data: row, error } = await sb.from('fin_assets').insert({ client_id: client.id, category: isLand ? 'land' : 'house', name, currency: 'TWD', meta, verify: 'doc' }).select().single();
+  if (error) throw new Error('建立資產失敗：' + error.message);
+  await sb.from('fin_documents').update({ asset_id: row.id }).eq('id', doc.id);
+  await reload(); section = 'assets'; render();
+  assetDetail(row.id);
+  toast(`已建立「${name}」，市價請按「新增估值」填寫`);
+}
+
+// 手動編輯土地與建物
+function reForm(a) {
+  const m = a.meta || {};
+  const parcels = (m.parcels || []).map((p) => ({ ...p }));
+  if (!parcels.length && a.category === 'land') parcels.push({});
+  const b = { ...(m.bldg || {}) };
+  const inp = (k, v, ph, type = 'text') => `<input data-k="${k}" type="${type}" value="${esc(v ?? '')}" placeholder="${ph}"${type === 'number' ? ' step="any" inputmode="decimal"' : ''}>`;
+  const draw = () => {
+    $('fin-form').innerHTML = `<div class="fin-detail">
+      <div class="fin-form-sec">土地（每一筆地號一列）</div>
+      <div class="fin-re-rows">${parcels.map((p, i) => `<div class="fin-re-row" data-i="${i}">
+        ${inp('section', p.section, '地段')}${inp('lot_no', p.lot_no, '地號')}${inp('area_m2', p.area_m2, '面積㎡', 'number')}
+        ${inp('share_num', p.share_num, '權利範圍分子', 'number')}${inp('share_den', p.share_den, '分母（全部填 1/1）', 'number')}
+        ${inp('announced_value', p.announced_value, '公告土地現值 元/㎡', 'number')}<button type="button" class="link-btn danger" data-rm="${i}">刪</button></div>`).join('')}</div>
+      <div class="fin-form-actions"><span></span><button type="button" class="btn-secondary" id="re-addp">＋ 加一筆土地</button></div>
+      ${a.category === 'house' ? `<div class="fin-form-sec">建物</div>
+      <div class="fin-re-row bldg">${inp('bldg_no', b.bldg_no, '建號')}${inp('address', b.address, '門牌')}${inp('total_area_m2', b.total_area_m2, '總面積㎡', 'number')}
+        ${inp('share_num', b.share_num, '權利範圍分子', 'number')}${inp('share_den', b.share_den, '分母', 'number')}${inp('tax_value', b.tax_value, '房屋評定現值（稅單課稅現值，本人持分）', 'number')}</div>` : ''}
+      <div class="fin-form-actions"><button type="button" class="btn-secondary" id="re-cancel">取消</button><button type="button" class="btn-primary" id="re-save">儲存</button></div></div>`;
+    const collect = () => {
+      document.querySelectorAll('.fin-re-row[data-i]').forEach((r) => { const p = parcels[r.dataset.i]; r.querySelectorAll('input').forEach((x) => { p[x.dataset.k] = x.type === 'number' ? (x.value === '' ? 0 : Number(x.value)) : x.value.trim(); }); });
+      const br = document.querySelector('.fin-re-row.bldg');
+      if (br) br.querySelectorAll('input').forEach((x) => { b[x.dataset.k] = x.type === 'number' ? (x.value === '' ? 0 : Number(x.value)) : x.value.trim(); });
+    };
+    $('re-addp').onclick = () => { collect(); parcels.push({}); draw(); };
+    document.querySelectorAll('[data-rm]').forEach((x) => x.onclick = () => { collect(); parcels.splice(Number(x.dataset.rm), 1); draw(); });
+    $('re-cancel').onclick = () => assetDetail(a.id);
+    $('re-save').onclick = async () => {
+      collect();
+      const meta = { ...m, parcels: parcels.filter((p) => p.lot_no || p.area_m2) };
+      if (a.category === 'house' && Object.values(b).some(Boolean)) meta.bldg = b; else delete meta.bldg;
+      try { await save('fin_assets', { meta }, a.id); await reload(); toast('已儲存'); assetDetail(a.id); } catch (e) { alert('儲存失敗：' + e.message); }
+    };
+  };
+  $('fin-modal-title').textContent = `${a.name}｜不動產資料`;
+  $('fin-modal').hidden = false; onSubmit = null;
+  draw();
 }

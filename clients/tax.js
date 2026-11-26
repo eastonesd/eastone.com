@@ -164,16 +164,28 @@
       const today = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
       const bs = FinCalc.balanceSheet({ assets, assetValues, liabilities, liabilityBalances, fx: fxRes.data || [], asOf: today });
       const toWan = (big) => Math.round(FinCalc.toNum(big) / W * 10000) / 10000;
-      $('es-gross').value = toWan(bs.assetsTotal);
+      // 房屋、土地：有完整課稅價值（公告現值＋評定現值）就用課稅價值取代市價
+      let gross = bs.assetsTotal, reTax = 0, reMarket = 0;
+      const reList = assets.filter((a) => ['house', 'land'].includes(a.category) && a.status !== 'archived');
+      reList.forEach((a) => {
+        const t = FinCalc.reTaxValue(a);
+        if (!t.complete) return;
+        const row = bs.assetRows.find((r) => r.id === a.id);
+        if (!row || !row.counted) return;
+        if (row.base !== null && row.base !== undefined) { gross -= row.base; reMarket++; }
+        gross += FinCalc.D(t.total); reTax++;
+      });
+      $('es-gross').value = toWan(gross);
       $('es-debts').value = bs.liabTotal > 0n ? toWan(bs.liabTotal) : '';
       const miss = bs.missingCount;
-      const houses = assets.filter((a) => a.category === 'house' && a.status !== 'archived').length;
+      const houses = reList.length;
       const policies = assets.filter((a) => ['savings_policy', 'investment_policy'].includes(a.category) && a.status !== 'archived').length;
       note.innerHTML = `<div class="tax-imported">
-        <p>已帶入 <b>${esc($('es-client').value.split('｜')[0])}</b> 截至 ${today} 的資料：資產 ${wan(Math.round(FinCalc.toNum(bs.assetsTotal)))}（遺產總額）、負債 ${wan(Math.round(FinCalc.toNum(bs.liabTotal)))}（其他扣除額）。</p>
+        <p>已帶入 <b>${esc($('es-client').value.split('｜')[0])}</b> 截至 ${today} 的資料：資產 ${wan(Math.round(FinCalc.toNum(gross)))}（遺產總額）、負債 ${wan(Math.round(FinCalc.toNum(bs.liabTotal)))}（其他扣除額）。</p>
         <ul>
           ${miss ? `<li class="warn">資產負債有 ${miss} 項未估值或缺匯率，未包含在內。</li>` : ''}
-          ${houses ? `<li>房屋、土地申報遺產時是用公告現值／評定標準價格，不是市價；如果資產負債填的是市價，請改成課稅價值。</li>` : ''}
+          ${reTax ? `<li>${reTax} 筆房屋／土地已改用課稅價值（公告土地現值＋房屋評定現值）計入，不是市價。</li>` : ''}
+          ${houses - reTax > 0 ? `<li class="warn">${houses - reTax} 筆房屋／土地缺課稅價值，暫以市價計入（會高估遺產稅）；請到資產負債上傳謄本或房屋稅單補齊。</li>` : ''}
           ${policies ? `<li>保單：指定受益人的身故保險金不計入遺產；被繼承人當要保人、但被保險人是別人的保單，才以保單價值列入遺產。請依實際情況調整。</li>` : ''}
           <li>帶入後仍可自行修改；扣除額請依家庭狀況在下方勾選。</li>
         </ul></div>`;

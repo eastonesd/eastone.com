@@ -371,9 +371,28 @@
     return { rulesVersion: RULES_VERSION, bs, av, cf, upcoming: up, trace: trace(input), period: { from, to }, upcomingTo: until };
   }
 
+  // ---------- 不動產課稅價值（遺產稅、贈與稅用；不是市價）----------
+  // 土地：面積 × 權利範圍 × 公告土地現值；房屋：房屋評定現值（稅單上的課稅現值，填本人持分）
+  // 回傳整數元；任何一筆缺資料 → complete:false（仍回傳已算得的部分）
+  function reTaxValue(asset) {
+    const m = (asset && asset.meta) || {};
+    const parcels = Array.isArray(m.parcels) ? m.parcels : [];
+    const bldg = m.bldg || null;
+    let land = 0, landOk = true;
+    parcels.forEach((p) => {
+      const area = Number(p.area_m2) || 0, num = Number(p.share_num) || 0, den = Number(p.share_den) || 0, v = Number(p.announced_value) || 0;
+      if (!(area > 0 && num > 0 && den > 0 && v > 0)) { landOk = false; return; }
+      land += area * (num / den) * v;
+    });
+    const bv = bldg && Number(bldg.tax_value) > 0 ? Number(bldg.tax_value) : 0;
+    const isLand = asset && asset.category === 'land';
+    const complete = parcels.length > 0 && landOk && (isLand || bv > 0);
+    return { land: Math.round(land), building: bv, total: Math.round(land) + bv, complete, parcels: parcels.length, hasBldg: !!bldg };
+  }
+
   // 把 BigInt 轉成 JSON 可存的字串（快照用），讀回時用 revive
   function serialize(obj) { return JSON.parse(JSON.stringify(obj, (k, v) => (typeof v === 'bigint' ? { $d: v.toString() } : v))); }
   function revive(obj) { return JSON.parse(JSON.stringify(obj), (k, v) => (v && typeof v === 'object' && '$d' in v ? BigInt(v.$d) : v)); }
 
-  return { RULES_VERSION, D, add, sub, mul, toNum, fxRate, toBase, pickValue, pickBalance, balanceSheet, available, cashFlow, upcoming, trace, compute, serialize, revive, KINDS, addMonths };
+  return { RULES_VERSION, D, add, sub, mul, toNum, fxRate, toBase, pickValue, pickBalance, balanceSheet, available, cashFlow, upcoming, trace, compute, serialize, revive, KINDS, addMonths, reTaxValue };
 });
