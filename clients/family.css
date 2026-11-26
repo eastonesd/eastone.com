@@ -44,3 +44,8 @@
 .fo-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 1000; background: #1B2A4A; color: #fff; padding: 10px 18px; border-radius: 999px; font-size: .88rem; }
 @media (max-width: 900px) { .fo-main { grid-template-columns: 1fr; } .fo-side { position: static; } .fo-grid { grid-template-columns: 1fr; } #fo-graph { height: 360px; } }
 .lg-multi { background: transparent; border: 3px solid #D9534F; }
+/* 表單：備註欄跟其他輸入框同樣外觀、佔滿寬度、標題在上方 */
+#fo-form textarea { display: block; width: 100%; margin-top: 6px; min-height: 96px; padding: 10px 12px; font: inherit; font-size: 1rem; resize: vertical;
+  border: 1px solid var(--tc-bd-d8d0bc); border-radius: 8px; background: var(--tc-bg-ffffff); color: var(--tc-fg-2a2a26); }
+#fo-form textarea:focus { outline: none; border-color: var(--tc-bd-1b2a4a); box-shadow: 0 0 0 3px var(--accent-soft); }
+#fo-form label > input, #fo-form label > select { margin-top: 6px; }
