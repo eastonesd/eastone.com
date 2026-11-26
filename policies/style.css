@@ -643,3 +643,6 @@ table.codes-table td.presets{ color:var(--tc-fg-6b6656); font-size:.84rem; }
 /* 標題下的步驟進度線拿掉（客戶總覽、人壽、家族辦公室都沒有） */
 .wizard-top .rail{ display:none !important; }
 .wizard-top .tag{ margin-left:auto; }
+
+/* 背景橫格線是蓋在整頁上的；讓頁首與「客戶管理」導覽列疊在它上面，導覽列就不會被線穿過 */
+.ghdr-wrap, .cm-bar{ position:relative; z-index:2; }
