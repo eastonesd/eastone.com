@@ -175,4 +175,4 @@ html[data-theme="dark"] .cm-bar { background: #141E33; }
   .cm-tab { padding: 7px 2px; }
   .cm-era { grid-column: 1 / -1; justify-self: center; margin: 4px 0 0; }
 }
-@media (max-width: 560px) { .ghdr-right { height: 0; margin-top: -14px; } }
+@media (max-width: 560px) { .ghdr-right { display: contents !important; } }
