@@ -49,3 +49,14 @@
   border: 1px solid var(--tc-bd-d8d0bc); border-radius: 8px; background: var(--tc-bg-ffffff); color: var(--tc-fg-2a2a26); }
 #fo-form textarea:focus { outline: none; border-color: var(--tc-bd-1b2a4a); box-shadow: 0 0 0 3px var(--accent-soft); }
 #fo-form label > input, #fo-form label > select { margin-top: 6px; }
+/* 家系圖 */
+#fo-graph { overflow: auto; height: auto; min-height: 260px; max-height: 640px; }
+.geno { display: block; margin: 0 auto; }
+.geno .gl { stroke: var(--tc-fg-2a2a26); stroke-width: 1.6; fill: none; }
+.geno .gl.dash { stroke-dasharray: 5 4; stroke: var(--tc-fg-6b6656); }
+.geno .gl.partner { stroke-dasharray: 4 3; }
+.geno .gn { cursor: pointer; }
+.geno .gn:hover { filter: brightness(1.08); }
+.geno .gt { font: 700 13px 'Noto Sans TC', sans-serif; fill: var(--tc-fg-1b2a4a); stroke: none; text-anchor: middle; }
+.geno .gt-sub { font: 500 11px 'Noto Sans TC', sans-serif; fill: var(--tc-fg-6b6656); stroke: none; text-anchor: middle; }
+.geno .gt-rel { font: 500 10px 'Noto Sans TC', sans-serif; fill: var(--tc-fg-6b6656); text-anchor: middle; }

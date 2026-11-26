@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="../shared/site-header.css?v=20261123-1">
 <link rel="stylesheet" href="../shared/auth.css?v=20261118-1">
 <link rel="stylesheet" href="style.css?v=20261121-1">
-<link rel="stylesheet" href="family.css?v=20261126-2">
+<link rel="stylesheet" href="family.css?v=20261126-3">
 </head>
 <body>
 
@@ -65,12 +65,12 @@
       </div>
       <div class="card">
         <div class="fo-sec-h"><b>關係網絡</b>
-          <span class="fo-legend"><i class="lg-client"></i>客戶 <i class="lg-ext"></i>非客戶 <i class="lg-other"></i>其他家族成員 <i class="lg-multi"></i>跨多個家族</span>
+          <span class="fo-legend">○ 男　△ 女　□ 未填性別　<i class="lg-other"></i>其他家族成員 <i class="lg-multi"></i>跨多個家族　＝ 配偶</span>
           <label class="fo-chk"><input type="checkbox" id="fo-cross" checked>顯示跨家族連結</label>
-          <button type="button" class="btn-secondary fo-sm" id="fo-fit">置中</button>
+          <button type="button" class="btn-secondary fo-sm" id="fo-zout">－</button><button type="button" class="btn-secondary fo-sm" id="fo-zin">＋</button><button type="button" class="btn-secondary fo-sm" id="fo-fit">原尺寸</button>
         </div>
         <div id="fo-graph"></div>
-        <div class="fo-hint">拖曳可移動人物、滾輪縮放；點人物看摘要。</div>
+        <div class="fo-hint">依世代由上而下排列；顏色代表世代。點人物看摘要，圖太大可左右捲動或縮放。</div>
         <div id="fo-pop" class="fo-pop" hidden></div>
       </div>
       <div class="fo-grid">
@@ -96,9 +96,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
 <script src="../shared/supabase-client.js?v=20261120-2"></script>
 <script src="../shared/auth.js?v=20261126-2"></script>
-<script src="family.js?v=20261126-1"></script>
+<script src="family.js?v=20261126-3"></script>
 </body>
 </html>

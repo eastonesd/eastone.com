@@ -13,7 +13,6 @@
 
   let me = null;
   const S = { families: [], members: [], people: [], rels: [], agents: [], team: [], staffClients: [], current: null };
-  let cy = null;
 
   const toast = (m) => { const t = document.createElement('div'); t.className = 'fo-toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); };
   const fail = (e, what) => { console.error(e); toast(`${what}失敗：${(e && e.message) || e}`); };
@@ -113,48 +112,153 @@
     return `${a} ↔ ${b}：${KIND[r.kind]}`;
   }
 
-  // ---------- 關係網絡圖（cytoscape） ----------
+  // ---------- 家系圖（世代分層：夫妻以「＝」相連、子女從父母中點垂下） ----------
+  const G = { w: 110, h: 150, r: 20 }; // 每人寬度、世代間距、圖形半徑
+  const GEN_COLORS = ['#F07C93', '#FFD98A', '#8FE3C9', '#CDB4F0', '#C7C5AE', '#9EC5F0', '#F5B38A'];
+  let zoom = 1;
+
   function drawGraph() {
     const f = S.current;
     const own = new Set(membersOf(f).map((m) => m.person_id));
     const cross = $('fo-cross').checked;
-    const nodes = new Set(own);
-    // 跨家族：把和本家族成員有關係的外部人物也畫出來（一層）
-    if (cross) S.rels.forEach((r) => { if (own.has(r.a) && person(r.b)) nodes.add(r.b); if (own.has(r.b) && person(r.a)) nodes.add(r.a); });
-    const edges = S.rels.filter((r) => nodes.has(r.a) && nodes.has(r.b));
-    const dark = document.documentElement.dataset.theme === 'dark';
-    const els = [
-      ...[...nodes].map((id) => {
-        const p = person(id);
-        const multi = familiesOf(id).length > 1;
-        const title = (S.members.find((m) => m.family_id === f && m.person_id === id) || {}).title;
-        return { data: { id, label: `${p.name}${title ? `\n${title}` : ''}` }, classes: [own.has(id) ? (p.client_id ? 'client' : 'ext') : 'other', multi ? 'multi' : ''].join(' ') };
-      }),
-      ...edges.map((r) => ({ data: { id: r.id, source: r.a, target: r.b, label: r.label || EDGE_LABEL[r.kind] }, classes: r.kind })),
-    ];
-    if (cy) cy.destroy();
-    cy = cytoscape({
-      container: $('fo-graph'),
-      elements: els,
-      wheelSensitivity: 0.25,
-      style: [
-        { selector: 'node', style: { label: 'data(label)', 'text-wrap': 'wrap', 'text-valign': 'bottom', 'text-margin-y': 6, 'font-size': 12, 'font-weight': 700,
-          color: dark ? '#E8E4DA' : '#1B2A4A', width: 38, height: 38, 'background-color': '#1B2A4A', 'border-width': 3, 'border-color': '#B8892B' } },
-        { selector: 'node.ext', style: { 'background-color': '#8A8F9A', 'border-color': '#C9C2AF' } },
-        { selector: 'node.other', style: { 'background-color': '#6E8FB5', 'border-color': '#C9D2E6', opacity: 0.85, 'border-style': 'dashed' } },
-        { selector: 'node.multi', style: { 'border-width': 5, 'border-color': '#D9534F' } },
-        { selector: 'edge', style: { width: 2, 'line-color': dark ? '#6B7385' : '#B9B3A3', 'curve-style': 'bezier', label: 'data(label)', 'font-size': 10,
-          color: dark ? '#C9C2AF' : '#6B6656', 'text-background-color': dark ? '#1E2433' : '#FFFFFF', 'text-background-opacity': 1, 'text-background-padding': 2 } },
-        { selector: 'edge.spouse, edge.partner', style: { 'line-color': '#B8892B', width: 3 } },
-        { selector: 'edge.parent, edge.grandparent', style: { 'target-arrow-shape': 'triangle', 'target-arrow-color': dark ? '#6B7385' : '#B9B3A3' } },
-        { selector: 'edge.in_law', style: { 'line-style': 'dashed' } },
-        { selector: ':selected', style: { 'overlay-opacity': 0.12 } },
-      ],
-      layout: { name: nodes.size > 1 ? 'cose' : 'grid', animate: false, padding: 30, nodeRepulsion: 9000, idealEdgeLength: 90 },
+    const ids = new Set(own);
+    if (cross) S.rels.forEach((r) => { if (own.has(r.a) && person(r.b)) ids.add(r.b); if (own.has(r.b) && person(r.a)) ids.add(r.a); });
+    const rels = S.rels.filter((r) => ids.has(r.a) && ids.has(r.b));
+    const nodes = [...ids];
+
+    // 1. 關係整理：父母、配偶、手足
+    const parents = new Map(nodes.map((n) => [n, new Set()]));
+    const spouses = new Map(nodes.map((n) => [n, new Set()]));
+    rels.forEach((r) => {
+      if (r.kind === 'parent') parents.get(r.b).add(r.a);
+      if (r.kind === 'spouse' || r.kind === 'partner') { spouses.get(r.a).add(r.b); spouses.get(r.b).add(r.a); }
     });
-    cy.on('tap', 'node', (e) => showPop(e.target.id(), e.renderedPosition));
-    cy.on('tap', (e) => { if (e.target === cy) $('fo-pop').hidden = true; });
+    // 手足沒登記父母時，借用對方的父母
+    rels.filter((r) => r.kind === 'sibling').forEach((r) => {
+      const pa = parents.get(r.a), pb = parents.get(r.b);
+      if (!pa.size && pb.size) pb.forEach((x) => pa.add(x));
+      if (!pb.size && pa.size) pa.forEach((x) => pb.add(x));
+    });
+
+    // 2. 世代：親子 +1、祖孫 +2，配偶／手足／姻親同一代
+    const gen = new Map();
+    const step = { parent: 1, grandparent: 2, spouse: 0, partner: 0, sibling: 0, in_law: 0 };
+    nodes.forEach((start) => {
+      if (gen.has(start)) return;
+      gen.set(start, 0);
+      const q = [start];
+      while (q.length) {
+        const x = q.shift();
+        rels.forEach((r) => {
+          if (!(r.kind in step)) return;
+          let y = null, d = 0;
+          if (r.a === x) { y = r.b; d = step[r.kind]; } else if (r.b === x) { y = r.a; d = -step[r.kind]; }
+          if (y && !gen.has(y)) { gen.set(y, gen.get(x) + d); q.push(y); }
+        });
+      }
+    });
+    const minG = Math.min(...gen.values());
+    nodes.forEach((n) => gen.set(n, gen.get(n) - minG));
+
+    // 3. 排版：以「一家人單位」（本人＋配偶）為節點，子女排在下方置中
+    const placed = new Map(); // id -> {x, y}
+    const childrenOf = (unit) => nodes.filter((c) => !placed.has(c) && [...parents.get(c)].some((p) => unit.includes(p)))
+      .sort((a, b) => String(person(a).birthday || '9').localeCompare(String(person(b).birthday || '9')));
+    const unitOf = (p) => [p, ...[...spouses.get(p)].filter((s) => !placed.has(s))];
+    const sizeCache = new Map();
+    function width(p, seen = new Set()) {
+      if (seen.has(p)) return 1;
+      seen.add(p);
+      const u = unitOf(p);
+      const kids = nodes.filter((c) => c !== p && !u.includes(c) && [...parents.get(c)].some((x) => u.includes(x)) && !seen.has(c));
+      const kw = kids.reduce((s, c) => s + width(c, seen), 0);
+      return Math.max(u.length, kw);
+    }
+    function place(p, left) {
+      const u = unitOf(p);
+      u.forEach((x) => placed.set(x, null));
+      const kids = childrenOf(u);
+      let cursor = left;
+      const kidXs = [];
+      kids.forEach((c) => { if (placed.has(c)) return; const w = width(c); place(c, cursor); kidXs.push(c); cursor += w; });
+      const span = Math.max(u.length, cursor - left);
+      const center = left + span / 2;
+      u.forEach((x, i) => placed.set(x, { x: (center - u.length / 2 + i + 0.5) * G.w, y: gen.get(p) * G.h + 60 }));
+      return span;
+    }
+    // 根：沒有父母在圖上、而且不是「嫁娶進來」的人（配偶有父母者，跟著配偶排）
+    const roots = nodes.filter((n) => !parents.get(n).size && ![...spouses.get(n)].some((s) => parents.get(s).size))
+      .sort((a, b) => gen.get(a) - gen.get(b));
+    let left = 0;
+    roots.forEach((r) => { if (!placed.has(r)) left += place(r, left) + 0.5; });
+    nodes.forEach((n) => { if (!placed.has(n)) left += place(n, left) + 0.5; });
+    // 同一代對齊：place 已用世代算 y；配偶若世代不同，以本人為準
+    nodes.forEach((n) => { const pt = placed.get(n); if (pt) pt.y = gen.get(n) * G.h + 60; });
+
+    // 4. 畫 SVG
+    const pts = [...placed.values()];
+    const W = Math.max(...pts.map((p) => p.x)) + G.w, H = Math.max(...pts.map((p) => p.y)) + 90;
+    const line = (x1, y1, x2, y2, cls = '') => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="gl ${cls}"/>`;
+    let svg = '';
+    // 配偶：＝
+    const doneCouple = new Set();
+    rels.filter((r) => r.kind === 'spouse' || r.kind === 'partner').forEach((r) => {
+      const a = placed.get(r.a), b = placed.get(r.b);
+      if (!a || !b) return;
+      const [l, rr] = a.x < b.x ? [a, b] : [b, a];
+      const mx = (l.x + rr.x) / 2;
+      if (Math.abs(a.y - b.y) < 1) {
+        svg += line(l.x + G.r + 4, l.y - 4, rr.x - G.r - 4, rr.y - 4, r.kind) + line(l.x + G.r + 4, l.y + 4, rr.x - G.r - 4, rr.y + 4, r.kind);
+      } else svg += line(a.x, a.y, b.x, b.y, 'dash');
+      doneCouple.add([r.a, r.b].sort().join('|'));
+      void mx;
+    });
+    // 親子：依「父母組合」分群，從父母中點垂下
+    const groups = new Map();
+    nodes.forEach((c) => { const ps = [...parents.get(c)].filter((p) => placed.get(p)); if (!ps.length) return; const k = ps.sort().join('|'); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(c); });
+    const lane = new Map(); // 同一層有好幾組父母時，橫線錯開高度，避免看起來接在一起
+    groups.forEach((kids, k) => {
+      const ps = k.split('|').map((p) => placed.get(p));
+      const px = ps.reduce((s, p) => s + p.x, 0) / ps.length, py = Math.max(...ps.map((p) => p.y));
+      const ks = kids.map((c) => placed.get(c));
+      const row = Math.min(...ks.map((c) => c.y));
+      const n = lane.get(row) || 0; lane.set(row, n + 1);
+      const barY = row - G.h / 2 + 10 + n * 12;
+      const startY = ps.length > 1 ? py : py + G.r + 18;
+      svg += line(px, startY, px, barY);
+      const xs = [px, ...ks.map((c) => c.x)];
+      svg += line(Math.min(...xs), barY, Math.max(...xs), barY);
+      ks.forEach((c) => { svg += line(c.x, barY, c.x, c.y - G.r - 2); });
+    });
+    // 祖孫（中間那代沒建檔）、姻親、其他：虛線
+    rels.filter((r) => ['grandparent', 'in_law', 'other'].includes(r.kind)).forEach((r) => {
+      const a = placed.get(r.a), b = placed.get(r.b);
+      if (a && b) svg += `<path d="M${a.x},${a.y} C${a.x},${(a.y + b.y) / 2} ${b.x},${(a.y + b.y) / 2} ${b.x},${b.y}" class="gl dash"/>`
+        + `<text x="${(a.x + b.x) / 2}" y="${(a.y + b.y) / 2 - 4}" class="gt-rel">${esc(r.label || EDGE_LABEL[r.kind])}</text>`;
+    });
+    // 人物：男＝圓形、女＝三角形、未填＝圓角方形；顏色依世代
+    nodes.forEach((id) => {
+      const p = person(id), pt = placed.get(id);
+      const col = own.has(id) ? GEN_COLORS[gen.get(id) % GEN_COLORS.length] : '#AFC3DA';
+      const stroke = familiesOf(id).length > 1 ? '#D9534F' : shade(col);
+      const sw = familiesOf(id).length > 1 ? 4 : 2;
+      const { x, y } = pt, r = G.r;
+      const shape = p.gender === '男' ? `<circle cx="${x}" cy="${y}" r="${r}"/>`
+        : p.gender === '女' ? `<polygon points="${x},${y - r - 2} ${x + r + 2},${y + r - 2} ${x - r - 2},${y + r - 2}"/>`
+        : `<rect x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" rx="8"/>`;
+      const title = (S.members.find((m) => m.family_id === f && m.person_id === id) || {}).title;
+      svg += `<g class="gn${own.has(id) ? '' : ' other'}${p.client_id ? '' : ' ext'}" data-p="${id}" fill="${col}" stroke="${stroke}" stroke-width="${sw}"${own.has(id) ? '' : ' stroke-dasharray="4 3"'}>${shape}
+        <text x="${x}" y="${y + r + 18}" class="gt">${esc(p.name)}</text>${title ? `<text x="${x}" y="${y + r + 33}" class="gt-sub">${esc(title)}</text>` : ''}</g>`;
+    });
+    $('fo-graph').innerHTML = nodes.length
+      ? `<svg class="geno" viewBox="0 0 ${W} ${H}" width="${W * zoom}" height="${H * zoom}" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`
+      : '<div class="fo-none" style="padding:20px">加入成員並建立關係後，這裡會畫出家系圖。</div>';
+    $('fo-graph').querySelectorAll('.gn').forEach((g) => g.addEventListener('click', (e) => {
+      const box = $('fo-graph').getBoundingClientRect();
+      showPop(g.dataset.p, { x: e.clientX - box.left, y: e.clientY - box.top - 40 });
+    }));
   }
+  function shade(hex) { const n = parseInt(hex.slice(1), 16); const k = 0.72; return `rgb(${(n >> 16 & 255) * k | 0},${(n >> 8 & 255) * k | 0},${(n & 255) * k | 0})`; }
 
   async function showPop(pid, pos) {
     const p = person(pid);
@@ -162,7 +266,7 @@
     const fams = familiesOf(pid);
     pop.hidden = false;
     pop.style.left = `${Math.min(pos.x + 12, $('fo-graph').clientWidth - 230)}px`;
-    pop.style.top = `${pos.y + 60}px`;
+    pop.style.top = `${pos.y + 90}px`;
     pop.innerHTML = `<b>${esc(p.name)}</b><div class="fo-mini">讀取中…</div>`;
     const { data } = await sb.rpc('fo_person_brief', { pid });
     const link = p.client_id && p.owner === me.id ? `<a href="index.html#client=${encodeURIComponent(p.client_id)}">打開客戶資料卡 →</a>` : '';
@@ -314,7 +418,10 @@
     $('fo-add-rel').addEventListener('click', relForm);
     $('fo-search').addEventListener('input', renderList);
     $('fo-cross').addEventListener('change', drawGraph);
-    $('fo-fit').addEventListener('click', () => cy && cy.fit(undefined, 30));
+    $('fo-fit').addEventListener('click', () => { zoom = 1; drawGraph(); });
+    $('fo-zin').addEventListener('click', () => { zoom = Math.min(2.5, zoom * 1.25); drawGraph(); });
+    $('fo-zout').addEventListener('click', () => { zoom = Math.max(0.4, zoom / 1.25); drawGraph(); });
+    $('fo-graph').addEventListener('click', (e) => { if (!e.target.closest('.gn')) $('fo-pop').hidden = true; });
     $('fo-modal-close').addEventListener('click', close);
     $('fo-modal').addEventListener('click', (e) => { if (e.target === $('fo-modal')) close(); });
   }
