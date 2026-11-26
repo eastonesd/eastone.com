@@ -12,7 +12,7 @@
     set: (v) => { try { v ? localStorage.setItem(KEY, v) : localStorage.removeItem(KEY); } catch { /* 無痕 */ } } };
   const errText = (e) => {
     const m = String((e && e.message) || e || '');
-    if (/invalid login credentials/i.test(m)) return '信箱或密碼錯誤';
+    if (/invalid login credentials/i.test(m)) return '手機號碼或密碼錯誤';
     if (/email not confirmed/i.test(m)) return '信箱還沒確認，請到信箱點確認信後再登入';
     if (/already registered|already been registered/i.test(m)) return '這個信箱已經註冊過，請直接登入';
     if (/signups not allowed|signup is disabled/i.test(m)) return '目前暫停開放註冊，請透過 LINE 聯繫東石';
@@ -105,6 +105,9 @@
   }
   sb.auth.onAuthStateChange((ev) => { if (ev === 'PASSWORD_RECOVERY') show('v-reset'); });
 
+  // 手機帳號在系統內存成 <手機>@phone.eastone.invalid；以前用信箱註冊的照樣可以打信箱登入
+  const normPhone = (v) => { let d = String(v || '').replace(/\D/g, ''); if (d.startsWith('886')) d = '0' + d.slice(3); return d; };
+  const loginId = (v) => (String(v).includes('@') ? String(v).trim() : `${normPhone(v)}@phone.eastone.invalid`);
   const busy = (form, on) => { const b = form.querySelector('button[type=submit]'); b.disabled = on; };
   const go = (v) => (e) => { e.preventDefault(); show(v); };
   $('to-signup').addEventListener('click', go('v-signup'));
@@ -116,7 +119,7 @@
   $('v-login').addEventListener('submit', async (e) => {
     e.preventDefault(); busy(e.target, true); $('li-msg').textContent = '';
     try {
-      const { error } = await sb.auth.signInWithPassword({ email: $('li-email').value.trim(), password: $('li-pass').value });
+      const { error } = await sb.auth.signInWithPassword({ email: loginId($('li-email').value), password: $('li-pass').value });
       if (error) throw error;
       await enter();
     } catch (err) { $('li-msg').textContent = errText(err); } finally { busy(e.target, false); }
@@ -128,8 +131,10 @@
     try {
       if (!/^[A-Z0-9]{6,12}$/.test(code)) throw new Error('邀請碼格式不正確');
       // 不開放公開註冊：由後端函式驗證邀請碼後才建立帳號並綁定
-      const email = $('su-email').value.trim(), password = $('su-pass').value;
-      const { data, error } = await sb.functions.invoke('portal-signup', { body: { code, email, password } });
+      const phone = normPhone($('su-email').value), password = $('su-pass').value;
+      if (!/^09\d{8}$/.test(phone)) throw new Error('請輸入 09 開頭的 10 碼手機號碼');
+      const email = loginId(phone);
+      const { data, error } = await sb.functions.invoke('portal-signup', { body: { code, phone, password } });
       if (error) {
         let m = '註冊失敗，請稍後再試';
         try { m = (await error.context.json()).error || m; } catch { /* 讀不到原因 */ }

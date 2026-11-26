@@ -30,7 +30,7 @@
   <!-- 登入 -->
   <form class="auth-card" id="v-login" hidden>
     <div class="auth-title">客戶登入</div>
-    <label>電子信箱<input type="email" id="li-email" autocomplete="username" required></label>
+    <label>手機號碼<input type="text" id="li-email" inputmode="tel" autocomplete="username" placeholder="09xxxxxxxx" required></label>
     <label>密碼<input type="password" id="li-pass" autocomplete="current-password" required></label>
     <div class="auth-msg" id="li-msg"></div>
     <button type="submit" class="auth-btn auth-btn-block">登入</button>
@@ -41,7 +41,7 @@
   <form class="auth-card" id="v-signup" hidden>
     <div class="auth-title">註冊查看我的保單</div>
     <label>邀請碼<input type="text" id="su-code" required autocomplete="off" placeholder="由您的業務員提供" style="text-transform:uppercase"></label>
-    <label>電子信箱<input type="email" id="su-email" autocomplete="username" required></label>
+    <label>手機號碼（要和業務員登記的一樣）<input type="tel" id="su-email" inputmode="tel" autocomplete="username" placeholder="09xxxxxxxx" required></label>
     <label>設定密碼（至少 8 碼）<input type="password" id="su-pass" autocomplete="new-password" minlength="8" required></label>
     <div class="auth-msg" id="su-msg"></div>
     <button type="submit" class="auth-btn auth-btn-block">註冊</button>
@@ -51,7 +51,8 @@
   <!-- 忘記密碼 -->
   <form class="auth-card" id="v-forgot" hidden>
     <div class="auth-title">重設密碼</div>
-    <label>電子信箱<input type="email" id="fg-email" autocomplete="username" required></label>
+    <p class="auth-note" style="margin-top:0">用手機註冊的帳號：請向您的業務員索取新的邀請碼，回到「用邀請碼註冊」，輸入同一支手機和新密碼，就會改成新密碼。</p>
+    <label>以前用電子信箱註冊的，請輸入信箱<input type="email" id="fg-email" autocomplete="username" required></label>
     <div class="auth-msg" id="fg-msg"></div>
     <button type="submit" class="auth-btn auth-btn-block">寄送重設信</button>
     <p class="auth-note"><a href="#" class="back-login">回到登入</a></p>
@@ -92,6 +93,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script src="../shared/supabase-client.js?v=20261120-2"></script>
-<script src="my.js?v=20261123-3"></script>
+<script src="my.js?v=20261126-9"></script>
 </body>
 </html>
