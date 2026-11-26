@@ -639,3 +639,7 @@ table.codes-table td.presets{ color:var(--tc-fg-6b6656); font-size:.84rem; }
 .amount-multi label{ display:grid; gap:4px; font-size:.8rem; color:var(--tc-fg-6b6656); font-weight:600; }
 .amount-multi input{ padding:9px 12px; border:1.5px solid var(--tc-bd-d8d0bc); border-radius:8px; font:inherit; font-size:.92rem; background:var(--tc-bg-ffffff); }
 .amount-multi input[readonly]{ background:var(--tc-bg-f1eee6); color:var(--tc-fg-1b2a4a); font-weight:700; }
+
+/* 標題下的步驟進度線拿掉（客戶總覽、人壽、家族辦公室都沒有） */
+.wizard-top .rail{ display:none !important; }
+.wizard-top .tag{ margin-left:auto; }

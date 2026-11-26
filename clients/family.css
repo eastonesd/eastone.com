@@ -60,3 +60,11 @@
 .geno .gt { font: 700 13px 'Noto Sans TC', sans-serif; fill: var(--tc-fg-1b2a4a); stroke: none; text-anchor: middle; }
 .geno .gt-sub { font: 500 11px 'Noto Sans TC', sans-serif; fill: var(--tc-fg-6b6656); stroke: none; text-anchor: middle; }
 .geno .gt-rel { font: 500 10px 'Noto Sans TC', sans-serif; fill: var(--tc-fg-6b6656); text-anchor: middle; }
+.fo-todo-h { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--tc-bd-d8d0bc); }
+.fo-todo-list { display: grid; gap: 8px; max-height: 60vh; overflow: auto; margin-top: 8px; }
+.fo-todo-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--tc-bd-d8d0bc); border-radius: 10px; }
+.fo-todo-card b { grid-column: 1; font-size: .9rem; color: var(--tc-fg-121d33); }
+.fo-todo-card span { grid-column: 1; font-size: .8rem; color: var(--tc-fg-6b6656); }
+.fo-todo-card > button, .fo-todo-card > em { grid-column: 2; grid-row: 1 / span 2; font-size: .8rem; color: var(--tc-fg-6b6656); }
+.fo-todo-card.done { opacity: .55; }
+.fo-chk-row { display: flex; margin: 4px 0; font-size: .9rem; }

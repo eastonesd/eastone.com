@@ -393,7 +393,6 @@ th { color:var(--tc-fg-6b6656); font-weight: 600; background:var(--tc-bg-f6f3ec)
 .fl-tags { white-space: normal !important; }
 .fl-tag { display: inline-block; margin: 1px 4px 1px 0; padding: 2px 8px; border-radius:999px; font-size: .74rem; font-weight: 700; color:var(--tc-fg-1b2a4a); background:var(--tc-bg-ede8dc); }
 .fl-tag.house { color:var(--tc-fg-b8892b); background:var(--tc-bg-fff6dd); }
-.fl-cards { display: grid; gap: 14px; margin-top: 6px; }
 .fl-card { border:1px solid var(--tc-bd-d8d0bc); border-left:4px solid var(--tc-bd-b8892b); border-radius:12px; background:var(--tc-bg-ffffff); padding: 14px 16px; }
 .fl-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
 .fl-card-head b { display: block; color:var(--tc-fg-121d33); font-size: 1.02rem; }
@@ -452,7 +451,6 @@ th { color:var(--tc-fg-6b6656); font-weight: 600; background:var(--tc-bg-f6f3ec)
 /* 資料卡：地址列右邊的編輯資料、群組旁的健診日、選保單種類 */
 .dt-addr { display: flex !important; align-items: center; justify-content: space-between; gap: 12px; }
 .dt-addr .dt-edit { width: auto; flex: none; padding: 8px 16px; font-size: .85rem; }
-.dt-grp-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
 .dt-ck .dt-ck-line { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
 .dt-ck input[type=date] { height: 34px; width: 150px; padding: 4px 8px; font-size: .85rem; }
 .dt-mini-btn { font: inherit; font-size: .8rem; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--tc-bd-d8d0bc); background: var(--tc-bg-f6f3ec); color: var(--tc-fg-6b6656); cursor: pointer; white-space: nowrap; }
@@ -460,5 +458,5 @@ th { color:var(--tc-fg-6b6656); font-weight: 600; background:var(--tc-bg-f6f3ec)
 .portal-box[hidden], .pick-kind[hidden] { display: none !important; }
 .pick-kind { margin-top: 12px; padding: 14px; border-radius: 12px; border: 1px solid var(--tc-bd-b8892b); background: var(--tc-bg-fff6dd, #FFF6DD); display: grid; gap: 10px; }
 .pick-kind-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-@media (max-width: 560px) { .dt-grp-row { grid-template-columns: 1fr; } }
 .pick-kind-btns button { width: 100%; }
+.fl-tag.off { opacity: .35; }

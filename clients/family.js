@@ -12,7 +12,7 @@
   const ROLE = { primary: '主要窗口', co: '協同窗口' };
 
   let me = null;
-  const S = { families: [], members: [], people: [], rels: [], agents: [], team: [], staffClients: [], current: null };
+  const S = { families: [], members: [], people: [], rels: [], agents: [], team: [], staffClients: [], myClients: [], pcGroups: [], current: null };
 
   const toast = (m) => { const t = document.createElement('div'); t.className = 'fo-toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); };
   const fail = (e, what) => { console.error(e); toast(`${what}失敗：${(e && e.message) || e}`); };
@@ -30,7 +30,7 @@
   });
 
   async function reload() {
-    const [fa, fm, pp, rl, ag, tm, sc] = await Promise.all([
+    const [fa, fm, pp, rl, ag, tm, sc, cl, pc] = await Promise.all([
       sb.from('families').select('*').order('name'),
       sb.from('family_members').select('*'),
       sb.from('fo_people').select('*'),
@@ -38,15 +38,20 @@
       sb.from('family_agents').select('*'),
       sb.from('team_members').select('*'),
       sb.rpc('fo_staff_clients'),
+      // 待整理：客戶的地址、群組（客戶管理移過來的「同住址／群組」）與產險保單上的群組
+      sb.from('clients').select('id, owner, name:data->>name, city:data->>city, district:data->>district, address_detail:data->>address_detail, groups:data->groups'),
+      sb.from('policies').select('owner, id_no:data->>insured_id_number, groups:data->groups'),
     ]);
     const err = [fa, fm, pp, rl, ag, tm, sc].find((r) => r.error);
     if (err) { fail(err.error, '讀取家族資料'); return; }
-    Object.assign(S, { families: fa.data, members: fm.data, people: pp.data, rels: rl.data, agents: ag.data, team: tm.data, staffClients: sc.data || [] });
+    Object.assign(S, { families: fa.data, members: fm.data, people: pp.data, rels: rl.data, agents: ag.data, team: tm.data, staffClients: sc.data || [],
+      myClients: cl.error ? [] : cl.data || [], pcGroups: pc.error ? [] : pc.data || [] });
     if (!S.team.some((t) => t.user_id === me.id)) {
       $('fo-empty').innerHTML = '您的帳號還不在服務團隊裡，請聯絡主管加入後才能使用家族功能。';
       $('fo-new').disabled = true;
     }
     renderList();
+    renderTodo();
     if (S.current && S.families.some((f) => f.id === S.current)) renderDetail(); else { S.current = null; $('fo-detail').hidden = true; $('fo-empty').hidden = false; }
   }
 
@@ -335,19 +340,21 @@
   function memberForm() {
     const fid = S.current;
     const inFam = new Set(membersOf(fid).map((m) => m.person_id));
-    const opts = S.staffClients.map((c) => `<option value="${esc(c.owner)}|${esc(c.id)}">${esc(c.name)}（${esc(c.id)}${c.owner !== me.id ? '・' + esc(c.owner_name || '') : ''}）</option>`).join('');
+    const clientOpts = S.staffClients.map((c) => ({ value: `${c.owner}|${c.id}`, label: `${c.name}（${c.id}${c.owner !== me.id ? '・' + (c.owner_name || '') : ''}）` }));
     const others = S.people.filter((p) => !inFam.has(p.id));
+    const otherOpts = others.map((p) => ({ value: p.id, label: `${p.name}${p.client_id ? '' : '（非客戶）'}${familiesOf(p.id).length ? '・' + familiesOf(p.id).map((f) => f.name).join('、') : ''}` }));
     modal('加入成員', `
-      <label>從客戶清單選<select name="client"><option value="">—</option>${opts}</select></label>
-      ${others.length ? `<label>或從其他家族已有的人選<select name="pid"><option value="">—</option>${others.map((p) => `<option value="${p.id}">${esc(p.name)}${p.client_id ? '' : '（非客戶）'}</option>`).join('')}</select></label>` : ''}
+      <label>從客戶清單選（可打字搜尋姓名或身分證字號）${pickInput('client', clientOpts)}</label>
+      ${others.length ? `<label>或從其他家族已有的人選（可打字搜尋）${pickInput('pid', otherOpts)}</label>` : ''}
       <fieldset class="fo-fs"><legend>或新增非客戶（只記姓名）</legend>
         <label>姓名<input name="name"></label>
         <div class="fo-2"><label>性別<select name="gender"><option value="">—</option><option>男</option><option>女</option></select></label>
         <label>生日<input type="date" name="birthday"></label></div></fieldset>
       <label>在這個家族的稱謂（選填）<input name="title" placeholder="例：家長、長子、媳婦"></label>`,
     async (fd) => {
-      let pid = fd.get('pid') || '';
-      const client = fd.get('client');
+      let pid = pickValue(fd, 'pid', otherOpts);
+      const client = pickValue(fd, 'client', clientOpts);
+      if (pid === null || client === null) { toast('找不到打的這個人，請從下拉選單點選'); return false; }
       const name = (fd.get('name') || '').trim();
       if (!pid && client) {
         const [owner, cid] = client.split('|');
@@ -408,6 +415,95 @@
     const { error } = await sb.from('person_relations').delete().eq('id', id);
     if (error) return fail(error, '刪除關係');
     await reload();
+  }
+
+  // ---------- 可打字搜尋的選單（input＋datalist；選到的文字對回值） ----------
+  function pickInput(name, opts) {
+    return `<input name="${name}" list="dl-${name}" placeholder="打字搜尋，或留空" autocomplete="off"><datalist id="dl-${name}">${opts.map((o) => `<option value="${esc(o.label)}">`).join('')}</datalist>`;
+  }
+  // 留空回 ''；打的字對不到任何選項回 null
+  function pickValue(fd, name, opts) {
+    const t = String(fd.get(name) || '').trim();
+    if (!t) return '';
+    const hit = opts.find((o) => o.label === t) || (opts.filter((o) => o.label.includes(t)).length === 1 ? opts.find((o) => o.label.includes(t)) : null);
+    return hit ? hit.value : null;
+  }
+
+  // ---------- 待整理：同住址、群組（從客戶管理、產險管理移過來，在這裡統一建成家族） ----------
+  const addrKey = (c) => !c.address_detail ? '' : `${c.city || ''}${c.district || ''}${c.address_detail}`
+    .replace(/[！-～]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)).replace(/臺/g, '台').replace(/[\s,，、.。\-－]/g, '').toUpperCase();
+  function todoSets() {
+    const byKey = (c) => `${c.owner}|${c.id}`;
+    const house = new Map(), group = new Map();
+    for (const c of S.myClients) {
+      const k = addrKey(c);
+      if (k) { if (!house.has(k)) house.set(k, { title: `${c.city || ''}${c.district || ''}${c.address_detail}`, list: [] }); house.get(k).list.push(c); }
+      for (const g of (Array.isArray(c.groups) ? c.groups : [])) { if (!group.has(g)) group.set(g, { title: g, list: [] }); group.get(g).list.push(c); }
+    }
+    // 產險保單上的群組：用被保人身分證字號對回客戶
+    const byId = new Map(S.myClients.map((c) => [String(c.id).toUpperCase(), c]));
+    for (const p of S.pcGroups) for (const g of (Array.isArray(p.groups) ? p.groups : [])) {
+      const c = byId.get(String(p.id_no || '').toUpperCase());
+      if (!c) continue;
+      if (!group.has(g)) group.set(g, { title: g, list: [] });
+      if (!group.get(g).list.some((x) => byKey(x) === byKey(c))) group.get(g).list.push(c);
+    }
+    const done = (set) => {
+      // 全員都已經在同一個家族 → 已整理
+      const pids = set.list.map((c) => (S.people.find((p) => p.owner === c.owner && p.client_id === c.id) || {}).id);
+      if (pids.some((x) => !x)) return null;
+      return S.families.find((f) => pids.every((pid) => S.members.some((m) => m.family_id === f.id && m.person_id === pid))) || null;
+    };
+    const pack = (m, min) => [...m.values()].filter((x) => x.list.length >= min).map((x) => ({ ...x, fam: done(x) })).sort((a, b) => !!a.fam - !!b.fam || b.list.length - a.list.length);
+    return { house: pack(house, 2), group: pack(group, 1) };
+  }
+  function renderTodo() {
+    const box = $('fo-todo');
+    if (!box) return;
+    const t = todoSets(), left = (a) => a.filter((x) => !x.fam).length;
+    box.innerHTML = `<button type="button" class="fo-item" data-todo="house"><b>同住址</b><span>${t.house.length} 組・待建家族 ${left(t.house)} 組</span></button>
+      <button type="button" class="fo-item" data-todo="group"><b>群組</b><span>${t.group.length} 組・待建家族 ${left(t.group)} 組</span></button>`;
+    box.querySelectorAll('[data-todo]').forEach((b) => b.addEventListener('click', () => todoList(b.dataset.todo)));
+  }
+  function todoList(kind) {
+    const sets = todoSets()[kind];
+    const label = kind === 'house' ? '同住址' : '群組';
+    modal(`待整理：${label}`, sets.length ? `<p class="fo-mini">${kind === 'house' ? '地址填得一樣的客戶。' : '客戶管理、產險管理裡設定過的群組。'}按「建立家族」就把這些人放進同一個家族。</p>
+      <div class="fo-todo-list">${sets.map((x, i) => `<div class="fo-todo-card${x.fam ? ' done' : ''}"><b>${esc(x.title)}</b>
+        <span>${x.list.map((c) => esc(c.name)).join('、')}</span>
+        ${x.fam ? `<em>已在「${esc(x.fam.name)}」</em>` : `<button type="button" class="btn-primary fo-sm" data-i="${i}">建立家族</button>`}</div>`).join('')}</div>`
+      : `<div class="fo-none">目前沒有${label}要整理。</div>`, async () => true);
+    $('fo-form').querySelector('.fo-form-act [type=submit]').hidden = true;
+    $('fo-cancel').textContent = '關閉';
+    $('fo-form').querySelectorAll('[data-i]').forEach((b) => b.addEventListener('click', () => familyFromSet(sets[+b.dataset.i], kind)));
+  }
+  function familyFromSet(set, kind) {
+    const surname = (set.list[0].name || '').slice(0, 1);
+    modal('從待整理建立家族', `
+      <label>家族名稱<input name="name" required value="${esc(kind === 'group' ? set.title : surname + '家')}"></label>
+      <p class="fo-mini">要放進家族的人（取消勾選就不放）：</p>
+      ${set.list.map((c, i) => `<label class="fo-chk fo-chk-row"><input type="checkbox" name="m${i}" checked>${esc(c.name)}</label>`).join('')}`,
+    async (fd) => {
+      const picked = set.list.filter((_, i) => fd.get(`m${i}`));
+      if (!picked.length) { toast('至少要勾一個人'); return false; }
+      const { data: fam, error } = await sb.from('families').insert({ name: fd.get('name').trim(), note: kind === 'house' ? `同住址：${set.title}` : `群組：${set.title}`, created_by: me.id }).select('id').single();
+      if (error) throw error;
+      const { error: e2 } = await sb.from('family_agents').insert({ family_id: fam.id, user_id: me.id, role: 'primary' });
+      if (e2) throw e2;
+      for (const c of picked) {
+        let pid = (S.people.find((p) => p.owner === c.owner && p.client_id === c.id) || {}).id;
+        if (!pid) {
+          const sc = S.staffClients.find((x) => x.owner === c.owner && x.id === c.id) || {};
+          const { data, error: e3 } = await sb.from('fo_people').insert({ owner: c.owner, client_id: c.id, name: c.name, gender: sc.gender || null, birthday: sc.birthday || null, created_by: me.id }).select('id').single();
+          if (e3) throw e3;
+          pid = data.id;
+        }
+        const { error: e4 } = await sb.from('family_members').insert({ family_id: fam.id, person_id: pid });
+        if (e4) throw e4;
+      }
+      S.current = fam.id;
+      toast(`已建立「${fd.get('name').trim()}」，${picked.length} 位成員`);
+    });
   }
 
   function bind() {
