@@ -101,7 +101,7 @@
   .ghdr-mark { width: 40px; height: 40px; }
   .ghdr-nav {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 3px;
     padding: 4px;
     border-radius: 14px;
@@ -160,3 +160,19 @@ html[data-theme="dark"] .cm-bar { background: #141E33; }
 .cm-era.is-roc i { background: #B8892B; }
 .cm-era.is-roc i::after { transform: translateX(18px); }
 @media (max-width: 600px) { .cm-era { margin-left: 0; } }
+
+/* 手機：深淺色圓鈕放到右上角頭像左邊，不要自己佔一整行 */
+@media (max-width: 560px) {
+  .ghdr-wrap { position: relative; }
+  .ghdr-right .theme-toggle, .ghdr-wrap > .theme-toggle { position: absolute; top: 18px; right: 64px; margin: 0; }
+}
+/* 客戶管理四個模組均分 */
+.cm-tab { flex: 1 1 0; text-align: center; white-space: nowrap; }
+.cm-era { flex: none; margin-left: 12px; }
+@media (max-width: 600px) {
+  .cm-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .cm-title { grid-column: 1 / -1; }
+  .cm-tab { padding: 7px 2px; }
+  .cm-era { grid-column: 1 / -1; justify-self: center; margin: 4px 0 0; }
+}
+@media (max-width: 560px) { .ghdr-right { height: 0; margin-top: -14px; } }
