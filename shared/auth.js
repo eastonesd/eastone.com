@@ -25,7 +25,7 @@ function loginUrl() {
 
 let AUTH_REQUIRED = false; // 這頁是否需要登入（requireLogin 呼叫過）
 
-async function requireLogin(rootPrefix) {
+async function requireLogin(rootPrefix, opts = {}) {
   AUTH_REQUIRED = true;
   const { data } = await sb.auth.getSession();
   const session = data && data.session;
@@ -33,8 +33,8 @@ async function requireLogin(rootPrefix) {
     location.replace(loginUrl());
     return new Promise(() => {}); // 停在這裡，不要繼續執行頁面初始化
   }
-  // 客戶帳號（綁定在客戶專區）不能進業務員頁面，導去「我的保單」
-  try {
+  // 客戶帳號（綁定在客戶專區）不能進業務員頁面，導去「我的保單」；文件下載、診股這類共用頁面不擋（opts.allowPortal）
+  if (!opts.allowPortal) try {
     const { data: me } = await sb.from('portal_links').select('user_id').eq('user_id', session.user.id).maybeSingle();
     if (me) { location.replace(`${AUTH_ROOT}my/index.html`); return new Promise(() => {}); }
   } catch { /* 查不到就照常 */ }

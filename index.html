@@ -59,6 +59,10 @@
     padding:clamp(28px,4vw,52px) clamp(20px,4vw,56px) 80px;
   }
 
+  .doc-tabs{ display:flex; gap:6px; margin:0 0 18px; padding:4px; border-radius:999px; border:1px solid rgba(184,137,43,.45); width:max-content; max-width:100%; }
+  .doc-tabs button{ font:inherit; font-weight:700; padding:8px 22px; border:0; border-radius:999px; background:transparent; color:inherit; cursor:pointer; }
+  .doc-tabs button.active{ background:#B8892B; color:#fff; }
+  .doc-go{ font:inherit; font-weight:700; padding:10px 18px; border-radius:999px; border:1px solid #B8892B; background:transparent; color:inherit; cursor:pointer; }
   .page-title{
     display:flex;
     align-items:baseline;
@@ -245,15 +249,21 @@
     </div>
   </div>
   <nav class="ghdr-nav">
-    <button id="tab-claim" class="active" onclick="showPage('claim')">理賠</button>
-    <button id="tab-endorse" onclick="showPage('endorse')">契變</button>
+    <button id="tab-docs" class="active" onclick="showPage('claim')">文件下載</button>
     <button id="tab-market" onclick="location.href='market/index.html'">財經日報</button>
     <button id="tab-clients" onclick="location.href='clients/index.html'">人壽管理</button>
     <button id="tab-policy" onclick="location.href='policies/index.html'">產險管理</button>
+    <button onclick="location.href='/eastone.stock/'">東石診股</button>
   </nav>
 </div>
 
-<main>
+<main id="docs-main" hidden>
+  <!-- 文件下載：理賠／契變／解約 -->
+  <nav class="doc-tabs" aria-label="文件類別">
+    <button type="button" id="tab-claim" class="active" onclick="showPage('claim')">理賠</button>
+    <button type="button" id="tab-endorse" onclick="showPage('endorse')">契變</button>
+    <button type="button" id="tab-surrender" onclick="showPage('surrender')">解約</button>
+  </nav>
   <!-- 理賠頁 -->
   <section id="page-claim">
     <div class="page-title">
@@ -273,9 +283,18 @@
     <p class="page-sub">點選公司名稱下方的按鈕，即可下載該公司最新版契約變更申請書 PDF 檔案。</p>
     <div class="grid" id="endorse-grid"></div>
   </section>
+
+  <!-- 解約頁：目前解約文件併在契變申請書裡，之後分離出來再放這裡 -->
+  <section id="page-surrender" class="hidden">
+    <div class="page-title">
+      <h2>解約文件</h2>
+    </div>
+    <p class="page-sub">目前各公司的解約申請，已包含在「契變」分頁的契約變更申請書中，請先到契變分頁下載。獨立的解約文件整理好後會放在這裡。</p>
+    <p><button type="button" class="doc-go" onclick="showPage('endorse')">前往契變文件 →</button></p>
+  </section>
 </main>
 
-<footer>僅供內部業務使用．請下載後確認為最新版本文件</footer>
+<footer>請下載後確認為最新版本文件</footer>
 
 <script>
   // 20 家壽險公司資料
@@ -397,18 +416,28 @@
   });
 
   function showPage(which){
-    document.getElementById('page-claim').classList.toggle('hidden', which !== 'claim');
-    document.getElementById('page-endorse').classList.toggle('hidden', which !== 'endorse');
-    document.getElementById('tab-claim').classList.toggle('active', which === 'claim');
-    document.getElementById('tab-endorse').classList.toggle('active', which === 'endorse');
+    ['claim', 'endorse', 'surrender'].forEach((k) => {
+      document.getElementById('page-' + k).classList.toggle('hidden', which !== k);
+      document.getElementById('tab-' + k).classList.toggle('active', which === k);
+    });
+    if (location.hash !== '#' + which) history.replaceState(null, '', '#' + which);
   }
 
-  // 從子頁面（車險管理／客戶資料）點「契變」連回來時，網址會帶 #endorse，直接開啟契變分頁
-  if (location.hash === '#endorse') showPage('endorse');
+  // 網址帶 #endorse／#surrender 直接開對應分頁（子頁面連回來用）
+  const want = location.hash.slice(1);
+  if (['endorse', 'surrender'].includes(want)) showPage(want);
 </script>
-<!-- 右上角頭像：沒登入按了去登入，登入後顯示帳號選單（理賠／契變本身不需要登入） -->
+<!-- 文件下載需要登入；沒登入直接打開首頁的訪客導去財經日報（免費開放） -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script src="shared/supabase-client.js?v=20261120-2"></script>
-<script src="shared/auth.js?v=20261123-1"></script>
+<script src="shared/auth.js?v=20261126-1"></script>
+<script>
+  (async () => {
+    const { data } = await sb.auth.getSession();
+    if (!data.session && !location.hash) { location.replace('market/index.html'); return; }
+    await requireLogin('', { allowPortal: true });
+    document.getElementById('docs-main').hidden = false;
+  })();
+</script>
 </body>
 </html>
