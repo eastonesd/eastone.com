@@ -536,3 +536,21 @@ body { padding-bottom: env(safe-area-inset-bottom); }
 .etf-tag.f-acct { color: #8A5A00; border-color: #C9962B; background: color-mix(in srgb, #E9C46A 18%, var(--card)); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .etf-tag.f-acct { color: #E9C46A; } }
 :root[data-theme="dark"] .etf-tag.f-acct { color: #E9C46A; }
+
+/* ═══ 整合進東石家族辦公室：市場切換在搜尋格左邊、金鑰在查詢右邊 ═══ */
+.search-row { display: flex; align-items: center; gap: 10px; }
+.search-row .search { flex: 1; min-width: 0; }
+.search-row .market-tabs { margin-left: 0; flex: none; background: var(--card); border-color: var(--line); box-shadow: var(--shadow); }
+.search-row .market-tabs button { color: var(--muted); padding: 8px 14px; }
+.search-row .market-tabs button:hover { color: var(--ink); }
+.search-row .market-tabs button.on { background: #1B2A4A; color: #E9C46A; }
+.search-row .token-btn { flex: none; height: 50px; padding: 0 16px; border-radius: 12px; font-weight: 700; }
+body.has-result .search-row .token-btn { height: 42px; }
+@media (max-width: 640px) {
+  .search-row { flex-wrap: wrap; }
+  .search-row .market-tabs { order: 1; }
+  .search-row .token-btn { order: 2; margin-left: auto; height: 38px; }
+  .search-row .search { order: 3; flex-basis: 100%; }
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .search-row .market-tabs button.on { background: #E9C46A; color: #121D33; } }
+:root[data-theme="dark"] .search-row .market-tabs button.on { background: #E9C46A; color: #121D33; }
