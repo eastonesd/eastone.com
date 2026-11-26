@@ -1068,7 +1068,7 @@ async function portalInvite(c) {
     const { error } = await sb.from("portal_invites").insert({ code, client_id: c.id });
     if (error) throw error;
     const url = new URL(`../my/index.html?invite=${code}`, location.href).href;
-    const msg = `${c.name} 您好，這是東石保險的「我的保單」查詢連結，點開後用您的信箱註冊即可查看保單（唯讀）：\n${url}\n邀請碼：${code}（14 天內有效，限用一次）`;
+    const msg = `${c.name} 您好，這是東石家族辦公室的「我的保單」查詢連結，點開後用您的信箱註冊即可查看保單（唯讀）：\n${url}\n邀請碼：${code}（14 天內有效，限用一次）`;
     box.innerHTML = `<div><b>邀請碼 ${code}</b>（14 天內有效、限用一次）</div>
       <div class="portal-url">${escHtml(url)}</div>
       <button type="button" class="btn-primary" id="portal-copy">複製邀請訊息</button>

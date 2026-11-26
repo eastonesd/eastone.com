@@ -1,10 +1,10 @@
-# 東石保險服務平台
+# 東石家族辦公室
 
 保險業務員的工作平台：理賠／契變文件下載、人壽客戶與保單管理、產險管理、保單知識庫、保障健診報告，以及每天早上的財經日報推播。
 
 - 網站：GitHub Pages（本 repo `eastonesd/eastone.com`，推到 `main` 就上線，約 1～2 分鐘生效）
 - 資料庫與後端：Supabase 專案 `kocyedkngpxckixtudku`
-- 品牌：網站名稱為「東石保險服務平台」；**財經日報等對外推播的署名維持「東石系統」**（避開保險業務員管理規則第 16、19 條），不要改回。
+- 品牌：網站名稱為「東石家族辦公室」；**財經日報等對外推播的署名維持「東石系統」**（避開保險業務員管理規則第 16、19 條），不要改回。
 
 ---
 
@@ -123,7 +123,7 @@
 - **截圖**：`.github/workflows/daily-snapshot.yml` 週一到週五 08:05／08:20／08:35／08:50 執行 `tools/snapshot.mjs`，把 `market/` 拍成圖放到 `daily-report` 分支（只留 7 天）；當天已拍好就跳過。Runner 固定 `ubuntu-24.04`（26.04 的 Playwright 不支援）。
 - **推播**：09:00 由 `expiry-reminders` 發送日報與保單到期提醒，週六、日不發。
 - **推播管道**：財經日報看 `line_links.report_channel`（dkyp2377 → Discord；tpbu → LINE；Minnie → 停發日報）；保單到期提醒看 `line_links.remind_channel`（dkyp2377 → Discord，用同一個 `DISCORD_REPORT_WEBHOOK`；其他人 → LINE），每人可選提前 30／60／90 天（`line_links.remind_days`），到期前 10 天另發一次「最後提醒」（`due_reminders_final`，`reminder_log.kind = '10d'`）。
-- **LINE 官方帳號**：只有傳「綁定」（或說明／HELP）才回罐頭訊息；圖文選單（左：東石保險服務平台、中：產險快速報價、右：東石診股，圖 `tools/line-richmenu.jpg`）由 `setup-richmenu` 上傳（body 可帶 `{"ref": commit SHA}` 避開快取）。
+- **LINE 官方帳號**：只有傳「綁定」（或說明／HELP）才回罐頭訊息；圖文選單（左：東石家族辦公室、中：產險快速報價、右：東石診股，圖 `tools/line-richmenu.jpg`）由 `setup-richmenu` 上傳（body 可帶 `{"ref": commit SHA}` 避開快取）。
 - **產險快速報價**（`line-webhook` 的 `quote.ts`）：選單按鈕或傳「產險快速報價」開始 → 選業務帳戶（tpbu8544／dkyp2377／minnie0707）→ 車險／旅平險／個人險 → 車險：機車／汽車 → 強制／任意／強制＋任意 → 上傳駕照、行照 → 電話 → 電子郵件（選填）。旅平險、個人險目前只留電話與信箱。傳「取消」可中止，閒置 30 分鐘自動取消。
   - 進度存 `line_quote_sessions`；送出寫入 `line_quote_requests`（業務員只讀得到自己的）；證件照片存私有空間 `quote-docs`（路徑第一層＝業務員 id）。
   - 送出後推播通知該帳戶綁定的 LINE（附 7 天有效的照片連結）；該帳戶沒有帳號或沒綁 LINE 時轉給 dkyp2377。
@@ -169,7 +169,7 @@
   - 各頁 CSS 的顏色都寫成 `var(--tc-<用途>-<原色>)`（用途 bg 背景／fg 文字／bd 框線），淺色＝原色、深色值在 `theme-tokens.css` 的 `html[data-theme="dark"]` 區塊。**新增樣式時也請用這些變數**，或另外補 `html[data-theme="dark"]` 規則，否則深色模式會出現亮白區塊。
   - 財經日報（`market/`）與健診報告（`report.html`，A4 列印）維持原樣，不套深色。
 - 所有 HTML 內的 CSS／JS 都帶版本號 `?v=日期-序號`，改檔後要一起遞增，避免瀏覽器吃舊檔。
-- 新頁面沿用「東石保險服務平台」名稱與 `icons/logo.png`；上方選單順序：理賠、契變、財經日報、人壽管理、產險管理。
+- 新頁面沿用「東石家族辦公室」名稱與 `icons/logo.png`；上方選單順序：理賠、契變、財經日報、人壽管理、產險管理。
 - Supabase 的刪除類 SQL 會跳確認視窗，需要管理員按允許。
 
 ---
