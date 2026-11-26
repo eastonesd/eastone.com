@@ -448,3 +448,17 @@ th { color:var(--tc-fg-6b6656); font-weight: 600; background:var(--tc-bg-f6f3ec)
 @media (max-width: 640px) { .pc-row { grid-template-columns: 1fr 1fr; } }
 .dt-checkup input[type="date"] { width: auto; min-width: 150px; padding: 6px 8px; }
 .dt-checkup .btn-secondary { padding: 6px 12px; }
+
+/* 資料卡：地址列右邊的編輯資料、群組旁的健診日、選保單種類 */
+.dt-addr { display: flex !important; align-items: center; justify-content: space-between; gap: 12px; }
+.dt-addr .dt-edit { width: auto; flex: none; padding: 8px 16px; font-size: .85rem; }
+.dt-grp-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+.dt-ck .dt-ck-line { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.dt-ck input[type=date] { height: 34px; width: 150px; padding: 4px 8px; font-size: .85rem; }
+.dt-mini-btn { font: inherit; font-size: .8rem; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--tc-bd-d8d0bc); background: var(--tc-bg-f6f3ec); color: var(--tc-fg-6b6656); cursor: pointer; white-space: nowrap; }
+.dt-ck .dt-none { font-size: .75rem; }
+.portal-box[hidden], .pick-kind[hidden] { display: none !important; }
+.pick-kind { margin-top: 12px; padding: 14px; border-radius: 12px; border: 1px solid var(--tc-bd-b8892b); background: var(--tc-bg-fff6dd, #FFF6DD); display: grid; gap: 10px; }
+.pick-kind-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 560px) { .dt-grp-row { grid-template-columns: 1fr; } }
+.pick-kind-btns button { width: 100%; }

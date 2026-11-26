@@ -6,7 +6,8 @@ let currentStep = 1;
 let selectedGender = "";
 let selectedBirthday = "";
 let editingClientId = null; // 非null時代表目前正在編輯這個客戶ID，送出時要用更新而不是新增
-const TOTAL_STEPS = 5;
+let editingPolicies = [];
+const TOTAL_STEPS = 4; // 第 5 步（保單）取消：建檔後直接進客戶資料卡，從那裡新增保單
 
 // ========================= 初始化 =========================
 document.addEventListener("DOMContentLoaded", async () => {
@@ -539,7 +540,7 @@ function bindFormSubmit() {
       city: document.getElementById("f-city").value,
       district: document.getElementById("f-district").value,
       address_detail: document.getElementById("f-address-detail").value.trim(),
-      policies: collectPolicies(),
+      policies: editingClientId ? editingPolicies : [], // 保單改在資料卡新增，這裡原樣保留
     };
 
     const res = await (async () => {
@@ -559,8 +560,10 @@ function bindFormSubmit() {
       return;
     }
     showToast(editingClientId ? "更新成功！" : "建檔成功！");
+    const openId = (editingClientId || payload.id).toUpperCase();
     resetForm();
     document.querySelector('.tab-btn[data-tab="filelist"]').click();
+    openDetail(openId); // 直接打開客戶資料卡，從那裡新增／修改保單
   });
 }
 
@@ -593,6 +596,7 @@ async function startEditClient(clientId) {
 
   resetForm();
   editingClientId = c.id;
+  editingPolicies = c.policies || [];
 
   const idInput = document.getElementById("f-id");
   idInput.value = c.id;
@@ -862,22 +866,15 @@ function closeModal() {
 
 // ========================= 西元／民國切換 =========================
 function bindEraSwitch() {
-  const sw = document.getElementById("era-switch");
-  sw.checked = dateEra() === "roc";
-  syncEraLabels();
-  sw.addEventListener("change", () => {
-    setDateEra(sw.checked ? "roc" : "ad");
-    syncEraLabels();
+  // 開關本身在上方「客戶管理」列最右邊（shared/cm-nav.js），這裡只負責重畫本頁
+  window.onEraChange = () => {
     // 生日滾輪的年份標籤換掉（實際值存在 data-year，不受影響）
     document.querySelectorAll("#wheel-year .wheel-item").forEach((el) => (el.textContent = fmtYear(Number(el.dataset.year))));
     // 資料卡開著的話重畫
     if (!document.getElementById("detail-modal").hidden && currentDetailId) openDetail(currentDetailId);
-  });
+  };
 }
-function syncEraLabels() {
-  const roc = dateEra() === "roc";
-  document.querySelector(".era-toggle").classList.toggle("is-roc", roc);
-}
+function syncEraLabels() { /* 已移到 cm-nav.js */ }
 
 // ========================= 保單目錄 =========================
 const CATALOG_KEY = "eastone.catalogExpanded";
@@ -977,8 +974,9 @@ async function openDetail(clientId) {
       <div class="detail-cell"><span>電話</span><strong>${escHtml(c.phone || "—")}</strong></div>
     </div>
     <div class="detail-row">
-      <div class="detail-cell detail-full">
-        <span>地址</span><strong>${escHtml(fullAddress || "—")}</strong>
+      <div class="detail-cell detail-full dt-addr">
+        <div><span>地址</span><strong>${escHtml(fullAddress || "—")}</strong></div>
+        <button type="button" class="btn-secondary dt-edit" id="btn-edit-client">編輯資料</button>
       </div>
     </div>
     <div class="detail-row">
@@ -987,23 +985,21 @@ async function openDetail(clientId) {
         <div class="dt-chips" id="dt-house">${housemates.length ? housemates.map((h) => `<button type="button" class="dt-person" data-id="${escHtml(h.id)}">${escHtml(h.name)}</button>`).join("") : `<em class="dt-none">${c.address_detail ? "沒有其他客戶住同一個地址" : "未填地址"}</em>`}</div>
       </div>
     </div>
-    <div class="detail-row">
-      <div class="detail-cell detail-full">
-        <span>上次健診日</span>
-        <div class="dt-chips dt-checkup">
-          <input type="date" id="dt-checkup" value="${escHtml(c.last_checkup || "")}" max="${new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10)}">
-          <button type="button" class="btn-secondary" id="dt-checkup-today">今天完成健診</button>
-          <em class="dt-none">${c.last_checkup ? `下次 ${escHtml(fmtDate(nextYear(c.last_checkup)))} 前` : "尚未登錄，A.R.T.H.U.R. 不會提醒"}</em>
-        </div>
-      </div>
-    </div>
-    <div class="detail-row">
-      <div class="detail-cell detail-full">
+    <div class="detail-row dt-grp-row">
+      <div class="detail-cell">
         <span>群組</span>
         <div class="dt-chips" id="dt-groups">
           ${(c.groups || []).map((g) => `<span class="dt-group">${escHtml(g)}<button type="button" data-g="${escHtml(g)}" title="移出群組">✕</button></span>`).join("")}
           <input type="text" id="dt-group-input" data-pick="client-group" placeholder="＋ 加入群組" autocomplete="off">
         </div>
+      </div>
+      <div class="detail-cell dt-ck">
+        <span>上次健診日</span>
+        <div class="dt-ck-line">
+          <input type="date" id="dt-checkup" value="${escHtml(c.last_checkup || "")}" max="${new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10)}">
+          <button type="button" class="dt-mini-btn" id="dt-checkup-today">今天</button>
+        </div>
+        <em class="dt-none">${c.last_checkup ? `下次 ${escHtml(fmtDate(nextYear(c.last_checkup)))} 前` : "尚未登錄"}</em>
       </div>
     </div>
     <div class="detail-section-title catalog-title">
@@ -1024,11 +1020,17 @@ async function openDetail(clientId) {
       <span class="num">${p.data.total_premium ? Number(p.data.total_premium).toLocaleString("zh-TW") + " 元" : ""}</span></a>`).join("") : `<p style="color:#999;">尚無產險保單</p>`}</div>
     <div class="detail-actions">
       <button type="button" class="btn-primary" id="btn-policy-client">新增／修改保單</button>
-      <button type="button" class="btn-secondary" id="btn-edit-client">編輯資料</button>
       <button type="button" class="btn-secondary btn-checkup" id="btn-checkup">保單健診報告</button>
       <button type="button" class="btn-secondary" id="btn-portal">邀請客戶查看保單</button>
     </div>
     <div id="portal-box" class="portal-box" hidden></div>
+    <div id="pick-kind" class="pick-kind" hidden>
+      <b>要新增哪一種保單？</b>
+      <div class="pick-kind-btns">
+        <button type="button" class="btn-primary" id="pick-life">人壽保單</button>
+        <button type="button" class="btn-primary" id="pick-pc">產險保單</button>
+      </div>
+    </div>
   `;
 
   const policyUrl = (i) => `policy.html?id=${encodeURIComponent(c.id)}${i == null ? "" : "&i=" + i}`;
@@ -1044,9 +1046,14 @@ async function openDetail(clientId) {
     bindRows();
   });
 
+  // 新增／修改保單：先選人壽或產險
   document.getElementById("btn-policy-client").addEventListener("click", () => {
-    location.href = policyUrl(null);
+    const box = document.getElementById("pick-kind");
+    box.hidden = !box.hidden;
+    if (!box.hidden) box.scrollIntoView({ block: "nearest", behavior: "smooth" });
   });
+  document.getElementById("pick-life").addEventListener("click", () => { location.href = policyUrl(null); });
+  document.getElementById("pick-pc").addEventListener("click", () => { location.href = `../policies/index.html?client=${encodeURIComponent(c.id)}`; });
   // 同住家人：點名字直接打開他的資料卡
   document.querySelectorAll("#dt-house .dt-person").forEach((b) => b.addEventListener("click", () => openDetail(b.dataset.id)));
   // 群組：選既有群組或打新名稱按 Enter

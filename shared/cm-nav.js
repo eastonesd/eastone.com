@@ -14,7 +14,19 @@
   const bar = document.createElement('nav');
   bar.className = 'cm-bar';
   bar.setAttribute('aria-label', '客戶管理');
-  bar.innerHTML = `<span class="cm-title">客戶管理</span>${MODS.map(([k, l, h]) => `<a class="cm-tab" data-m="${k}" href="${h}">${l}</a>`).join('')}`;
+  bar.innerHTML = `<span class="cm-title">客戶管理</span>${MODS.map(([k, l, h]) => `<a class="cm-tab" data-m="${k}" href="${h}">${l}</a>`).join('')}
+    <button type="button" class="cm-era" title="切換日期顯示"><span class="a">西元</span><i></i><span class="r">民國</span></button>`;
+  // 西元／民國：全系統共用（localStorage eastone.dateEra，預設民國）
+  const ERA = 'eastone.dateEra';
+  const era = () => { try { return localStorage.getItem(ERA) === 'ad' ? 'ad' : 'roc'; } catch { return 'roc'; } };
+  const eraBtn = bar.querySelector('.cm-era');
+  const paintEra = () => eraBtn.classList.toggle('is-roc', era() === 'roc');
+  paintEra();
+  eraBtn.addEventListener('click', () => {
+    try { localStorage.setItem(ERA, era() === 'roc' ? 'ad' : 'roc'); } catch { /* 無痕 */ }
+    paintEra();
+    if (typeof window.onEraChange === 'function') window.onEraChange(); else location.reload();
+  });
   const hdr = document.querySelector('.ghdr-wrap');
   (hdr ? hdr.after(bar) : document.body.prepend(bar));
   window.cmSetModule = (m) => {

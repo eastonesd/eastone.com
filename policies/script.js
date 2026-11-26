@@ -1842,10 +1842,31 @@ document.getElementById('importFileInput').addEventListener('change', async (e) 
 // init：先確認登入（沒登入會被導到登入頁），再顯示表單
 requireLogin('../').then((user) => {
   // 從客戶資料卡點產險保單過來（#list）直接開保單彙總
-  if (location.hash === '#list') showList(); else showForm();
+  if (location.hash === '#list') showList();
+  else {
+    // 從客戶資料卡「新增產險保單」過來：帶入被保人基本資料
+    const cid = new URLSearchParams(location.search).get('client');
+    if (cid) prefillFromClient(cid).finally(showForm); else showForm();
+  }
   // 這台裝置如果還有舊版存在本機的保單，詢問是否搬到雲端
   offerLocalMigration({
     dbName: 'policiesDB', storeName: 'policies', label: '產險保單', user,
     importFn: dbImportAll,
   });
 });
+
+// 客戶管理整合：用客戶資料預填產險被保人
+async function prefillFromClient(id) {
+  try {
+    const { data } = await sb.from('clients').select('data').eq('id', String(id).toUpperCase()).maybeSingle();
+    const c = data && data.data;
+    if (!c) return;
+    Object.assign(state, {
+      insuredName: c.name || '', insuredIdNumber: c.id || '',
+      birth: isoToRoc(c.birthday) || { y: null, m: 1, d: 1 },
+      phoneSuffix: String(c.phone || '').replace(/^09/, ''),
+      emailLocal: c.email_local || '', emailDomain: c.email_domain || 'gmail.com',
+      zipcode: c.zip_code || '', city: c.city || '', district: c.district || '', addressDetail: c.address_detail || '',
+    });
+  } catch (e) { console.warn('帶入客戶資料失敗', e); }
+}

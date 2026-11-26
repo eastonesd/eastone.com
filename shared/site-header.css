@@ -150,3 +150,13 @@ html[data-theme="dark"] .ghdr-wrap { background: #0E1626; }
 .cm-tab.active { background: #B8892B; color: #121D33; }
 html[data-theme="dark"] .cm-bar { background: #141E33; }
 @media (max-width: 600px) { .cm-bar { gap: 4px; padding: 8px 12px; } .cm-title { width: 100%; margin: 0 0 2px; font-size: 11px; } .cm-tab { padding: 6px 11px; font-size: 13px; } }
+
+.cm-era { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 0; cursor: pointer; font: 700 13px 'Noto Sans TC', sans-serif; color: rgba(232, 228, 218, .55); padding: 4px 0; }
+.cm-era i { width: 38px; height: 20px; border-radius: 999px; background: rgba(255, 255, 255, .18); position: relative; transition: background .15s; }
+.cm-era i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.cm-era .a { color: #F6F3EC; }
+.cm-era.is-roc .a { color: rgba(232, 228, 218, .55); }
+.cm-era.is-roc .r { color: #F6F3EC; }
+.cm-era.is-roc i { background: #B8892B; }
+.cm-era.is-roc i::after { transform: translateX(18px); }
+@media (max-width: 600px) { .cm-era { margin-left: 0; } }
