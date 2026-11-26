@@ -941,6 +941,8 @@ function catalogExpandedHtml(policies) {
 }
 
 let currentDetailId = null;
+// 健診日＋一年（2/29 → 隔年 2/28）
+const nextYear = (iso) => { const [y, m, d] = iso.split("-").map(Number); const t = new Date(Date.UTC(y + 1, m - 1, d)); if (t.getUTCMonth() !== m - 1) t.setUTCDate(0); return t.toISOString().slice(0, 10); };
 
 async function openDetail(clientId) {
   const c = await clientGet(clientId);
@@ -983,6 +985,16 @@ async function openDetail(clientId) {
       <div class="detail-cell detail-full">
         <span>同住家人</span>
         <div class="dt-chips" id="dt-house">${housemates.length ? housemates.map((h) => `<button type="button" class="dt-person" data-id="${escHtml(h.id)}">${escHtml(h.name)}</button>`).join("") : `<em class="dt-none">${c.address_detail ? "沒有其他客戶住同一個地址" : "未填地址"}</em>`}</div>
+      </div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-cell detail-full">
+        <span>上次健診日</span>
+        <div class="dt-chips dt-checkup">
+          <input type="date" id="dt-checkup" value="${escHtml(c.last_checkup || "")}" max="${new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10)}">
+          <button type="button" class="btn-secondary" id="dt-checkup-today">今天完成健診</button>
+          <em class="dt-none">${c.last_checkup ? `下次 ${escHtml(fmtDate(nextYear(c.last_checkup)))} 前` : "尚未登錄，A.R.T.H.U.R. 不會提醒"}</em>
+        </div>
       </div>
     </div>
     <div class="detail-row">
@@ -1058,6 +1070,19 @@ async function openDetail(clientId) {
   gi.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addGroup(); } });
   document.querySelectorAll("#dt-groups .dt-group button").forEach((b) => b.addEventListener("click", () =>
     saveGroups((c.groups || []).filter((g) => g !== b.dataset.g), `已移出「${b.dataset.g}」`)));
+  // 上次健診日：選日期或按「今天完成健診」就存
+  const saveCheckup = async (date) => {
+    try {
+      const rec = await clientSaveCheckup(c.id, date);
+      const i = flClients.findIndex((x) => x.id === c.id);
+      if (i >= 0) flClients[i] = rec;
+      showToast(date ? `已記錄健診日 ${fmtDate(date)}` : "已清除健診日");
+      openDetail(c.id);
+    } catch (err) { showToast(err.message); }
+  };
+  document.getElementById("dt-checkup").addEventListener("change", (e) => saveCheckup(e.target.value));
+  document.getElementById("dt-checkup-today").addEventListener("click", () =>
+    saveCheckup(new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10)));
   document.getElementById("btn-edit-client").addEventListener("click", () => {
     closeModal();
     startEditClient(c.id);

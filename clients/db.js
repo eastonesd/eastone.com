@@ -264,6 +264,20 @@ async function clientSaveGroups(id, groups) {
   return record;
 }
 
+// 只更新「上次健診日」（A.R.T.H.U.R. 依此提醒一年一次的保單健診）；空字串＝清除
+async function clientSaveCheckup(id, date) {
+  const key = (id || '').trim().toUpperCase();
+  const existing = await clientGet(key);
+  if (!existing) throw new Error('查無此客戶');
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('日期格式不對');
+  const record = { ...existing, last_checkup: date || null, updated_at: nowStamp() };
+  const { error } = await sb.from('clients')
+    .update({ data: record, updated_at: new Date().toISOString() })
+    .eq('id', key);
+  sbThrow(error, '儲存上次健診日');
+  return record;
+}
+
 // ---------- 同住址分組 ----------
 // 縣市＋區＋詳細地址正規化後當作同一戶的依據（全形轉半形、臺→台、去掉空白與標點）
 function addressKey(c) {

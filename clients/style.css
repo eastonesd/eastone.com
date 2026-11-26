@@ -446,3 +446,5 @@ th { color:var(--tc-fg-6b6656); font-weight: 600; background:var(--tc-bg-f6f3ec)
 .pc-row:hover { border-color: var(--tc-bd-b8892b); }
 .pc-row .num { text-align: right; }
 @media (max-width: 640px) { .pc-row { grid-template-columns: 1fr 1fr; } }
+.dt-checkup input[type="date"] { width: auto; min-width: 150px; padding: 6px 8px; }
+.dt-checkup .btn-secondary { padding: 6px 12px; }
