@@ -249,6 +249,15 @@ function medGroups(groups, cols) {
   return cols ? `<div class="mg-cols">${html}</div>` : html;
 }
 
+// 兩組並排在同一行：卡片總數不超過 4 張時，每張卡一樣寬、排成一列（例：手術 1 張＋意外住院 3 張）
+function medRow(groups) {
+  const n = groups.map(([, codes]) => Math.max(1, codes.filter((c) => val(c)).length));
+  const total = n[0] + n[1];
+  if (total > 4) return `<div class="mg-row2">${medGroups(groups)}</div>`;
+  const html = groups.map((g, i) => medGroups([g]).replace('<div class="vc-grid">', `<div class="vc-grid" style="grid-template-columns:repeat(${n[i]},1fr)">`)).join("");
+  return `<div class="mg-row2" style="grid-template-columns:${n[0]}fr ${n[1]}fr">${html}</div>`;
+}
+
 // ---------------- 各頁 ----------------
 function render() {
   pageNo = 0;
@@ -410,7 +419,7 @@ function render() {
   const pMed = page("", "MEDICAL JOURNEY", "醫療保障｜前・中・後", "從確診、治療到康復，每個階段可能由哪些保單支援。", `
     <div class="ph ph-before"><div class="ph-h"><b>前</b>診斷與確診<span>確診後的一次性資金</span></div>
       <div class="vc-grid">${MED_BEFORE.map((c) => valueCard(c)).join("")}</div></div>
-    <div class="ph ph-during"><div class="ph-h"><b>中</b>住院與治療<span>住院、意外、癌症治療期間</span></div><div class="mg-row2">${medGroups(MED_DURING.slice(0, 2))}</div><div class="mg-row2">${medGroups(MED_DURING.slice(2, 4))}</div>${medGroups(MED_DURING.slice(4))}</div>
+    <div class="ph ph-during"><div class="ph-h"><b>中</b>住院與治療<span>住院、意外、癌症治療期間</span></div>${medRow(MED_DURING.slice(0, 2))}${medRow(MED_DURING.slice(2, 4))}${medGroups(MED_DURING.slice(4))}</div>
     <div class="ph ph-after"><div class="ph-h"><b>後</b>康復與照護<span>長期照顧與失能</span></div>${medGroups(MED_AFTER, true)}</div>
     <p class="rp-note">不同保單對「癌症」「重大疾病」的認定條件不一定相同；實支實付的多張限額不代表單次事故必然可領取總和。每日、每次、每年度的單位請留意。</p>`);
 
