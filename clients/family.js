@@ -432,8 +432,8 @@
     const t = S.team.find((x) => x.user_id === me.id);
     if (!t) { toast('您的帳號還不在服務團隊裡，請聯絡主管'); return; }
     modal('我的業務員資料', `<p class="fo-mini">會顯示在家族辦公室的服務窗口旁邊。</p>
-      <label>壽險登錄證字號<input name="life" value="${esc(t.life_license || '')}" placeholder="例：0113303812" autocomplete="off"></label>
-      <label>產險登錄證字號<input name="pc" value="${esc(t.pc_license || '')}" placeholder="例：Q05G924865" autocomplete="off"></label>
+      <label>壽險登錄證字號<input name="life" value="${esc(t.life_license || '')}" autocomplete="off"></label>
+      <label>產險登錄證字號<input name="pc" value="${esc(t.pc_license || '')}" autocomplete="off"></label>
       <label class="fo-chk fo-chk-row"><input type="checkbox" name="fx"${t.fx_qualified ? ' checked' : ''}>有外幣保單銷售資格</label>
       <label class="fo-chk fo-chk-row"><input type="checkbox" name="inv"${t.inv_qualified ? ' checked' : ''}>有投資型保單銷售資格</label>`,
     async (fd) => {
