@@ -68,3 +68,11 @@
 .fo-todo-card > button, .fo-todo-card > em { grid-column: 2; grid-row: 1 / span 2; font-size: .8rem; color: var(--tc-fg-6b6656); }
 .fo-todo-card.done { opacity: .55; }
 .fo-chk-row { display: flex; margin: 4px 0; font-size: .9rem; }
+.fo-agent-row { display: inline-flex; align-items: center; gap: 4px; margin: 4px 14px 4px 0; }
+.fo-agent { display: inline-flex; align-items: center; gap: 8px; }
+.fo-agent b { color: var(--tc-fg-121d33); }
+.fo-lic { display: inline-flex; flex-direction: column; font: 600 .74rem/1.25 ui-monospace, Menlo, Consolas, monospace; color: var(--tc-fg-6b6656); }
+.fo-lamp { display: inline-flex; align-items: center; gap: 4px; font-size: .75rem; color: var(--tc-fg-6b6656); }
+.fo-lamp i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.fo-lamp.on i { background: #2E9E5B; box-shadow: 0 0 0 3px rgba(46, 158, 91, .18); }
+.fo-lamp.off i { background: #D9534F; box-shadow: 0 0 0 3px rgba(217, 83, 79, .18); }

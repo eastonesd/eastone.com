@@ -20,6 +20,13 @@
   const membersOf = (fid) => S.members.filter((m) => m.family_id === fid);
   const familiesOf = (pid) => S.members.filter((m) => m.person_id === pid).map((m) => S.families.find((f) => f.id === m.family_id)).filter(Boolean);
   const teamName = (uid) => (S.team.find((t) => t.user_id === uid) || {}).name || '（非團隊成員）';
+  // 業務員名片：姓名＋登錄證字號（上壽險、下產險）＋外幣、投資型資格燈號（有＝綠、沒有＝紅）
+  const lamp = (on, label) => `<span class="fo-lamp ${on ? 'on' : 'off'}" title="${label}${on ? '：有' : '：沒有'}"><i></i>${label}</span>`;
+  function agentCard(uid) {
+    const t = S.team.find((x) => x.user_id === uid);
+    if (!t) return '<span class="fo-agent">（非團隊成員）</span>';
+    return `<span class="fo-agent"><b>${esc(t.name)}</b><span class="fo-lic"><span>${esc(t.life_license || '壽險證號未填')}</span><span>${esc(t.pc_license || '產險證號未填')}</span></span>${lamp(t.fx_qualified, '外幣')}${lamp(t.inv_qualified, '投資型')}</span>`;
+  }
 
   document.addEventListener('DOMContentLoaded', async () => {
     me = await requireLogin('../');
@@ -52,6 +59,9 @@
     }
     renderList();
     renderTodo();
+    // 第一次使用（還沒填登錄證字號）就請業務員填一次
+    const mine = S.team.find((t) => t.user_id === me.id);
+    if (mine && !mine.life_license && !mine.pc_license && !sessionStorage.getItem('fo-lic-asked')) { try { sessionStorage.setItem('fo-lic-asked', '1'); } catch { /* 無痕模式 */ } licenseForm(); }
     if (S.current && S.families.some((f) => f.id === S.current)) renderDetail(); else { S.current = null; $('fo-detail').hidden = true; $('fo-empty').hidden = false; }
   }
 
@@ -84,7 +94,7 @@
     $('fo-detail').hidden = false;
     $('fo-name').textContent = f.name;
     const ags = S.agents.filter((a) => a.family_id === f.id).sort((a, b) => (a.role === 'primary' ? -1 : 1));
-    $('fo-meta').innerHTML = `${ags.length ? ags.map((a) => `${ROLE[a.role]}：${esc(teamName(a.user_id))}`).join('　') : '尚未指定服務窗口'}${f.note ? `<br>${esc(f.note)}` : ''}`;
+    $('fo-meta').innerHTML = `${ags.length ? ags.map((a) => `<span class="fo-agent-row">${ROLE[a.role]}：${agentCard(a.user_id)}</span>`).join('') : '尚未指定服務窗口'}${f.note ? `<br>${esc(f.note)}` : ''}`;
 
     const ms = membersOf(f.id);
     $('fo-members').innerHTML = ms.length ? `<table class="fo-table"><tbody>${ms.map((m) => {
@@ -417,6 +427,22 @@
     await reload();
   }
 
+  // ---------- 我的業務員資料（登錄證字號、外幣／投資型資格） ----------
+  function licenseForm() {
+    const t = S.team.find((x) => x.user_id === me.id);
+    if (!t) { toast('您的帳號還不在服務團隊裡，請聯絡主管'); return; }
+    modal('我的業務員資料', `<p class="fo-mini">會顯示在家族辦公室的服務窗口旁邊。</p>
+      <label>壽險登錄證字號<input name="life" value="${esc(t.life_license || '')}" placeholder="例：0113303812" autocomplete="off"></label>
+      <label>產險登錄證字號<input name="pc" value="${esc(t.pc_license || '')}" placeholder="例：Q05G924865" autocomplete="off"></label>
+      <label class="fo-chk fo-chk-row"><input type="checkbox" name="fx"${t.fx_qualified ? ' checked' : ''}>有外幣保單銷售資格</label>
+      <label class="fo-chk fo-chk-row"><input type="checkbox" name="inv"${t.inv_qualified ? ' checked' : ''}>有投資型保單銷售資格</label>`,
+    async (fd) => {
+      const { error } = await sb.rpc('fo_update_my_license', { p_life: fd.get('life') || '', p_pc: fd.get('pc') || '', p_fx: !!fd.get('fx'), p_inv: !!fd.get('inv') });
+      if (error) throw error;
+      toast('已更新業務員資料');
+    });
+  }
+
   // ---------- 可打字搜尋的選單（input＋datalist；選到的文字對回值） ----------
   function pickInput(name, opts) {
     return `<input name="${name}" list="dl-${name}" placeholder="打字搜尋，或留空" autocomplete="off"><datalist id="dl-${name}">${opts.map((o) => `<option value="${esc(o.label)}">`).join('')}</datalist>`;
@@ -508,6 +534,7 @@
 
   function bind() {
     $('fo-new').addEventListener('click', () => familyForm(null));
+    $('fo-me').addEventListener('click', licenseForm);
     $('fo-edit').addEventListener('click', () => familyForm(S.families.find((f) => f.id === S.current)));
     $('fo-agents-btn').addEventListener('click', agentsForm);
     $('fo-add-member').addEventListener('click', memberForm);
