@@ -141,3 +141,12 @@
 @media (max-width: 560px) { .ghdr-tools { margin-left: 0; } }
 /* 深色模式時頁首再沉一點，跟頁面融在一起 */
 html[data-theme="dark"] .ghdr-wrap { background: #0E1626; }
+
+/* 客戶管理系統：第二層模組列 */
+.cm-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 10px clamp(16px, 4vw, 48px); background: #22325A; border-bottom: 1px solid rgba(228, 199, 126, .35); }
+.cm-title { color: #E4C77E; font: 700 13px 'Noto Sans TC', sans-serif; letter-spacing: .12em; margin-right: 8px; }
+.cm-tab { padding: 7px 16px; border-radius: 999px; color: #E8E4DA; text-decoration: none; font: 700 14px 'Noto Sans TC', sans-serif; border: 1px solid transparent; }
+.cm-tab:hover { border-color: rgba(228, 199, 126, .5); }
+.cm-tab.active { background: #B8892B; color: #121D33; }
+html[data-theme="dark"] .cm-bar { background: #141E33; }
+@media (max-width: 600px) { .cm-bar { gap: 4px; padding: 8px 12px; } .cm-title { width: 100%; margin: 0 0 2px; font-size: 11px; } .cm-tab { padding: 6px 11px; font-size: 13px; } }

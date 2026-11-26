@@ -81,7 +81,13 @@ function bindTabs() {
       document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
       if (btn.dataset.tab === "filelist") refreshFileList();
       if (btn.dataset.tab === "codes") refreshCodeList();
+      if (window.cmSetModule) window.cmSetModule(btn.dataset.tab === "codes" ? "life" : "overview");
     });
+  });
+  // 上方模組列點「人壽管理／客戶總覽」只會改網址 #，同一頁要自己切分頁
+  window.addEventListener("hashchange", () => {
+    const t = location.hash === "#codes" ? "codes" : location.hash === "#filelist" ? "filelist" : null;
+    if (t) document.querySelector(`.tab-btn[data-tab="${t}"]`).click();
   });
 }
 
@@ -728,6 +734,7 @@ async function refreshFileList() {
   if (flView === "house") return renderHouseCards(houses, keyword);
   if (flView === "group") return renderGroupCards(clients, keyword);
 
+  const pcCount = await pcCounts();
   const filtered = clients.filter((c) => flMatch(c, keyword));
   const tbody = document.getElementById("file-list-body");
   tbody.innerHTML = "";
@@ -738,6 +745,8 @@ async function refreshFileList() {
   filtered.forEach((c) => {
     const house = houses.get(addressKey(c));
     const tags = [
+      (c.policies || []).length ? `<span class="fl-tag life">壽險 ${(c.policies || []).length}</span>` : "",
+      pcCount[c.id] ? `<span class="fl-tag pc">產險 ${pcCount[c.id]}</span>` : "",
       house ? `<span class="fl-tag house" title="${escHtml(addressText(c))}">同住 ${house.length} 人</span>` : "",
       ...(c.groups || []).map((g) => `<span class="fl-tag">${escHtml(g)}</span>`),
     ].join("");
@@ -947,6 +956,7 @@ async function openDetail(clientId) {
   if (!flClients.length) flClients = await clientList();
   const hk = addressKey(c);
   const housemates = hk ? flClients.filter((x) => x.id !== c.id && addressKey(x) === hk) : [];
+  const pcList = await pcPoliciesOf(c.id);
 
   document.getElementById("detail-content").innerHTML = `
     <div class="detail-row">
@@ -985,14 +995,21 @@ async function openDetail(clientId) {
       </div>
     </div>
     <div class="detail-section-title catalog-title">
-      <span>保單目錄${policies.length ? `（${policies.length}）` : ""}</span>
+      <span>人壽保單${policies.length ? `（${policies.length}）` : ""}</span>
       ${policies.length ? `<label class="catalog-toggle" title="收合／展開主附約內容">
         <span class="catalog-state">${expanded ? "展開" : "收合"}</span>
         <input type="checkbox" id="catalog-switch" class="switch-input"${expanded ? " checked" : ""}>
         <span class="switch" aria-hidden="true"></span>
       </label>` : ""}
     </div>
-    <div id="catalog-body">${policies.length ? (expanded ? catalogExpandedHtml(policies) : catalogCollapsed(policies)) : `<p style="color:#999;">尚無保單資料</p>`}</div>
+    <div id="catalog-body">${policies.length ? (expanded ? catalogExpandedHtml(policies) : catalogCollapsed(policies)) : `<p style="color:#999;">尚無人壽保單</p>`}</div>
+    <div class="detail-section-title"><span>產險保單${pcList.length ? `（${pcList.length}）` : ""}</span></div>
+    <div class="pc-list">${pcList.length ? pcList.map((p) => `<a class="pc-row" href="../policies/index.html#list">
+      <b>${escHtml(p.data.plate_number || p.data.category || "產險")}</b>
+      <span>${escHtml(p.data.brand_model || "")}</span>
+      <span>${escHtml([p.data.has_compulsory ? "強制險" : "", p.data.has_voluntary ? "任意險" : ""].filter(Boolean).join("＋"))}</span>
+      <span>${p.data.policy_end_date ? "到期 " + escHtml(fmtDate(p.data.policy_end_date)) : ""}</span>
+      <span class="num">${p.data.total_premium ? Number(p.data.total_premium).toLocaleString("zh-TW") + " 元" : ""}</span></a>`).join("") : `<p style="color:#999;">尚無產險保單</p>`}</div>
     <div class="detail-actions">
       <button type="button" class="btn-primary" id="btn-policy-client">新增／修改保單</button>
       <button type="button" class="btn-secondary" id="btn-edit-client">編輯資料</button>
@@ -1087,4 +1104,25 @@ async function portalInvite(c) {
   } catch (err) {
     box.textContent = "產生邀請碼失敗：" + (err.message || err);
   }
+}
+
+
+// ---------- 客戶管理整合：產險保單（policies 資料表，以被保人身分證字號對應客戶ID） ----------
+let pcCache = null;
+async function pcAll() {
+  if (pcCache) return pcCache;
+  const { data, error } = await sb.from("policies").select("id,data").order("id", { ascending: false });
+  if (error) { console.warn("讀取產險保單失敗", error); return []; }
+  pcCache = data || [];
+  setTimeout(() => { pcCache = null; }, 30000);
+  return pcCache;
+}
+async function pcCounts() {
+  const m = {};
+  (await pcAll()).forEach((p) => { const k = String(p.data.insured_id_number || "").toUpperCase(); if (k) m[k] = (m[k] || 0) + 1; });
+  return m;
+}
+async function pcPoliciesOf(id) {
+  const k = String(id || "").toUpperCase();
+  return (await pcAll()).filter((p) => String(p.data.insured_id_number || "").toUpperCase() === k);
 }

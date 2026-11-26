@@ -11,12 +11,12 @@
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="客戶管理">
-<link rel="stylesheet" href="../shared/site-header.css?v=20261123-1">
+<link rel="stylesheet" href="../shared/site-header.css?v=20261126-1">
 <link rel="stylesheet" href="../shared/auth.css?v=20261118-1">
 <link rel="stylesheet" href="picker.css?v=20261118-1">
-<link rel="stylesheet" href="style.css?v=20261123-1">
+<link rel="stylesheet" href="style.css?v=20261126-1">
 </head>
-<body>
+<body data-cm="overview" data-cm-root="../">
 
 <div class="ghdr-wrap">
   <div class="ghdr-brand">
@@ -29,8 +29,7 @@
   <nav class="ghdr-nav">
     <button onclick="location.href='../index.html#claim'">文件下載</button>
     <button onclick="location.href='../market/index.html'">財經日報</button>
-    <button class="active" onclick="location.href='index.html'">人壽管理</button>
-    <button onclick="location.href='../policies/index.html'">產險管理</button>
+    <button class="active" onclick="location.href='../clients/index.html#filelist'">客戶管理</button>
     <button onclick="location.href='../stock/index.html'">東石診股</button>
   </nav>
 </div>
@@ -39,12 +38,10 @@
   <h1>客戶個資管理<small>CLIENT PROFILE MANAGEMENT</small></h1>
   <div class="topbar-right">
     <nav class="tabs life-tabs">
-      <button class="tab-btn active" data-tab="wizard">＋ 新增客戶</button>
-      <button class="tab-btn" data-tab="filelist">📁 客戶清單</button>
-      <a class="tab-btn tab-link" href="family.html">👪 家族</a>
-      <button class="tab-btn" data-tab="codes">⚙ 保單資料庫</button>
-      <a class="tab-btn tab-link" href="finance.html">💼 資產負債</a>
-      <a class="tab-btn tab-link" href="tax.html">🧾 稅務規劃</a>
+      <button class="tab-btn active" data-tab="wizard" data-cm-of="overview">＋ 新增客戶</button>
+      <button class="tab-btn" data-tab="filelist" data-cm-of="overview">📁 客戶清單</button>
+      <button class="tab-btn" data-tab="codes" data-cm-of="life">⚙ 保單資料庫</button>
+      <a class="tab-btn tab-link" href="../kb/index.html" data-cm-of="life">📚 保單知識庫</a>
     </nav>
     <!-- 日期顯示：西元／民國 -->
     <label class="era-toggle" title="切換日期顯示">
@@ -242,6 +239,7 @@
 <script src="data.js?v=20261118-1"></script>
 <script src="db.js?v=20261121-1"></script>
 <script src="picker.js?v=20261118-1"></script>
-<script src="script.js?v=20261123-1"></script>
+<script src="script.js?v=20261126-1"></script>
+<script src="../shared/cm-nav.js?v=20261126-1"></script>
 </body>
 </html>

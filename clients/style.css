@@ -436,3 +436,13 @@ th { color:var(--tc-fg-6b6656); font-weight: 600; background:var(--tc-bg-f6f3ec)
 .portal-box { margin-top: 12px; padding: 12px 14px; border: 1px dashed var(--tc-bd-121d33, #ccc); border-radius: 12px; display: grid; gap: 8px; }
 .portal-url { font-size: .85rem; word-break: break-all; opacity: .8; }
 .portal-linked { font-size: .9rem; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* 客戶清單：壽險／產險張數標籤；資料卡的產險保單列 */
+.fl-tag.life { background: var(--tc-bg-f6f3ec); color: var(--tc-fg-1b2a4a); }
+.fl-tag.pc { background: #E3EEF8; color: #2D5A87; }
+.pc-list { display: grid; gap: 6px; margin-bottom: 14px; }
+.pc-row { display: grid; grid-template-columns: 1.1fr 1.3fr 1fr 1.2fr .8fr; gap: 8px; align-items: center; padding: 9px 12px; border-radius: 8px;
+  border: 1px solid var(--tc-bd-d8d0bc); color: var(--tc-fg-2a2a26); text-decoration: none; font-size: .88rem; }
+.pc-row:hover { border-color: var(--tc-bd-b8892b); }
+.pc-row .num { text-align: right; }
+@media (max-width: 640px) { .pc-row { grid-template-columns: 1fr 1fr; } }

@@ -1841,7 +1841,8 @@ document.getElementById('importFileInput').addEventListener('change', async (e) 
 
 // init：先確認登入（沒登入會被導到登入頁），再顯示表單
 requireLogin('../').then((user) => {
-  showForm();
+  // 從客戶資料卡點產險保單過來（#list）直接開保單彙總
+  if (location.hash === '#list') showList(); else showForm();
   // 這台裝置如果還有舊版存在本機的保單，詢問是否搬到雲端
   offerLocalMigration({
     dbName: 'policiesDB', storeName: 'policies', label: '產險保單', user,

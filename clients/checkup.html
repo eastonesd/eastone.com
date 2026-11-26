@@ -9,12 +9,12 @@
 <link rel="icon" href="../favicon.ico?v=2" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png?v=2">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=2">
-<link rel="stylesheet" href="../shared/site-header.css?v=20261123-1">
+<link rel="stylesheet" href="../shared/site-header.css?v=20261126-1">
 <link rel="stylesheet" href="../shared/auth.css?v=20261116-1">
 <link rel="stylesheet" href="style.css?v=20261121-1">
 <link rel="stylesheet" href="checkup.css?v=20261116-1">
 </head>
-<body>
+<body data-cm="life" data-cm-root="../">
 
 <div class="ghdr-wrap">
   <div class="ghdr-brand">
@@ -27,8 +27,7 @@
   <nav class="ghdr-nav">
     <button onclick="location.href='../index.html#claim'">文件下載</button>
     <button onclick="location.href='../market/index.html'">財經日報</button>
-    <button class="active" onclick="location.href='index.html'">人壽管理</button>
-    <button onclick="location.href='../policies/index.html'">產險管理</button>
+    <button class="active" onclick="location.href='../clients/index.html#filelist'">客戶管理</button>
     <button onclick="location.href='../stock/index.html'">東石診股</button>
   </nav>
 </div>
@@ -37,7 +36,7 @@
   <h1>保單健診<small>COVERAGE CHECK・試算版</small></h1>
   <div class="ck-top-actions">
     <a class="ck-pdf" id="ck-pdf" href="#">生成 PDF 報告</a>
-    <a class="ck-back" id="ck-back" href="index.html#filelist">← 返回人壽管理</a>
+    <a class="ck-back" id="ck-back" href="index.html#filelist">← 返回客戶管理</a>
   </div>
 </header>
 
@@ -54,5 +53,6 @@
 <script src="db.js?v=20261121-1"></script>
 <script src="../shared/kb.js?v=20261125-3"></script>
 <script src="checkup.js?v=20261116-1"></script>
+<script src="../shared/cm-nav.js?v=20261126-1"></script>
 </body>
 </html>

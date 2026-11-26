@@ -29,7 +29,27 @@ async function dbAdd(payload) {
   const rec = { created_at: nowStamp(), ...stripId(payload) };
   const { data, error } = await sb.from('policies').insert({ data: rec }).select('id').single();
   sbThrow(error, '建檔');
+  await pcEnsureClient(rec);
   return Number(data.id);
+}
+
+// 客戶管理整合：產險被保人自動建成客戶（只有產險的客戶也能放進家族）；已存在就不動
+async function pcEnsureClient(rec) {
+  try {
+    const id = String(rec.insured_id_number || '').trim().toUpperCase();
+    const name = String(rec.insured_name || '').trim();
+    if (!id || !name) return;
+    const { data: hit } = await sb.from('clients').select('id').eq('id', id).maybeSingle();
+    if (hit) return;
+    const g = { 1: '男', 8: '男', 2: '女', 9: '女' }[id.charAt(1)] || '';
+    const [lo, dom] = String(rec.insured_email || '').split('@');
+    const now = nowStamp();
+    await sb.from('clients').insert({ id, data: {
+      id, name, gender: g, birthday: rec.insured_birthdate || null, phone: rec.insured_phone || '',
+      zip_code: rec.insured_zipcode || '', city: rec.insured_city || '', district: rec.insured_district || '',
+      address_detail: rec.insured_address_detail || '', email_local: lo || '', email_domain: dom || '',
+      policies: [], source: '產險', created_at: now, updated_at: now } });
+  } catch (e) { console.warn('產險被保人建客戶失敗', e); }
 }
 
 // 回傳自己所有的保單，依編號新到舊排序
@@ -61,6 +81,7 @@ async function dbUpdate(id, payload) {
     .update({ data: rec, updated_at: new Date().toISOString() })
     .eq('id', Number(id));
   sbThrow(error, '更新保單');
+  await pcEnsureClient(rec);
   return Number(id);
 }
 
