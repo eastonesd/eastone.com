@@ -2,7 +2,8 @@
 // EASTONE｜保障內容健診報告（A4 直式，可下載 PDF 或直接列印）
 // 網址：report.html?id=<被保人的客戶ID>
 // 依顧問規格排版（醫療前中後合併一頁）；有理財保單時，在保費配置後多一頁「理財保單」。
-// 字級放大給長輩閱讀；內容超過一頁時自動延伸成兩頁 A4。
+// 每一節固定頁數：多數一節一頁（放不下就整節等比縮小），未來節點最多兩頁，條款重點不限頁數（自動分頁）。
+// 結論頁固定落在單數頁（必要時前面補一頁健診筆記）。
 // 所有數字都來自 kbCompute（同一份計算結果），不另外計算。
 // ============================================================
 const $ = (id) => document.getElementById(id);
@@ -56,7 +57,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.querySelectorAll(".rp-agent-name").forEach((e) => (e.textContent = $("rp-agent-name").value || "—"));
       document.querySelectorAll(".rp-agent-contact").forEach((e) => (e.textContent = $("rp-agent-contact").value || "—"));
     }));
-    fitPages();
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    layoutPages();
     $("rp-print").disabled = false;
     $("rp-print").addEventListener("click", printReport);
     fitScreen();
@@ -71,23 +73,96 @@ function printReport() {
   // 存 PDF 時的預設檔名
   const old = document.title;
   document.title = `EASTONE保障內容健診報告_${INSURED.name}_${RES.asOf}`;
-  fitPages();
   window.print();
   setTimeout(() => (document.title = old), 1000);
 }
 
-// 內容超過一張 A4 的頁面，高度補成整數張，列印時不會切在奇怪的位置
-function fitPages() {
+// ---------------- 排版：每頁固定一張 A4 ----------------
+// data-fit：整節只能一頁，放不下就把內容等比縮小；data-flow="N"：可延伸成多頁（0＝不限），超過 N 頁才縮小
+const MIN_ZOOM = 0.62;
+const overflow = (pg) => {
+  const b = pg.querySelector(".pg-body"), f = pg.querySelector(".pg-fit");
+  return f.getBoundingClientRect().height > b.getBoundingClientRect().height + 0.5;
+};
+function shrinkToFit(pg) {
+  const f = pg.querySelector(".pg-fit");
+  let z = 1;
+  f.style.zoom = "";
+  while (overflow(pg) && z > MIN_ZOOM) { z = Math.round((z - 0.02) * 100) / 100; f.style.zoom = String(z); }
+}
+function contPage(first) {
+  const pg = first.cloneNode(true);
+  pg.removeAttribute("data-flow");
+  pg.classList.add("cont");
+  pg.querySelector(".pg-need")?.remove();
+  const h = pg.querySelector(".pg-title h2");
+  if (h) h.textContent += "（續）";
+  pg.querySelector(".pg-fit").innerHTML = "";
+  return pg;
+}
+// 一張條款卡太長、自己就超過一頁時，按條列拆成兩張
+function splitItem(item) {
+  const lis = [...item.querySelectorAll("li")];
+  if (!item.classList.contains("rc") || lis.length < 2) return null;
+  const a = item.cloneNode(true), b = item.cloneNode(true);
+  const half = Math.ceil(lis.length / 2);
+  [...a.querySelectorAll("li")].slice(half).forEach((li) => li.remove());
+  [...b.querySelectorAll("li")].slice(0, half).forEach((li) => li.remove());
+  const h = b.querySelector(".rc-h"); if (h) h.insertAdjacentHTML("beforeend", "<small>（續）</small>");
+  return [a, b];
+}
+function paginate(first, zoom) {
+  const items = [...first.querySelector(".pg-fit").children];
+  const pages = [first];
+  let pg = first, fit = pg.querySelector(".pg-fit");
+  fit.innerHTML = ""; fit.style.zoom = zoom === 1 ? "" : String(zoom);
+  while (items.length) {
+    const it = items.shift();
+    fit.appendChild(it);
+    if (!overflow(pg)) continue;
+    if (fit.children.length === 1) {          // 一個項目就塞不下一頁：能拆就拆
+      const parts = splitItem(it);
+      if (parts) { it.remove(); items.unshift(...parts); }
+      continue;
+    }
+    it.remove();
+    pg = contPage(first); fit = pg.querySelector(".pg-fit"); fit.style.zoom = zoom === 1 ? "" : String(zoom);
+    pages[pages.length - 1].after(pg); pages.push(pg);
+    items.unshift(it);
+  }
+  return pages;
+}
+function layoutPages() {
   const root = document.documentElement;
   const old = root.style.getPropertyValue("--rp-scale");
   root.style.setProperty("--rp-scale", "1");
-  const sheet = (297 / 25.4) * 96; // 一張 A4 的高度（px）
-  document.querySelectorAll(".page").forEach((pg) => {
-    pg.style.minHeight = "";
-    const n = Math.max(1, Math.ceil((pg.scrollHeight - 2) / sheet));
-    pg.style.minHeight = `${n * 297}mm`;
+  document.querySelectorAll(".page[data-fit]").forEach(shrinkToFit);
+  document.querySelectorAll(".page[data-flow]").forEach((first) => {
+    const max = Number(first.dataset.flow) || 0;
+    const original = [...first.querySelector(".pg-fit").children].map((n) => n.cloneNode(true));
+    let z = 1, pages = paginate(first, z);
+    while (max && pages.length > max && z > MIN_ZOOM) {
+      pages.slice(1).forEach((p) => p.remove());
+      first.querySelector(".pg-fit").replaceChildren(...original.map((n) => n.cloneNode(true)));
+      z = Math.round((z - 0.04) * 100) / 100;
+      pages = paginate(first, z);
+    }
+    pages.forEach((p) => { if (overflow(p)) shrinkToFit(p); });
+  });
+  // 結論頁要落在單數頁：不是的話，前面補一頁健診筆記
+  const all = () => [...document.querySelectorAll(".rp-pages > .page")];
+  const end = document.querySelector(".page[data-key=end]");
+  if (end && (all().indexOf(end) + 1) % 2 === 0) end.before(notesPage());
+  all().forEach((p, i) => {
+    const n = p.querySelector(".pg-num"); if (n) n.textContent = String(i + 1).padStart(2, "0");
+    const f = p.querySelector(".pg-foot span:last-child"); if (f) f.textContent = i + 1;
   });
   if (old) root.style.setProperty("--rp-scale", old);
+}
+function notesPage() {
+  const wrap = document.createElement("div");
+  wrap.innerHTML = page("", "NOTES", "健診筆記", "", `<div class="notes-lines">${"<i></i>".repeat(22)}</div>`, { fit: true }).trim();
+  return wrap.firstElementChild;
 }
 
 // 手機上把 A4 頁面縮到螢幕寬度
@@ -119,14 +194,15 @@ let pageNo = 0;
 function page(num, eyebrow, title, need, body, opts = {}) {
   pageNo += 1;
   num = String(pageNo).padStart(2, "0");
-  return `<section class="page${opts.cls ? " " + opts.cls : ""}">
+  const attrs = opts.flow != null ? ` data-flow="${opts.flow}"` : " data-fit";
+  return `<section class="page${opts.cls ? " " + opts.cls : ""}"${attrs}${opts.key ? ` data-key="${opts.key}"` : ""}>
     <header class="pg-head"><span>EASTONE｜保障內容健診報告</span><span>${esc(INSURED.name)}　${fmtDate(RES.asOf)}</span></header>
     <div class="pg-title">
       <div class="pg-num">${num}</div>
       <div><div class="pg-eyebrow">${eyebrow}</div><h2>${title}</h2></div>
     </div>
     ${need ? `<div class="pg-need">${need}</div>` : ""}
-    <div class="pg-body">${body}</div>
+    <div class="pg-body"><div class="pg-fit">${body}</div></div>
     <footer class="pg-foot"><span>本報告依已提供之保單資料整理，僅供說明參考，非理賠承諾；實際給付以保險契約條款及保險公司核定為準。</span><span>${pageNo}</span></footer>
   </section>`;
 }
@@ -204,7 +280,7 @@ function render() {
       </div>
       <div class="cv-say">「這份報告盤點了您目前提供的保單；我們先看現況，再談需求。」</div>
       <div class="cv-contents">
-        <div><b>01</b> 保單與保費</div><div><b>02</b> 保障與權益</div><div><b>03</b> 需求與行動</div>
+        <div><b>01</b> 保單與保費</div><div><b>02</b> 保障與權益</div><div><b>03</b> 結論與行動</div>
       </div>
       <div class="cv-agent"><div><span>服務業務員</span><b class="rp-agent-name">${esc($("rp-agent-name").value || "—")}</b></div>
         <div><span>聯絡方式</span><b class="rp-agent-contact">${esc($("rp-agent-contact").value || "—")}</b></div></div>
@@ -229,12 +305,12 @@ function render() {
 
   const pInv = page("", "POLICY INVENTORY", "保單目錄與繳費總覽", "我有哪些保單？主附約怎麼組成？目前每年繳多少？", `
     <table class="rp-table">
-      <thead><tr><th>保險公司／保單號碼</th><th>主約・附約</th><th>保額</th><th>繳費／保障</th><th class="num">保費</th><th>身故受益人</th></tr></thead>
+      <thead><tr><th>保單號碼</th><th class="nw">主約／附約</th><th class="nw">保額</th><th class="nw">年期</th><th class="num">保費</th><th class="nw">受益人</th></tr></thead>
       <tbody>${Object.entries(byPolicy).map(([no, list]) => list.map((c, i) => `<tr class="${c.kind === "rider" ? "rider" : "main"}${c.covered ? "" : " off"}">
-        <td>${i === 0 ? `<b>${esc(c.company || "—")}</b><div class="sub">${esc(no)}<br>${esc(c.pay_mode)}・生效 ${fmtDate(c.effective)}${c.applicant && c.applicant !== INSURED.name ? `<br>要保人 ${esc(c.applicant)}` : ""}</div>` : ""}</td>
+        <td class="pno">${i === 0 ? `<b>${esc(no)}</b><div class="sub">${esc(c.company || "—")}<br>${esc(c.pay_mode)}・生效 ${fmtDate(c.effective)}${c.applicant && c.applicant !== INSURED.name ? `<br>要保人 ${esc(c.applicant)}` : ""}</div>` : ""}</td>
         <td>${c.kind === "rider" ? "↳ " : ""}<b>${esc(c.code || "")}</b> ${esc(c.name || "")}<div class="sub">${c.nature === "wealth" ? "理財" : "保障"}${c.status && c.status !== "正常" ? "・" + esc(c.status) : ""}</div></td>
-        <td>${c.sa !== "" && c.sa != null ? esc(c.sa) + esc(c.saUnit || "") + (c.currency !== "TWD" ? " " + esc(c.currency) : "") : "—"}</td>
-        <td>${esc(c.term || "—")}<div class="sub">${esc(c.coverageText || "—")}</div></td>
+        <td class="nw">${c.sa !== "" && c.sa != null ? esc(c.sa) + esc(c.saUnit || "") + (c.currency !== "TWD" ? " " + esc(c.currency) : "") : "—"}</td>
+        <td class="nw">${esc(c.term || "—")}<div class="sub">${esc(c.coverageText || "—")}</div></td>
         <td class="num">${c.currency !== "TWD" ? esc(c.currency) + " " : ""}${money(c.premium)}</td>
         <td class="bene">${i === 0 ? (c.pending ? "—" : beneHtml(c.beneficiaries)) : ""}</td></tr>`).join("")).join("")
         || `<tr><td colspan="6" class="rp-empty">沒有以 ${esc(INSURED.name)} 為被保人的保單</td></tr>`}</tbody>
@@ -361,26 +437,20 @@ function render() {
 
   // 未來重要節點（獨立一頁，字放大）
   const pEvents = page("", "KEY DATES", "未來重要節點", "哪一年、幾歲時，保障或繳費會有變化。", `
-    <ul class="rp-list big">${RES.events.map((e) => `<li class="ev-${e.kind}"><b>${fmtDate(e.date)}（${e.age} 歲）</b>${esc(e.ct && e.ct.name ? e.text.replace(" " + e.ct.name, "") : e.text)}</li>`).join("") || "<li>目前沒有未來節點</li>"}</ul>
-    <p class="rp-note">紅字為保障終止、金色為給付變動或開始；其餘為繳費期滿。日期依各契約生效日推算。</p>`);
+    <p class="rp-note ev-key">紅字為保障終止、金色為給付變動或開始；其餘為繳費期滿。日期依各契約生效日推算。</p>
+    ${RES.events.map((e) => `<div class="ev ev-${e.kind}"><b>${fmtDate(e.date)}（${e.age} 歲）</b><span>${esc(e.ct && e.ct.name ? e.text.replace(" " + e.ct.name, "") : e.text)}</span></div>`).join("") || `<div class="ev">目前沒有未來節點</div>`}`, { flow: 2 });
 
   // 條款重點
   const byProd = {};
   RES.notes.forEach((n) => (byProd[n.product.code] = byProd[n.product.code] || { p: n.product, list: [] }).list.push(n));
   const pRights = page("", "RIGHTS & CONDITIONS", "條款重點與保單權益提醒", "不需要閱讀整份條款，我把真正可能影響權益的地方講清楚。", `
     ${Object.values(byProd).map(({ p, list }) => `<div class="rc"><div class="rc-h"><b>${esc(p.code)}</b> ${esc(p.name)}</div>
-      <ul>${list.map((n) => `<li>${esc(n.text)}${n.clause ? `<i>${esc(n.clause)}</i>` : ""}</li>`).join("")}</ul></div>`).join("") || `<div class="rp-empty">尚無可提醒的條款重點</div>`}`);
-
-  // 需求與缺口（填滿整頁）
-  const pNeeds = page("", "NEEDS & GAP ANALYSIS", "客戶需求與保障缺口", "有沒有缺口，不由市場平均決定，而由您的生活責任和選擇決定。", `
-    <table class="rp-table needs"><thead><tr><th style="width:17%">保障領域</th><th style="width:31%">現有保障（事實）</th><th style="width:26%">需求目標（共同確認）</th><th>差異與待討論</th></tr></thead>
-      <tbody>${ATLAS.map((a) => {
-        const vs = a.items.map(val).filter(Boolean).filter((v) => v.item.pay_type !== "flag").slice(0, 3);
-        return `<tr><td><b>${a.name}</b></td><td>${vs.map((v) => `${esc(v.item.name)}<br><b>${valueText(v)}</b>`).join("<br>") || "—"}</td>
-          <td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td></tr>`;
-      }).join("")}</tbody></table>
-    <div class="fill-box"><b>家庭與財務現況</b>（扶養責任、收入、負債、預算、風險偏好）<div contenteditable="true" class="fill area"></div></div>
-    <p class="rp-note">保障盤點是事實；需求與缺口依雙方確認的假設判斷。本頁是共同討論工具，不直接輸出應購買某商品的結論。</p>`, { cls: "fill-page" });
+      <ul>${list.map((n) => `<li>${esc(n.text)}${n.clause ? `<i>${esc(n.clause)}</i>` : ""}</li>`).join("")}</ul></div>`).join("") || `<div class="rp-empty">尚無可提醒的條款重點</div>`}
+    <div class="agent-sign">
+      <p>本人已親自詳閱本報告所列各保單之保險條款，並對本保單健診報告書之內容負責。</p>
+      <div class="sign"><div>業務員簽名<span></span></div><div class="sm">日期<span></span></div></div>
+      <div class="agent-line">服務業務員　<b class="rp-agent-name">${esc($("rp-agent-name").value || "—")}</b>　聯絡方式　<b class="rp-agent-contact">${esc($("rp-agent-contact").value || "—")}</b></div>
+    </div>`, { flow: 0 });
 
   // 結論與下一步（填滿整頁）
   const keep = lit.map((a) => a.name);
@@ -394,9 +464,9 @@ function render() {
     </div>
     <h3>共同確認的待辦事項</h3>
     <table class="rp-table todo"><thead><tr><th style="width:46%">事項</th><th>負責人</th><th>期限</th><th>狀態</th></tr></thead>
-      <tbody>${[1, 2, 3, 4, 5].map(() => `<tr><td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td></tr>`).join("")}</tbody></table>
-    <div class="sign"><div>客戶簽名<span></span></div><div>業務員簽名<span></span></div></div>
-    <p class="rp-note">不因缺口指標自動建議解約或替換既有保單；涉及舊保單轉換時，應評估重新核保、等待期間、既有權益與成本。資料基準日 ${fmtDate(RES.asOf)}；本報告非理賠承諾。</p>`, { cls: "fill-page" });
+      <tbody>${[1, 2, 3, 4, 5, 6, 7, 8].map(() => `<tr><td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td><td contenteditable="true" class="fill"></td></tr>`).join("")}</tbody></table>
+    <div class="sign client"><div>客戶簽名<span></span></div><div class="sm">日期<span></span></div></div>
+    <p class="rp-note">不因缺口指標自動建議解約或替換既有保單；涉及舊保單轉換時，應評估重新核保、等待期間、既有權益與成本。資料基準日 ${fmtDate(RES.asOf)}；本報告非理賠承諾。</p>`, { cls: "end-page", key: "end" });
 
-  $("rp-pages").innerHTML = cover + pInv + pAlloc + pWealth + pAtlas + pDuty + pMed + pTime + pEvents + pRights + pNeeds + pEnd;
+  $("rp-pages").innerHTML = cover + pInv + pAlloc + pWealth + pAtlas + pDuty + pMed + pTime + pEvents + pRights + pEnd;
 }
