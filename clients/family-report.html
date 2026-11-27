@@ -12,12 +12,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/auth.css?v=20261128-1">
 <link rel="stylesheet" href="report.css?v=20261127-3">
-<link rel="stylesheet" href="family-report.css?v=20261127-1">
+<link rel="stylesheet" href="family-report.css?v=20261128-1">
 </head>
 <body>
 <div class="rp-toolbar">
   <a class="rp-back" id="rp-back" href="family.html">← 返回家族</a>
   <button type="button" class="rp-print" id="rp-print" disabled>下載 PDF／列印</button>
+  <button type="button" class="rp-print alt" id="fr-tasks" disabled>📌 把建議加入待辦</button>
+  <button type="button" class="rp-print alt" id="fr-sign" disabled>✍️ 客戶簽名</button>
   <p class="rp-hint">按下後在列印視窗選「另存為 PDF」即可下載。紙張 A4、勾選「背景圖形」。要修改內容，請回到家族頁的「家辦資料」或各功能頁更新資料。</p>
 </div>
 <main class="rp-pages" id="rp-pages"><p class="rp-loading">報告產生中…（要計算全家族的保單與資產，可能需要幾秒）</p></main>
@@ -32,6 +34,7 @@
 <script src="legacy-calc.js?v=20261127-1"></script>
 <script src="retire-calc.js?v=20261127-1"></script>
 <script src="family-calc.js?v=20261127-1"></script>
-<script src="family-report.js?v=20261127-1"></script>
+<script src="../shared/esign.js?v=20261128-2"></script>
+<script src="family-report.js?v=20261128-1"></script>
 </body>
 </html>

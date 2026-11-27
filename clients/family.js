@@ -119,6 +119,7 @@
     $('fo-rels').querySelectorAll('[data-rel]').forEach((b) => b.addEventListener('click', () => removeRel(b.dataset.rel)));
     drawGraph();
     if (window.FoPlan) FoPlan.show(f.id, ms.map((m) => person(m.person_id)).filter(Boolean), rels);
+    if (window.FoDesk) FoDesk.show(f.id, ms.map((m) => person(m.person_id)).filter(Boolean));
   }
 
   function relText(r) {

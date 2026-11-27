@@ -77,3 +77,7 @@
 .fr-sign div { border-bottom: 2px solid var(--navy); min-height: 18mm; padding: 2px 4px; display: flex; flex-direction: column; justify-content: space-between; }
 .fr-sign span { font-size: 9pt; color: var(--soft); }
 .fr-sign b { font: 700 13pt "Noto Serif TC", serif; color: var(--navy-deep); }
+.rp-toolbar .rp-print.alt { background: #fff; color: var(--navy); border: 1.5px solid var(--navy); }
+.fr-sig-img { max-height: 15mm; max-width: 100%; align-self: flex-start; }
+@media print { .rp-toolbar { display: none !important; } }
+.rp-toolbar .rp-print.alt { margin-left: 8px; }

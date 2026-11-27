@@ -905,6 +905,7 @@ async function openDetail(clientId) {
         </div>
         <div class="dt-ck-line">
           <a class="dt-mini-btn" href="../forms/privacy-consent-v1.0.pdf" download="東石家族辦公室_個資同意書_v1.0.pdf">下載空白同意書</a>
+          <button type="button" class="dt-mini-btn" id="cs-esign">✍️ 電子簽署</button>
           <button type="button" class="dt-mini-btn" id="cs-upload">上傳已簽名的同意書</button>
           ${csList.map((x, i) => `<button type="button" class="dt-mini-btn" data-csview="${x.id}">開啟${csList.length > 1 ? " " + (i + 1) : ""}</button>`).join("")}
           ${csList.length ? `<button type="button" class="dt-mini-btn danger" id="cs-clear">刪除</button>` : ""}
@@ -1073,6 +1074,26 @@ async function csShrink(file) {
   return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
 }
 function bindConsent(c, list) {
+  const es = document.getElementById("cs-esign");
+  if (es) es.addEventListener("click", async () => {
+    if (!window.EastoneSign) { alert("電子簽署元件尚未載入，請重新整理"); return; }
+    let agent = {};
+    try { const { data } = await sb.from("team_members").select("name, life_license").eq("user_id", APP_UID).maybeSingle(); if (data) agent = { name: data.name, license: data.life_license }; } catch { /* 略過 */ }
+    const r = await EastoneSign.consent({ client: c, agent, root: "../" });
+    if (!r) return;
+    try {
+      showToast("存檔中…");
+      const d = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+      const path = `${APP_UID}/${c.id}/consent-esign-${Date.now()}.jpg`;
+      const up = await sb.storage.from("fin-docs").upload(path, r.blob, { contentType: "image/jpeg" });
+      if (up.error) throw new Error("上傳失敗：" + up.error.message);
+      const ins = await sb.from("client_consents").insert({ client_id: c.id, file_path: path, file_name: `個資同意書_電子簽署_${d}.jpg`, mime: "image/jpeg", signed_on: d, via: "esign" });
+      if (ins.error) throw new Error("存檔失敗：" + ins.error.message);
+      showToast("電子簽署完成，同意書已存檔");
+      await consentMap(true);
+      openDetail(c.id);
+    } catch (e) { alert(e.message || e); }
+  });
   document.getElementById("cs-upload").addEventListener("click", () => {
     const inp = document.createElement("input");
     inp.type = "file"; inp.accept = "image/*,application/pdf"; inp.multiple = true;

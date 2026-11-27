@@ -558,6 +558,44 @@
   }
   const fitScreen = () => document.documentElement.style.setProperty('--rp-scale', (Math.min(window.innerWidth - 16, 794) / 794).toFixed(4));
 
+  // ---------- 待辦、簽名 ----------
+  const plain = (h) => String(h).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  const keyOf = (t) => { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) | 0; return `report:${(h >>> 0).toString(36)}`; };
+  async function addTasks(fid) {
+    const btn = $('fr-tasks'); btn.disabled = true;
+    try {
+      const { data: have, error } = await sb.from('fo_tasks').select('source_key').eq('family_id', fid).eq('source', 'report');
+      if (error) throw error;
+      const seen = new Set((have || []).map((x) => x.source_key));
+      const due = (d) => new Date(Date.now() + (8 * 3600 + d * 86400) * 1e3).toISOString().slice(0, 10);
+      const rows = X.actions.map((a) => { const title = plain(a.text); return { family_id: fid, title: title.slice(0, 300), source: 'report', source_key: keyOf(title), priority: a.lv === 'r' ? 'high' : a.lv === 'y' ? 'mid' : 'low', due: due(a.lv === 'r' ? 14 : a.lv === 'y' ? 30 : 60) }; })
+        .filter((r) => !seen.has(r.source_key));
+      if (rows.length) { const { error: e2 } = await sb.from('fo_tasks').insert(rows); if (e2) throw e2; }
+      btn.textContent = rows.length ? `✅ 已加入 ${rows.length} 項待辦` : '✅ 建議都已在待辦中';
+    } catch (e) { alert(`加入待辦失敗：${e.message || e}`); btn.disabled = false; }
+  }
+  async function signReport(fid) {
+    const url = await EastoneSign.pad({ title: '客戶簽名', note: '確認報告內容與待辦事項後，請在框內簽名' });
+    if (!url) return;
+    const end = document.querySelector('.page[data-key="end"]');
+    const box = end && end.querySelector('.fr-sign > div');
+    if (!box) return;
+    box.querySelector('img')?.remove();
+    box.insertAdjacentHTML('beforeend', `<img src="${url}" alt="客戶簽名" class="fr-sig-img">`);
+    const dateBox = end.querySelectorAll('.fr-sign > div')[2];
+    if (dateBox && !dateBox.querySelector('b')) dateBox.insertAdjacentHTML('beforeend', `<b>${EastoneSign.rocDate()}</b>`);
+    if (!confirm('已簽名。要把簽名頁存進這個家族的文件保險箱嗎？')) return;
+    try {
+      const blob = await EastoneSign.snapshot(end);
+      const d = today, path = `${fid}/report-signed-${Date.now()}.jpg`;
+      const up = await sb.storage.from('fo-vault').upload(path, blob, { contentType: 'image/jpeg' });
+      if (up.error) throw up.error;
+      const { error } = await sb.from('fo_documents').insert({ family_id: fid, kind: 'report', title: `家辦整合報告簽名頁 ${d}`, file_path: path, mime: 'image/jpeg', size: blob.size, signed: true, note: '客戶當面電子簽署' });
+      if (error) { await sb.storage.from('fo-vault').remove([path]); throw error; }
+      $('fr-sign').textContent = '✅ 已簽名並存檔';
+    } catch (e) { alert(`存檔失敗：${e.message || e}`); }
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     await requireLogin('../');
     const fid = new URLSearchParams(location.search).get('f') || '';
@@ -573,6 +611,10 @@
       window.addEventListener('resize', fitScreen);
       $('rp-print').disabled = false;
       $('rp-print').addEventListener('click', () => window.print());
+      $('fr-tasks').disabled = !X.actions.length;
+      $('fr-tasks').addEventListener('click', () => addTasks(fid));
+      $('fr-sign').disabled = false;
+      $('fr-sign').addEventListener('click', () => signReport(fid));
       window.__FR = { X, M, PLAN };
     } catch (e) {
       console.error(e);
