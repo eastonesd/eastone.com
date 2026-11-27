@@ -433,7 +433,7 @@
 <script>
   (async () => {
     const { data } = await sb.auth.getSession();
-    if (!data.session && !location.hash) { location.replace('market/index.html'); return; }
+    if (!data.session && !location.hash) { location.replace('home.html'); return; }
     await requireLogin('', { allowPortal: true });
     document.getElementById('docs-main').hidden = false;
   })();
