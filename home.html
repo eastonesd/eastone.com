@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>東石家族辦公室｜先看清楚，再做決定</title>
+<meta name="description" content="東石家族辦公室：保單健診、家族資產整理、傳承與退休規劃，陪您把家族的保障與財務一次看清楚。">
+<meta name="theme-color" content="#0E1730">
+<meta name="robots" content="noindex"><!-- 草稿：確認後拿掉，並把 index.html 的訪客導向改到這裡 -->
+<link rel="icon" href="favicon.ico?v=3" sizes="any">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --night:#0E1730; --navy:#1B2A4A; --navy2:#22345C; --gold:#C9A04A; --gold2:#E4C77E; --paper:#F6F3EC; --ink:#1F2433; --soft:#6B6656; --line:#E2DACA; --up:#E25C4B; --down:#2E9E5B; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; font-family: "Noto Sans TC", sans-serif; color: var(--ink); background: var(--paper); line-height: 1.7; }
+  a { color: inherit; }
+  .serif { font-family: "Noto Serif TC", serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- 頁首 ---------- */
+  .hd { position: fixed; inset: 0 0 auto; z-index: 20; transition: background .3s, box-shadow .3s; }
+  .hd.solid { background: rgba(14, 23, 48, .92); backdrop-filter: blur(10px); box-shadow: 0 1px 0 rgba(201, 160, 74, .35); }
+  .hd .wrap { display: flex; align-items: center; gap: 18px; height: 72px; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; margin-right: auto; }
+  .brand img { width: 42px; height: 42px; border-radius: 50%; box-shadow: 0 0 0 1.5px var(--gold); }
+  .brand b { display: block; font: 700 1.15rem "Noto Serif TC", serif; letter-spacing: .12em; }
+  .brand small { display: block; font-size: .62rem; letter-spacing: .32em; color: var(--gold2); }
+  .hd nav { display: flex; gap: 4px; }
+  .hd nav a { color: #DDE3F0; text-decoration: none; font-size: .92rem; padding: 8px 12px; border-radius: 8px; }
+  .hd nav a:hover { color: #fff; background: rgba(255, 255, 255, .06); }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 11px 22px; font: 700 .95rem "Noto Sans TC"; text-decoration: none; cursor: pointer; border: 0; }
+  .btn-gold { background: linear-gradient(135deg, #D9B35C, #B8892B); color: #1a1408; box-shadow: 0 6px 18px rgba(184, 137, 43, .35); }
+  .btn-ghost { border: 1px solid rgba(228, 199, 126, .6); color: var(--gold2); background: transparent; }
+  .btn-sm { padding: 7px 16px; font-size: .85rem; }
+  .menu { display: none; background: none; border: 0; color: #fff; font-size: 1.5rem; }
+
+  /* ---------- 主視覺 ---------- */
+  .hero { position: relative; min-height: 100vh; background: radial-gradient(1200px 600px at 80% -10%, #2A3F70 0%, transparent 60%), linear-gradient(180deg, #0E1730 0%, #131F3D 70%, #182748 100%); color: #fff; overflow: hidden; display: flex; align-items: center; padding: 110px 0 70px; }
+  .ridge { position: absolute; inset: auto 0 0 0; height: 46%; pointer-events: none; }
+  .ridge path { fill: none; stroke: url(#rg); stroke-width: 1.2; opacity: .55; stroke-dasharray: 2400; stroke-dashoffset: 2400; animation: draw 4.5s ease forwards; }
+  .ridge path:nth-child(2) { animation-delay: .5s; opacity: .35; } .ridge path:nth-child(3) { animation-delay: 1s; opacity: .22; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .hero .wrap { position: relative; display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; width: 100%; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: .8rem; letter-spacing: .3em; color: var(--gold2); }
+  .eyebrow::before { content: ""; width: 34px; height: 1px; background: var(--gold); }
+  .hero h1 { font: 900 clamp(2.6rem, 6vw, 4.6rem)/1.15 "Noto Serif TC", serif; margin: 18px 0 18px; letter-spacing: .04em; }
+  .hero h1 em { font-style: normal; background: linear-gradient(90deg, #F3DFA8, #C9A04A); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p.lead { font-size: 1.08rem; color: #C9D2E6; max-width: 34em; margin: 0 0 28px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .trust { display: flex; gap: 22px; margin-top: 34px; color: #9FB0D0; font-size: .82rem; flex-wrap: wrap; }
+  .trust b { display: block; color: #fff; font: 700 1.35rem "Noto Serif TC", serif; }
+
+  /* 即時面板 */
+  .live { position: relative; border-radius: 22px; padding: 22px; background: linear-gradient(160deg, rgba(255, 255, 255, .09), rgba(255, 255, 255, .03)); border: 1px solid rgba(228, 199, 126, .28); backdrop-filter: blur(14px); box-shadow: 0 30px 80px rgba(0, 0, 0, .35); }
+  .live-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .live-h b { font: 700 1.05rem "Noto Serif TC", serif; letter-spacing: .08em; }
+  .dot { display: inline-flex; align-items: center; gap: 6px; font-size: .74rem; color: #9FB0D0; }
+  .dot i { width: 7px; height: 7px; border-radius: 50%; background: #4ADE80; box-shadow: 0 0 0 0 rgba(74, 222, 128, .6); animation: pulse 2s infinite; }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); } 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); } }
+  .quotes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .q { padding: 12px 14px; border-radius: 14px; background: rgba(8, 14, 32, .45); }
+  .q span { display: block; font-size: .76rem; color: #9FB0D0; }
+  .q b { font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+  .q em { font-style: normal; font-size: .78rem; margin-left: 6px; font-variant-numeric: tabular-nums; }
+  .up { color: #FF8A7A; } .down { color: #6FDC9C; }
+  .news { list-style: none; margin: 14px 0 0; padding: 0; }
+  .news li { border-top: 1px solid rgba(255, 255, 255, .08); }
+  .news a { display: block; padding: 9px 2px; font-size: .88rem; color: #DDE3F0; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .news a:hover { color: var(--gold2); }
+  .live-f { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: .78rem; color: #9FB0D0; }
+  .live-f a { color: var(--gold2); text-decoration: none; }
+
+  /* 跑馬燈 */
+  .ticker { background: #0B1226; color: #C9D2E6; border-top: 1px solid rgba(201, 160, 74, .3); border-bottom: 1px solid rgba(201, 160, 74, .3); overflow: hidden; white-space: nowrap; font-size: .85rem; }
+  .ticker-in { display: inline-flex; gap: 42px; padding: 11px 0; animation: tick 40s linear infinite; }
+  .ticker-in span b { color: #fff; margin: 0 6px; font-variant-numeric: tabular-nums; }
+  @keyframes tick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* ---------- 區塊 ---------- */
+  section.blk { padding: 96px 0; }
+  .sec-h { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 40px; flex-wrap: wrap; }
+  .sec-h h2 { font: 900 clamp(1.8rem, 3.6vw, 2.6rem)/1.25 "Noto Serif TC", serif; margin: 10px 0 0; color: var(--navy); }
+  .sec-h p { max-width: 30em; color: var(--soft); margin: 0; }
+  .eyebrow.dk { color: #9A7426; } .eyebrow.dk::before { background: #B8892B; }
+
+  /* 服務：便當盒版面 */
+  .bento { display: grid; grid-template-columns: repeat(6, 1fr); grid-auto-rows: minmax(190px, auto); gap: 16px; }
+  .card { position: relative; border-radius: 20px; padding: 26px; background: #fff; border: 1px solid var(--line); overflow: hidden; transition: transform .25s, box-shadow .25s; }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(27, 42, 74, .12); }
+  .card .no { font: 700 .78rem "Noto Sans TC"; letter-spacing: .2em; color: #B8892B; }
+  .card h3 { font: 700 1.3rem "Noto Serif TC", serif; margin: 8px 0 8px; color: var(--navy); }
+  .card p { margin: 0; color: var(--soft); font-size: .93rem; }
+  .card.dark { background: linear-gradient(160deg, #1B2A4A, #0E1730); color: #fff; border: 0; }
+  .card.dark h3 { color: #fff; } .card.dark p { color: #C9D2E6; }
+  .c1 { grid-column: span 3; grid-row: span 2; } .c2 { grid-column: span 3; } .c3 { grid-column: span 3; }
+  .c4 { grid-column: span 2; } .c5 { grid-column: span 2; } .c6 { grid-column: span 2; }
+  .card .viz { margin-top: 18px; }
+  .meter { height: 10px; border-radius: 5px; background: rgba(255, 255, 255, .12); overflow: hidden; margin: 6px 0 12px; }
+  .meter i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #6E8FB5, #C9A04A); width: 0; transition: width 1.6s ease; }
+  .meter-l { display: flex; justify-content: space-between; font-size: .8rem; color: #9FB0D0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .chips span { font-size: .78rem; padding: 4px 12px; border-radius: 999px; background: #F3EEE2; color: #6B5a2e; }
+  .card.dark .chips span { background: rgba(201, 160, 74, .16); color: var(--gold2); }
+
+  /* 家族圖 */
+  .fam { background: linear-gradient(180deg, #F6F3EC, #EFE8D8); }
+  .fam .wrap { display: grid; grid-template-columns: .9fr 1.1fr; gap: 56px; align-items: center; }
+  .fam h2 { font: 900 clamp(1.8rem, 3.6vw, 2.6rem)/1.3 "Noto Serif TC", serif; color: var(--navy); margin: 12px 0 14px; }
+  .fam p { color: var(--soft); }
+  .fam ul { padding-left: 0; list-style: none; margin: 20px 0 0; }
+  .fam li { padding: 10px 0 10px 30px; position: relative; border-bottom: 1px dashed var(--line); }
+  .fam li::before { content: "◆"; position: absolute; left: 4px; color: #B8892B; font-size: .8rem; top: 13px; }
+  .geno { background: #fff; border-radius: 24px; border: 1px solid var(--line); padding: 18px; box-shadow: 0 24px 60px rgba(27, 42, 74, .10); }
+  .geno svg { width: 100%; height: auto; display: block; }
+  .geno .ln { stroke: #1B2A4A; stroke-width: 1.6; fill: none; stroke-dasharray: 400; stroke-dashoffset: 400; }
+  .geno.on .ln { animation: draw 1.6s ease forwards; }
+  .geno .nd { opacity: 0; transform-box: fill-box; transform-origin: center; }
+  .geno.on .nd { animation: pop .5s ease forwards; }
+  @keyframes pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: scale(1); } }
+  .geno text { font: 700 13px "Noto Sans TC"; fill: #1B2A4A; text-anchor: middle; }
+  .geno .sub { font: 500 10.5px "Noto Sans TC"; fill: #8A8577; }
+  .geno .tag { font: 700 10px "Noto Sans TC"; fill: #fff; }
+  .geno-cap { text-align: center; font-size: .78rem; color: #8A8577; margin-top: 6px; }
+
+  /* 流程 */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; counter-reset: s; }
+  .step { position: relative; padding: 26px 22px; border-radius: 18px; background: #fff; border: 1px solid var(--line); }
+  .step::before { counter-increment: s; content: "0" counter(s); font: 900 2.4rem "Noto Serif TC", serif; color: #EADFC4; position: absolute; right: 16px; top: 8px; }
+  .step b { display: block; font: 700 1.1rem "Noto Serif TC", serif; color: var(--navy); margin-bottom: 6px; }
+  .step p { margin: 0; font-size: .9rem; color: var(--soft); }
+
+  /* 工具 */
+  .tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .tool { display: flex; align-items: center; gap: 16px; padding: 22px; border-radius: 18px; text-decoration: none; background: #fff; border: 1px solid var(--line); transition: border-color .2s, transform .2s; }
+  .tool:hover { border-color: #B8892B; transform: translateY(-2px); }
+  .tool i { width: 50px; height: 50px; border-radius: 14px; display: grid; place-items: center; font-style: normal; font-size: 1.4rem; background: #F3EEE2; flex: none; }
+  .tool b { display: block; color: var(--navy); font: 700 1.08rem "Noto Serif TC", serif; }
+  .tool span { font-size: .84rem; color: var(--soft); }
+
+  /* 聯絡 */
+  .contact { background: linear-gradient(180deg, #131F3D, #0E1730); color: #fff; }
+  .contact .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+  .contact h2 { font: 900 clamp(1.8rem, 3.6vw, 2.6rem)/1.3 "Noto Serif TC", serif; margin: 12px 0 14px; }
+  .contact p { color: #C9D2E6; }
+  .line-card { text-decoration: none; margin-top: 24px; display: flex; gap: 16px; align-items: center; padding: 18px; border-radius: 18px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(228, 199, 126, .25); }
+  .line-card .lg { width: 52px; height: 52px; border-radius: 14px; background: #06C755; display: grid; place-items: center; font: 900 .9rem "Noto Sans TC"; color: #fff; flex: none; }
+  form.mail { display: grid; gap: 12px; padding: 26px; border-radius: 22px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(228, 199, 126, .25); }
+  form.mail label { font-size: .84rem; color: #C9D2E6; display: grid; gap: 6px; }
+  form.mail input, form.mail select, form.mail textarea { font: inherit; font-size: .95rem; padding: 11px 14px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .16); background: rgba(8, 14, 32, .5); color: #fff; }
+  form.mail textarea { min-height: 110px; resize: vertical; }
+  form.mail .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  form.mail small { color: #8E9BB8; font-size: .74rem; line-height: 1.6; }
+  footer { background: #0B1226; color: #8E9BB8; font-size: .8rem; padding: 30px 0; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  footer a { color: #C9D2E6; text-decoration: none; margin-left: 14px; }
+
+  /* 進場動畫 */
+  .rv { opacity: 0; transform: translateY(24px); transition: opacity .8s ease, transform .8s ease; }
+  .rv.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; } .ticker-in, .ridge path { animation: none; stroke-dashoffset: 0; } }
+
+  @media (max-width: 960px) {
+    .hero .wrap, .fam .wrap, .contact .wrap { grid-template-columns: 1fr; }
+    .bento { grid-template-columns: 1fr 1fr; } .c1, .c2, .c3, .c4, .c5, .c6 { grid-column: span 2; grid-row: auto; }
+    .steps { grid-template-columns: 1fr 1fr; } .tools { grid-template-columns: 1fr; }
+    .hd nav { display: none; } .hd nav.open { display: flex; flex-direction: column; position: absolute; top: 72px; left: 0; right: 0; background: rgba(14, 23, 48, .97); padding: 10px 24px 18px; }
+    .menu { display: block; }
+  }
+  @media (max-width: 560px) { .live-f > span { display: none; } .live-f { justify-content: flex-end; } .wrap { padding: 0 16px; } .quotes { grid-template-columns: 1fr 1fr; } .steps { grid-template-columns: 1fr; } form.mail .two { grid-template-columns: 1fr; } .hd .btn-sm { display: none; } section.blk { padding: 72px 0; } }
+</style>
+</head>
+<body>
+
+<header class="hd" id="hd">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="icons/logo.png?v=3" alt=""><span><b>東石家族辦公室</b><small>EASTONE FAMILY OFFICE</small></span></a>
+    <nav id="nav">
+      <a href="#services">服務</a>
+      <a href="#family">家族視角</a>
+      <a href="#how">如何開始</a>
+      <a href="market/index.html">財經日報</a>
+      <a href="stock/index.html">東石診股</a>
+      <a href="#contact">聯絡我們</a>
+    </nav>
+    <a class="btn btn-ghost btn-sm" href="login.html">登入</a>
+    <button class="menu" id="menu" aria-label="選單">☰</button>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <svg class="ridge" viewBox="0 0 1440 400" preserveAspectRatio="none" aria-hidden="true">
+    <defs><linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#C9A04A" stop-opacity="0"/><stop offset=".5" stop-color="#E4C77E"/><stop offset="1" stop-color="#C9A04A" stop-opacity="0"/></linearGradient></defs>
+    <path d="M0 330 L180 250 L300 290 L470 170 L610 260 L760 120 L900 230 L1040 180 L1180 270 L1300 210 L1440 260"/>
+    <path d="M0 360 L150 300 L320 330 L480 240 L640 310 L800 200 L960 290 L1120 240 L1280 310 L1440 280"/>
+    <path d="M0 385 L200 345 L380 370 L560 310 L720 360 L900 300 L1080 350 L1260 320 L1440 340"/>
+  </svg>
+  <div class="wrap">
+    <div class="rv">
+      <span class="eyebrow">EASTONE FAMILY OFFICE</span>
+      <h1>先看清楚，<br><em>再做決定。</em></h1>
+      <p class="lead">從家族成員、保障到家庭財務，我們把散落各處的保單、資產與責任整理成一張看得懂的全貌，陪您一代一代把重要的事安排好。</p>
+      <div class="cta">
+        <a class="btn btn-gold" id="cta-line" href="#contact">加 LINE 預約諮詢</a>
+        <a class="btn btn-ghost" href="#services">認識家辦服務 →</a>
+      </div>
+      <div class="trust">
+        <div><b>一張圖</b>看懂整個家族</div>
+        <div><b>一份報告</b>保單健診全攤開</div>
+        <div><b>一輩子</b>年度追蹤不斷線</div>
+      </div>
+    </div>
+    <aside class="live rv" aria-label="今日市場">
+      <div class="live-h"><b>今日市場</b><span class="dot"><i></i><span id="live-time">更新中</span></span></div>
+      <div class="quotes" id="quotes">
+        <div class="q"><span>台股加權</span><b>—</b></div><div class="q"><span>標普 500</span><b>—</b></div>
+        <div class="q"><span>那斯達克</span><b>—</b></div><div class="q"><span>美元／台幣</span><b>—</b></div>
+      </div>
+      <ul class="news" id="news"><li><a>正在讀取財經頭條…</a></li></ul>
+      <div class="live-f"><span>資料來源：Yahoo Finance、Google 新聞</span><a href="market/index.html">看今日財經日報 →</a></div>
+    </aside>
+  </div>
+</section>
+
+<div class="ticker" aria-hidden="true"><div class="ticker-in" id="ticker"><span>東石家族辦公室</span><span>保單健診・資產整理・傳承規劃・退休規劃</span><span>東石家族辦公室</span><span>保單健診・資產整理・傳承規劃・退休規劃</span></div></div>
+
+<section class="blk" id="services">
+  <div class="wrap">
+    <div class="sec-h rv"><div><span class="eyebrow dk">OUR SERVICES</span><h2>家辦服務，<br>從看清楚開始。</h2></div>
+      <p>不急著推薦商品。先把家裡已經有的整理清楚，缺什麼、多什麼、什麼時候該調整，一目了然。</p></div>
+    <div class="bento">
+      <div class="card dark c1 rv"><span class="no">01</span><h3>保單健診</h3>
+        <p>把全家散落在各家保險公司的保單整理成一份報告：醫療前中後、身故失能長照、保障年齡時間軸、條款權益提醒，每一項都標出處。</p>
+        <div class="viz">
+          <div class="meter-l"><span>住院醫療</span><span>已準備 72%</span></div><div class="meter"><i data-w="72"></i></div>
+          <div class="meter-l"><span>重大傷病</span><span>已準備 45%</span></div><div class="meter"><i data-w="45"></i></div>
+          <div class="meter-l"><span>長期照顧</span><span>已準備 20%</span></div><div class="meter"><i data-w="20"></i></div>
+        </div>
+        <div class="chips"><span>年度追蹤</span><span>報告可列印</span><span>客戶專區線上看</span></div>
+      </div>
+      <div class="card c2 rv"><span class="no">02</span><h3>家族資產總表</h3><p>不動產、存款、投資、保單、負債一張表看完；權狀拍照上傳自動判讀，市價與課稅價值分開記。</p></div>
+      <div class="card c3 rv"><span class="no">03</span><h3>傳承規劃・預留稅源</h3><p>先算清楚未來可能的稅負與現金需求，再用合適的工具預留稅源，讓家人不必在最難的時候為錢煩惱。</p></div>
+      <div class="card c4 rv"><span class="no">04</span><h3>退休規劃</h3><p>從現在的收支推到退休後每一年，看見錢能撐到幾歲、還差多少。</p></div>
+      <div class="card c5 rv"><span class="no">05</span><h3>家族關係圖</h3><p>三代家系一張圖，受益人、繼承順位與照顧責任清清楚楚。</p></div>
+      <div class="card c6 rv"><span class="no">06</span><h3>重要日子提醒</h3><p>續保、繳費期滿、繳稅期限、年度健診，到期前主動通知。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="blk fam" id="family">
+  <div class="wrap">
+    <div class="rv">
+      <span class="eyebrow dk">FAMILY VIEW</span>
+      <h2>家族不是一張表，<br>是一張圖。</h2>
+      <p>誰照顧誰、誰是受益人、萬一發生事情錢會流到哪裡——放在同一張圖上，很多問題自己就浮現了。</p>
+      <ul>
+        <li>受益人是不是您真正想照顧的人</li>
+        <li>家中經濟支柱的保障夠不夠</li>
+        <li>長輩的醫療、長照，誰來負擔</li>
+        <li>下一代接手時，稅與現金準備好了沒</li>
+      </ul>
+    </div>
+    <div class="geno rv" id="geno">
+      <svg viewBox="0 0 520 330" role="img" aria-label="家族關係示意圖">
+        <path class="ln" d="M130 70 H390"/><path class="ln" d="M260 70 V150"/><path class="ln" d="M120 150 H400"/>
+        <path class="ln" d="M120 150 V200"/><path class="ln" d="M260 150 V200"/><path class="ln" d="M400 150 V200"/>
+        <path class="ln" d="M400 236 V262 M360 262 H440 M360 262 V280 M440 262 V280" />
+        <g class="nd" style="animation-delay:.2s"><rect x="80" y="40" width="100" height="58" rx="12" fill="#F3EEE2" stroke="#1B2A4A"/><text x="130" y="66">林先生</text><text class="sub" x="130" y="84">68 歲・退休</text></g>
+        <g class="nd" style="animation-delay:.35s"><circle cx="390" cy="69" r="30" fill="#F3EEE2" stroke="#1B2A4A"/><text x="390" y="66">林太太</text><text class="sub" x="390" y="82">65 歲</text></g>
+        <g class="nd" style="animation-delay:.6s"><rect x="70" y="200" width="100" height="36" rx="10" fill="#1B2A4A"/><text class="tag" x="120" y="223">長子・經濟支柱</text></g>
+        <g class="nd" style="animation-delay:.75s"><circle cx="260" cy="218" r="22" fill="#fff" stroke="#1B2A4A"/><text x="260" y="222" style="font-size:12px">長女</text></g>
+        <g class="nd" style="animation-delay:.9s"><rect x="350" y="200" width="100" height="36" rx="10" fill="#fff" stroke="#1B2A4A"/><text x="400" y="223" style="font-size:12px">次子</text></g>
+        <g class="nd" style="animation-delay:1.1s"><circle cx="360" cy="294" r="15" fill="#fff" stroke="#1B2A4A"/><rect x="426" y="280" width="28" height="28" rx="6" fill="#fff" stroke="#1B2A4A"/></g>
+        <g class="nd" style="animation-delay:1.3s"><rect x="186" y="104" width="148" height="28" rx="14" fill="#C9A04A"/><text class="tag" x="260" y="123">受益人：法定繼承人？</text></g>
+      </svg>
+      <div class="geno-cap">示意圖，人物皆為虛構</div>
+    </div>
+  </div>
+</section>
+
+<section class="blk" id="how">
+  <div class="wrap">
+    <div class="sec-h rv"><div><span class="eyebrow dk">HOW IT WORKS</span><h2>四個步驟，<br>不用一次想清楚。</h2></div><p>第一次見面不談商品，先聊家裡的狀況與擔心的事。</p></div>
+    <div class="steps">
+      <div class="step rv"><b>聊聊家裡</b><p>家庭成員、目前的保單與擔心的事，30 分鐘就夠。</p></div>
+      <div class="step rv"><b>整理全貌</b><p>保單、資產與家族關係建檔，出一份看得懂的健診報告。</p></div>
+      <div class="step rv"><b>討論方向</b><p>保留、調整或補強，由您決定；我們說明每個選項的利弊。</p></div>
+      <div class="step rv"><b>年度追蹤</b><p>每年檢視一次，生活有變化就一起更新。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="blk" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-h rv"><div><span class="eyebrow dk">FREE TOOLS</span><h2>免費工具</h2></div></div>
+    <div class="tools">
+      <a class="tool rv" href="market/index.html"><i>📰</i><div><b>財經日報</b><span>每天早上的市場重點與指數匯率</span></div></a>
+      <a class="tool rv" href="stock/index.html"><i>📈</i><div><b>東石診股</b><span>台股、美股、基金健檢</span></div></a>
+      <a class="tool rv" href="index.html#claim"><i>📄</i><div><b>文件下載</b><span>理賠・契變・解約申請書</span></div></a>
+    </div>
+  </div>
+</section>
+
+<section class="blk contact" id="contact">
+  <div class="wrap">
+    <div class="rv">
+      <span class="eyebrow">CONTACT</span>
+      <h2>先聊聊，<br>不用準備任何資料。</h2>
+      <p>加 LINE 官方帳號直接預約，或留下訊息，我們會在一個工作天內回覆。</p>
+      <a class="line-card" id="line-card" href="#" target="_blank" rel="noopener"><span class="lg">LINE</span><span><b>加入東石 LINE 官方帳號</b><br><small style="color:#9FB0D0" id="line-id"></small></span></a>
+    </div>
+    <form class="mail rv" id="mail">
+      <div class="two">
+        <label>怎麼稱呼您<input name="name" required maxlength="40"></label>
+        <label>聯絡電話<input name="phone" inputmode="tel" maxlength="20"></label>
+      </div>
+      <label>想了解的服務<select name="topic"><option>保單健診</option><option>家族資產整理</option><option>傳承規劃</option><option>退休規劃</option><option>其他</option></select></label>
+      <label>想說的話<textarea name="msg" maxlength="1000" placeholder="例如：想幫爸媽整理保單，看看醫療夠不夠"></textarea></label>
+      <button class="btn btn-gold" type="submit">寄出訊息</button>
+      <small>按下寄出會開啟您的郵件程式，寄到 eastone.sd@gmail.com。您提供的姓名與電話只用於回覆這次諮詢，不做其他用途。</small>
+    </form>
+  </div>
+</section>
+
+<footer><div class="wrap"><span>© 2026 東石家族辦公室</span><span><a href="login.html">業務員登入</a><a href="my/index.html">客戶專區</a></span></div></footer>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  // 頁首：捲動後變實色；手機選單
+  const hd = $('hd');
+  const onScroll = () => hd.classList.toggle('solid', scrollY > 40);
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  $('menu').onclick = () => $('nav').classList.toggle('open');
+  $('nav').addEventListener('click', (e) => { if (e.target.tagName === 'A') $('nav').classList.remove('open'); });
+
+  // LINE 官方帳號
+  const oa = '@686icngd';   // 與 shared/supabase-client.js 的 LINE_OA_ID 相同
+  const lineUrl = `https://line.me/R/ti/p/${encodeURIComponent(oa)}`;
+  $('line-card').href = lineUrl; $('line-id').textContent = `ID：${oa}`;
+  $('cta-line').href = lineUrl; $('cta-line').target = '_blank'; $('cta-line').rel = 'noopener';
+
+  // 站內信：用郵件程式寄出
+  $('mail').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const subject = `【東石家辦諮詢】${f.get('topic')}｜${f.get('name')}`;
+    const body = `稱呼：${f.get('name')}\n電話：${f.get('phone') || '（未填）'}\n想了解：${f.get('topic')}\n\n${f.get('msg') || ''}`;
+    location.href = `mailto:eastone.sd@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  });
+
+  // 進場動畫
+  const io = new IntersectionObserver((es) => es.forEach((x) => {
+    if (!x.isIntersecting) return;
+    x.target.classList.add('in', 'on');
+    x.target.querySelectorAll('.meter i').forEach((m) => (m.style.width = m.dataset.w + '%'));
+    io.unobserve(x.target);
+  }), { threshold: .18 });
+  document.querySelectorAll('.rv, #geno').forEach((el) => io.observe(el));
+
+  // 今日市場（與財經日報同一個資料來源）
+  const fmt = (n, d = 2) => Number(n).toLocaleString('zh-TW', { minimumFractionDigits: d, maximumFractionDigits: d });
+  async function market() {
+    try {
+      const r = await fetch('https://kocyedkngpxckixtudku.supabase.co/functions/v1/market-data');
+      const j = await r.json();
+      const by = Object.fromEntries((j.indices || []).map((x) => [x.key, x]));
+      const cell = (name, x) => x ? `<div class="q"><span>${name}</span><b>${fmt(x.price)}</b><em class="${x.change >= 0 ? 'up' : 'down'}">${x.change >= 0 ? '▲' : '▼'} ${fmt(Math.abs(x.changePct))}%</em></div>` : `<div class="q"><span>${name}</span><b>—</b></div>`;
+      const usd = j.fx && j.fx.USD;
+      $('quotes').innerHTML = cell('台股加權', by.twii) + cell('標普 500', by.spx) + cell('那斯達克', by.ixic) + `<div class="q"><span>美元／台幣</span><b>${usd ? fmt(usd, 3) : '—'}</b></div>`;
+      const t = new Date(j.fetchedAt || Date.now());
+      $('live-time').textContent = `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')} 更新`;
+      const items = [...(j.indices || []).map((x) => `${x.name}<b>${fmt(x.price)}</b><span class="${x.change >= 0 ? 'up' : 'down'}">${x.change >= 0 ? '+' : ''}${fmt(x.changePct)}%</span>`),
+        ...Object.entries(j.fx || {}).map(([k, v]) => `${k}/TWD<b>${fmt(v, k === 'JPY' ? 4 : 3)}</b>`)];
+      if (items.length) { const html = items.map((s) => `<span>${s}</span>`).join(''); $('ticker').innerHTML = html + html; }
+    } catch { $('live-time').textContent = '暫時無法更新'; }
+  }
+  async function news() {
+    try {
+      const rss = 'https://news.google.com/rss/search?q=%E8%B2%A1%E7%B6%93&hl=zh-TW&gl=TW&ceid=TW:zh-Hant';
+      const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rss)}`);
+      const j = await r.json();
+      const list = (j.items || []).slice(0, 4);
+      if (!list.length) throw 0;
+      const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      $('news').innerHTML = list.map((x) => `<li><a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.title)}</a></li>`).join('');
+    } catch { $('news').innerHTML = '<li><a href="market/index.html">到財經日報看今日頭條 →</a></li>'; }
+  }
+  market(); news(); setInterval(market, 60000);
+})();
+</script>
+</body>
+</html>
