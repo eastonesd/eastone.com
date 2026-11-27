@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../shared/auth.css?v=20261118-1">
 <link rel="stylesheet" href="style.css?v=20261121-1">
 <link rel="stylesheet" href="picker.css?v=20261118-1">
-<link rel="stylesheet" href="tax.css?v=20261120-1">
+<link rel="stylesheet" href="tax.css?v=20261127-2">
 </head>
 <body data-cm="fo" data-cm-root="../">
 
@@ -34,7 +34,7 @@
 </div>
 
 <header class="topbar">
-  <h1>稅務規劃<small>ESTATE &amp; GIFT TAX</small></h1>
+  <h1>稅務規劃<small>ESTATE · GIFT · AMT</small></h1>
   <div class="topbar-right">
     <nav class="tabs life-tabs">
       <a class="tab-btn tab-link" href="family.html">👪 家族</a>
@@ -48,6 +48,7 @@
   <div class="tax-switch" role="tablist">
     <button type="button" class="tax-mode active" data-mode="estate">遺產稅</button>
     <button type="button" class="tax-mode" data-mode="gift">贈與稅</button>
+    <button type="button" class="tax-mode" data-mode="amt">最低稅負</button>
   </div>
 
   <!-- ===== 遺產稅 ===== -->
@@ -124,7 +125,27 @@
     <div class="card tax-card tax-result" id="gf-result"></div>
   </section>
 
-  <p class="tax-foot">依民國 115 年財政部公告金額試算（115 年免稅額、扣除額、級距未調整）。實際應納稅額以稽徵機關核定為準。本頁不存檔，重新整理會清空，需要保留請列印／另存 PDF。</p>
+  <!-- ===== 最低稅負（受益人）===== -->
+  <section id="mode-amt" hidden>
+    <div class="card tax-card">
+      <h2>受益人領身故保險金<small class="tax-h-sub">以受益人的申報戶、領取當年度計算</small></h2>
+      <div class="am-grid">
+        <label class="tax-big small">身故保險金（萬元）<input type="number" id="am-death" min="0" step="any" inputmode="decimal" placeholder="要保人≠受益人的死亡給付，同申報戶全年合計"></label>
+        <label class="tax-big small">其他保險給付（萬元）<input type="number" id="am-benefit" min="0" step="any" inputmode="decimal" placeholder="要保人≠受益人的生存、滿期、年金給付"></label>
+      </div>
+      <h2>受益人當年度其他所得</h2>
+      <div class="am-grid">
+        <label class="tax-big small">綜合所得淨額（萬元）<input type="number" id="am-net" min="0" step="any" inputmode="decimal" placeholder="所得總額減免稅額、扣除額後"></label>
+        <label class="tax-big small">一般所得稅額（萬元）<input type="number" id="am-regular" min="0" step="any" inputmode="decimal" placeholder="綜所稅應納稅額">
+          <span class="tax-check"><input type="checkbox" id="am-auto" checked> 依 115 年度綜所稅級距自動估算</span></label>
+        <label class="tax-big small">海外所得（萬元）<input type="number" id="am-overseas" min="0" step="any" inputmode="decimal" placeholder="申報戶全年合計；未達 100 萬免計入"></label>
+        <label class="tax-big small">其他計入項目（萬元）<input type="number" id="am-other" min="0" step="any" inputmode="decimal" placeholder="未上市櫃股票、私募基金交易所得、非現金捐贈等"></label>
+      </div>
+    </div>
+    <div class="card tax-card tax-result" id="am-result"></div>
+  </section>
+
+  <p class="tax-foot">依民國 115 年財政部公告金額試算（遺贈稅免稅額、扣除額、級距未調整；最低稅負扣除額 750 萬、身故保險金免計 3,740 萬沿用 113 年度金額）。實際應納稅額以稽徵機關核定為準。本頁不存檔，重新整理會清空，需要保留請列印／另存 PDF。</p>
 </main>
 <p id="tax-load" class="tax-loading" role="status">正在確認登入狀態…</p>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
@@ -134,8 +155,8 @@
 <script src="db.js?v=20261121-1"></script>
 <script src="picker.js?v=20261118-1"></script>
 <script src="finance-calc.js?v=20261127-1"></script>
-<script src="tax-calc.js?v=20261119-1"></script>
-<script src="tax.js?v=20261127-1"></script>
+<script src="tax-calc.js?v=20261127-2"></script>
+<script src="tax.js?v=20261127-2"></script>
 <script src="../shared/cm-nav.js?v=20261126-2"></script>
 </body>
 </html>

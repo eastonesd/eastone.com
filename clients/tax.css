@@ -149,3 +149,13 @@
   .gift-forms { grid-template-columns: repeat(4, 1fr); }
   .gift-forms .tax-chip { padding: 8px 6px; }
 }
+/* 最低稅負 */
+.am-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
+@media (max-width: 720px) { .am-grid { grid-template-columns: 1fr; } }
+#am-regular:disabled { opacity: .7; }
+.tax-note.warn { color: var(--tc-fg-a2402d); }
+.tax-ul { margin: 10px 0 0; padding-left: 20px; font-size: .84rem; line-height: 1.75; color: var(--tc-fg-6b6656); }
+.tax-table td small { color: var(--tc-fg-6b6656); font-size: .78rem; margin-left: 4px; }
+/* 帶入的子女姓名 */
+.tp-name { font-weight: 700; color: var(--tc-fg-121d33); display: inline-flex; flex-direction: column; line-height: 1.25; min-width: 64px; }
+.tp-name small { font-weight: 500; font-size: .72rem; color: var(--tc-fg-6b6656); }

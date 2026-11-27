@@ -55,3 +55,33 @@ test('贈與：形式必選、金額大於 0', () => {
   assert.throws(() => T.gift([{ form: 'x', amount: 1 }]), /贈與形式/);
   assert.throws(() => T.gift([{ form: 'cash', amount: 0 }]), /大於 0/);
 });
+
+test('綜所稅：115 年度級距（累進差額驗算）', () => {
+  assert.equal(T.incomeTax(61 * W), 30500);
+  assert.equal(T.incomeTax(100 * W), 100 * W * 0.12 - 42700);
+  assert.equal(T.incomeTax(300 * W), 300 * W * 0.3 - 430100);
+  assert.equal(T.incomeTax(800 * W), 800 * W * 0.4 - 949100);
+});
+
+test('最低稅負：身故保險金 3,740 萬以內免計入，超過部分計入基本所得額', () => {
+  const a = T.amt({ netIncome: 0, deathBenefit: 3740 * W });
+  assert.equal(a.base, 0); assert.equal(a.due, 0);
+  // 身故金 6,000 萬、無其他所得：基本所得額 2,260 萬 − 750 萬 = 1,510 萬 × 20% = 302 萬
+  const b = T.amt({ netIncome: 0, deathBenefit: 6000 * W });
+  assert.equal(b.base, 2260 * W); assert.equal(b.basicTax, 302 * W); assert.equal(b.due, 302 * W);
+  // 不用補稅的身故金上限：3,740 + 750 = 4,490 萬
+  assert.equal(b.safeDeath, 4490 * W);
+  assert.equal(T.amt({ netIncome: 0, deathBenefit: 4490 * W }).due, 0);
+  assert.equal(T.amt({ netIncome: 0, deathBenefit: 4491 * W }).due, 2000);
+});
+
+test('最低稅負：一般所得稅額可抵；海外所得未達 100 萬免計入；可手動指定一般稅額', () => {
+  const r = T.amt({ netIncome: 300 * W, deathBenefit: 5000 * W, overseas: 99 * W });
+  const regular = 300 * W * 0.3 - 430100;
+  assert.equal(r.regularTax, regular);
+  assert.equal(r.base, (300 + 1260) * W);
+  assert.equal(r.basicTax, (1560 - 750) * W * 0.2);
+  assert.equal(r.due, (1560 - 750) * W * 0.2 - regular);
+  const m = T.amt({ netIncome: 300 * W, regularTax: 0, deathBenefit: 0, overseas: 100 * W, other: 400 * W });
+  assert.equal(m.base, 800 * W); assert.equal(m.due, 10 * W); assert.equal(m.autoTax, false);
+});

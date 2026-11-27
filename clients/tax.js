@@ -1,5 +1,6 @@
 // ============================================================
-// 稅務規劃頁：遺產稅（勾選免稅扣除額＋人員清單）、贈與稅（逐筆記帳）
+// 稅務規劃頁：遺產稅（勾選免稅扣除額＋人員清單，可從家族名單帶入子女）、贈與稅（逐筆記帳）、
+// 最低稅負（受益人領身故保險金時的基本稅額）
 // 金額輸入以「萬元」為單位，計算交給 tax-calc.js（以元計）；結果即時更新，不存資料庫
 // ============================================================
 (() => {
@@ -46,6 +47,7 @@
     const withDis = list !== 'dependents';
     return `<div class="tax-person" data-list="${list}" data-i="${i}">
       <span class="tp-no">${i + 1}</span>
+      ${p.name ? `<span class="tp-name">${esc(p.name)}${p.birthday ? `<small>${esc(p.birthday)} 生</small>` : ''}</span>` : ''}
       ${withAge ? `<label>年齡<input type="number" min="0" max="130" step="1" inputmode="numeric" data-f="age" value="${esc(p.age)}" placeholder="18 歲以上可留空"></label>` : ''}
       ${withDis ? `<label class="tax-check"><input type="checkbox" data-f="disabled" ${p.disabled ? 'checked' : ''}> 重度以上身心障礙（加 693 萬）</label>` : ''}
       <span class="tp-amt" data-amt></span>
@@ -154,13 +156,15 @@
     const note = $('es-import-note');
     if (!id) { $('es-client').focus(); return; }
     note.innerHTML = '<p class="tax-note">讀取中…</p>';
+    let famNote = '';
+    try { famNote = await importFamily(id); } catch (e) { famNote = `<li class="warn">家族名單讀取失敗：${esc(e.message || e)}</li>`; }
     try {
       const pick = async (t) => { const { data, error } = await sb.from(t).select('*').eq('client_id', id); if (error) throw error; return data || []; };
       const [assets, assetValues, liabilities, liabilityBalances, fxRes] = await Promise.all([
         pick('fin_assets'), pick('fin_asset_values'), pick('fin_liabilities'), pick('fin_liability_balances'),
         sb.from('fin_fx_quotes').select('*').order('quote_date', { ascending: false }).limit(2000),
       ]);
-      if (!assets.length && !liabilities.length) { note.innerHTML = '<p class="tax-err">這位客戶在資產負債還沒有資料。</p>'; return; }
+      if (!assets.length && !liabilities.length) { note.innerHTML = `<div class="tax-imported"><p class="tax-err">這位客戶在資產負債還沒有資料，遺產總額請自行填寫。</p><ul>${famNote}</ul></div>`; renderPeople(); renderEstate(); return; }
       const today = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
       const bs = FinCalc.balanceSheet({ assets, assetValues, liabilities, liabilityBalances, fx: fxRes.data || [], asOf: today });
       const toWan = (big) => Math.round(FinCalc.toNum(big) / W * 10000) / 10000;
@@ -187,10 +191,90 @@
           ${reTax ? `<li>${reTax} 筆房屋／土地已改用課稅價值（公告土地現值＋房屋評定現值）計入，不是市價。</li>` : ''}
           ${houses - reTax > 0 ? `<li class="warn">${houses - reTax} 筆房屋／土地缺課稅價值，暫以市價計入（會高估遺產稅）；請到資產負債上傳謄本或房屋稅單補齊。</li>` : ''}
           ${policies ? `<li>保單：指定受益人的身故保險金不計入遺產；被繼承人當要保人、但被保險人是別人的保單，才以保單價值列入遺產。請依實際情況調整。</li>` : ''}
+          ${famNote}
           <li>帶入後仍可自行修改；扣除額請依家庭狀況在下方勾選。</li>
         </ul></div>`;
-      renderEstate();
+      renderPeople(); renderEstate();
     } catch (e) { note.innerHTML = `<p class="tax-err">讀取失敗：${esc(e.message || e)}</p>`; }
+  }
+
+  // ---------- 從家族名單帶入：子女（直系血親卑親屬）、配偶 ----------
+  // 年齡以今天計算足歲；未滿 18 歲加扣的年數＝18 − 足歲（未滿一年以一年計，與足歲算法一致）
+  const fullAge = (birthday, today) => {
+    if (!birthday) return '';
+    const [y, m, d] = birthday.split('-').map(Number), [ty, tm, td] = today.split('-').map(Number);
+    return ty - y - (tm < m || (tm === m && td < d) ? 1 : 0);
+  };
+  async function importFamily(clientId) {
+    const [pr, rr] = await Promise.all([sb.from('fo_people').select('id,client_id,name,birthday'), sb.from('person_relations').select('a,b,kind')]);
+    if (pr.error) throw pr.error; if (rr.error) throw rr.error;
+    const people = pr.data || [], rels = rr.data || [];
+    const byId = new Map(people.map((p) => [p.id, p]));
+    const me = new Set(people.filter((p) => p.client_id === clientId).map((p) => p.id));
+    if (!me.size) return '<li>家族名單裡還沒有這位客戶，直系血親卑親屬請手動新增（或先到「家族」建立關係）。</li>';
+    const today = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+    const kids = [...new Set(rels.filter((r) => r.kind === 'parent' && me.has(r.a)).map((r) => r.b))].map((id) => byId.get(id)).filter(Boolean)
+      .sort((a, b) => String(a.birthday || '9').localeCompare(String(b.birthday || '9')));
+    const kidIds = new Set(kids.map((k) => k.id));
+    const grand = new Set(rels.filter((r) => r.kind === 'parent' && kidIds.has(r.a)).map((r) => r.b));
+    const spouse = rels.some((r) => r.kind === 'spouse' && (me.has(r.a) || me.has(r.b)));
+    const parents = new Set(rels.filter((r) => r.kind === 'parent' && me.has(r.b)).map((r) => r.a));
+    est.descendants = kids.map((k) => ({ name: k.name, birthday: k.birthday || '', age: fullAge(k.birthday, today), disabled: false }));
+    if (spouse && !est.spouse) {
+      est.spouse = true;
+      document.querySelector('#mode-estate .tax-chip[data-k="spouse"]').classList.add('on');
+      $('es-spouse-dis').hidden = false;
+    }
+    const noBirth = kids.filter((k) => !k.birthday).length;
+    return [
+      `<li>從家族名單帶入子女 ${kids.length} 位${kids.length ? `（${kids.map((k) => esc(k.name)).join('、')}）` : ''}，年齡依生日算到今天，可直接修改。</li>`,
+      noBirth ? `<li class="warn">${noBirth} 位子女沒有生日，年齡留空（以成年計）；未成年請補上年齡。</li>` : '',
+      spouse ? '<li>家族名單有配偶，已勾選配偶扣除額；若已離婚或配偶過世，請取消。</li>' : '',
+      grand.size ? `<li>孫子女 ${grand.size} 位未列入：只有子女過世（代位繼承）或拋棄繼承時才適用，扣除額以原子女可扣的金額為限。</li>` : '',
+      parents.size ? `<li>家族名單有父母 ${parents.size} 位，未自動加入；仍在世者請在「父母」手動新增（每人 138 萬）。</li>` : '',
+    ].join('');
+  }
+
+  // ---------- 最低稅負（受益人）----------
+  function renderAmt() {
+    const box = $('am-result');
+    const auto = $('am-auto').checked;
+    $('am-regular').disabled = auto;
+    let r;
+    try {
+      r = T.amt({ netIncome: toYuan($('am-net').value), regularTax: auto ? null : toYuan($('am-regular').value),
+        deathBenefit: toYuan($('am-death').value), otherBenefit: toYuan($('am-benefit').value), overseas: toYuan($('am-overseas').value), other: toYuan($('am-other').value) });
+    } catch (e) { box.innerHTML = `<p class="tax-err">${esc(e.message)}</p>`; return; }
+    if (auto) $('am-regular').value = r.regularTax ? Math.round(r.regularTax / W * 10000) / 10000 : '';
+    const R = T.RULES.amt;
+    box.innerHTML = `
+      <h2>最低稅負試算</h2>
+      <div class="tax-eq">
+        <div><span>基本所得額</span><b>${wan(r.base)}</b></div><em>−</em>
+        <div><span>扣除額</span><b>${wan(r.deduction)}</b></div><em>×</em>
+        <div><span>稅率</span><b>${r.rate}%</b></div><em>＝</em>
+        <div class="em"><span>基本稅額</span><b>${ntd(r.basicTax)}</b></div>
+      </div>
+      <table class="tax-table"><tbody>
+        ${r.items.map((x) => `<tr class="${x.amount ? '' : 'dim'}"><td>${esc(x.label)}${x.note ? `<small>（${esc(x.note)}）</small>` : ''}</td><td class="num">${wan(x.amount)}</td></tr>`).join('')}
+        <tr class="total"><td>基本所得額</td><td class="num">${wan(r.base)}</td></tr>
+      </tbody></table>
+      <table class="tax-table"><tbody>
+        <tr><td>基本稅額（(基本所得額 − ${wan(r.deduction)}) × ${r.rate}%）</td><td class="num">${ntd(r.basicTax)}</td></tr>
+        <tr><td>一般所得稅額${r.autoTax ? '（依綜所稅級距估算）' : ''}</td><td class="num">− ${ntd(r.regularTax)}</td></tr>
+        <tr class="total"><td>應另繳基本稅額（估）</td><td class="num">${ntd(r.due)}</td></tr>
+      </tbody></table>
+      <p class="tax-note ${r.due ? 'warn' : ''}">${r.due
+        ? `基本稅額高於一般所得稅額，差額 <b>${ntd(r.due)}</b> 要在當年度綜所稅結算時一併繳納。`
+        : '基本稅額沒有超過一般所得稅額，不用另外繳最低稅負。'}
+        其他條件不變下，這位受益人（申報戶）同一年領到的身故保險金在 <b>${wan(r.safeDeath)}</b> 以內，不會因為保險金多繳稅。</p>
+      <ul class="tax-ul">
+        <li>只計入「要保人與受益人不同人」的人壽、年金保險給付（93 年以後訂立的契約）；要保人＝受益人的不計入。</li>
+        <li>身故給付以<b>受益人整個申報戶、全年合計</b>算 ${wan(R.deathExempt)} 免計額度：夫妻同一申報戶、同一年各領一筆，要合併計算。</li>
+        <li>生存、滿期、年金給付沒有免計額度，全數計入。</li>
+        <li>若被繼承人以「實質課稅」被核定要課遺產稅的保單，處理方式不同，本頁不涵蓋。</li>
+      </ul>
+      <div class="tax-actions"><button type="button" class="btn-secondary" onclick="window.print()">列印／另存 PDF</button></div>`;
   }
 
   // ---------- 啟動 ----------
@@ -201,6 +285,7 @@
       document.querySelectorAll('.tax-mode').forEach((x) => x.classList.toggle('active', x === b));
       $('mode-estate').hidden = b.dataset.mode !== 'estate';
       $('mode-gift').hidden = b.dataset.mode !== 'gift';
+      $('mode-amt').hidden = b.dataset.mode !== 'amt';
     }));
 
     document.querySelectorAll('#mode-estate .tax-chip[data-k]').forEach((c) => c.addEventListener('click', () => {
@@ -267,7 +352,9 @@
     $('es-import').addEventListener('click', importFromFinance);
     $('es-client').addEventListener('change', importFromFinance);
 
-    renderPeople(); renderEstate(); renderGifts();
+    ['am-death', 'am-benefit', 'am-net', 'am-regular', 'am-overseas', 'am-other'].forEach((id) => $(id).addEventListener('input', renderAmt));
+    $('am-auto').addEventListener('change', renderAmt);
+    renderPeople(); renderEstate(); renderGifts(); renderAmt();
     $('tax-load').hidden = true;
     $('tax-main').hidden = false;
   }

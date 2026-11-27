@@ -1,5 +1,5 @@
 // ============================================================
-// 稅務規劃：遺產稅、贈與稅試算核心（純函式，金額一律用「元」整數計算）
+// 稅務規劃：遺產稅、贈與稅、個人最低稅負（基本稅額）試算核心（純函式，金額一律用「元」整數計算）
 // 參數：民國 115 年（2026）。115 年財政部公告免稅額、扣除額、級距均未調整，沿用前次金額。
 // 每年 11～12 月財政部公告新年度金額後，更新下面的 RULES 即可。
 // ============================================================
@@ -20,6 +20,17 @@
       dependent: 56 * W,              // 受扶養之兄弟姊妹、祖父母每人；兄弟姊妹未滿 18 歲每差 1 歲加扣 56 萬
       funeral: 138 * W,               // 喪葬費
       brackets: Object.freeze([[5621 * W, 10], [11242 * W, 15], [Infinity, 20]]),
+    }),
+    // 綜合所得稅（115 年度）：所得淨額級距，用來估「一般所得稅額」
+    income: Object.freeze({
+      brackets: Object.freeze([[61 * W, 5], [138 * W, 12], [277 * W, 20], [519 * W, 30], [Infinity, 40]]),
+    }),
+    // 個人最低稅負（所得基本稅額條例）：113 年度起金額，114、115 年度未達調整標準、沿用
+    amt: Object.freeze({
+      deduction: 750 * W,             // 基本所得額扣除金額（每一申報戶）
+      rate: 20,                       // 稅率 20%
+      deathExempt: 3740 * W,          // 要保人≠受益人的人壽／年金「死亡給付」：每一申報戶全年 3,740 萬以下免計入
+      overseasMin: 100 * W,           // 海外所得：每一申報戶全年未達 100 萬免計入；達 100 萬全數計入
     }),
     gift: Object.freeze({
       exemption: 244 * W,             // 每位贈與人每年免稅額
@@ -113,7 +124,46 @@
     return { list, total, exemption: R.exemption, remaining: Math.max(0, R.exemption - total), net, bands, tax, byRecipient, byForm };
   }
 
-  const api = Object.freeze({ RULES, FORMS, estate, gift, progressive, W });
+  // ---------- 綜合所得稅（一般所得稅額估算）----------
+  function incomeTax(net) {
+    return progressive(int(net, '綜合所得淨額'), RULES.income.brackets).tax;
+  }
+
+  // ---------- 個人最低稅負（基本稅額）----------
+  // input: { netIncome, regularTax?（null＝依級距自動估）, deathBenefit, otherBenefit, overseas, other }
+  //   deathBenefit：要保人與受益人不同的人壽／年金保險「死亡給付」（同一申報戶全年合計）
+  //   otherBenefit：要保人與受益人不同的生存、滿期、年金給付（無免計額度，全數計入）
+  //   other：其他應計入項目（未上市櫃股票及私募基金交易所得、非現金捐贈扣除額、選擇分開計稅之股利等）
+  function amt(input) {
+    const R = RULES.amt;
+    const netIncome = int(input.netIncome, '綜合所得淨額');
+    const autoTax = input.regularTax === null || input.regularTax === undefined || input.regularTax === '';
+    const regularTax = autoTax ? incomeTax(netIncome) : int(input.regularTax, '一般所得稅額');
+    const death = int(input.deathBenefit, '身故保險金');
+    const otherBenefit = int(input.otherBenefit, '其他保險給付');
+    const overseasRaw = int(input.overseas, '海外所得');
+    const other = int(input.other, '其他計入項目');
+    const deathIn = Math.max(0, death - R.deathExempt);
+    const overseas = overseasRaw >= R.overseasMin ? overseasRaw : 0;
+    const items = [
+      { label: '綜合所得淨額', amount: netIncome },
+      { label: `身故保險金超過 ${(R.deathExempt / W).toLocaleString('zh-TW')} 萬的部分`, amount: deathIn, note: death ? `身故保險金 ${(death / W).toLocaleString('zh-TW')} 萬，${(R.deathExempt / W).toLocaleString('zh-TW')} 萬以內免計入` : '' },
+      { label: '其他保險給付（生存、滿期、年金）', amount: otherBenefit },
+      { label: '海外所得', amount: overseas, note: overseasRaw && !overseas ? `未達 ${R.overseasMin / W} 萬，免計入` : '' },
+      { label: '其他計入項目', amount: other },
+    ];
+    const base = items.reduce((s, x) => s + x.amount, 0);
+    const taxable = Math.max(0, base - R.deduction);
+    const basicTax = Math.round(taxable * R.rate / 100);
+    const due = Math.max(0, basicTax - regularTax);
+    // 身故保險金領到多少以內「不會因保險金而多繳」（其他條件不變）
+    // 基本稅額 ≤ 一般所得稅額  ⇔  基本所得額 ≤ 扣除額 + 一般所得稅額 ÷ 20%
+    const room = R.deduction + Math.floor(regularTax * 100 / R.rate) - (base - deathIn);
+    const safeDeath = R.deathExempt + Math.max(0, room);   // room < 0：不靠保險金也已經要補稅，保險金只有 3,740 萬以內不增加稅負
+    return { items, base, deduction: R.deduction, taxable, rate: R.rate, basicTax, regularTax, autoTax, due, death, deathIn, safeDeath };
+  }
+
+  const api = Object.freeze({ RULES, FORMS, estate, gift, progressive, incomeTax, amt, W });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.EastoneTax = api;
 })(globalThis);
