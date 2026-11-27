@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("kb-search").addEventListener("input", renderList);
   try { await KB.load(); } catch (err) { $("kb-list").textContent = "讀取失敗：" + (err.message || err); return; }
   renderList();
+  renderGaps();
   const hash = decodeURIComponent(location.hash.slice(1));
   const p = hash && KB.product(hash);
   if (p) openProduct(p.id);
@@ -316,4 +317,20 @@ async function saveRates(p) {
   if (e2) { showToast("更新失敗：" + e2.message); return; }
   delete KB._rates[p.id];
   await reload(p.id); showToast("費率表已更新");
+}
+
+// ---------- 未建檔商品：客戶有投保、知識庫還沒有的商品（主管看整個團隊，其他人看自己的客戶）----------
+// 這些商品在保單健診、傳承規劃都算不出保障與身故金；依「影響幾位被保險人」排序，先補影響最大的
+async function renderGaps() {
+  const box = $("kb-gaps");
+  const { data, error } = await sb.rpc("kb_gaps");
+  if (error || !data || !data.length) { box.hidden = true; return; }
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const people = data.reduce((s, r) => s + Number(r.insured), 0);
+  box.hidden = false;
+  box.innerHTML = `<details${data.length <= 8 ? " open" : ""}><summary><b>未建檔商品 ${data.length} 個</b><span>客戶有投保、知識庫還沒有，健診與傳承規劃算不出這些保障（合計影響 ${people} 人次）</span></summary>
+    <div class="kb-gap-list">${data.map((r) => `<div class="kb-gap"><span class="kb-gap-n">${r.insured}<small>人</small></span>
+      <div><b>${esc(r.company || "（未填公司）")}｜${esc(r.code)}</b><span>${esc(r.name || "")}${r.kind === "rider" ? "・附約" : ""}</span></div>
+      <em>${r.policies} 張${Number(r.agents) > 1 ? `・${r.agents} 位業務員` : ""}</em></div>`).join("")}</div>
+    <p class="kb-gap-hint">有條款與費率 PDF 的，可以用「AI 讀取條款建檔」，或直接交給亞瑟建檔。</p></details>`;
 }

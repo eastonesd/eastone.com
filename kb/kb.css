@@ -78,3 +78,17 @@
 .kb-verify-btn { width: auto; margin: 0; padding: 10px 18px; white-space: nowrap; }
 .kb-verify.done { display: flex; align-items: center; gap: 10px; color:var(--tc-fg-2f6b3a); font-weight: 700; }
 .kb-verify.done .link-btn { font-weight: 400; color:var(--tc-fg-6b6656); }
+/* 未建檔商品 */
+.kb-gaps { margin-bottom: 14px; border-left: 4px solid var(--tc-bd-b8892b, #B8892B); }
+.kb-gaps summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.kb-gaps summary b { color: var(--tc-fg-121d33); font-size: 1.02rem; }
+.kb-gaps summary span { font-size: .82rem; color: var(--tc-fg-6b6656); }
+.kb-gap-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 12px; max-height: 420px; overflow: auto; }
+.kb-gap { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--tc-bd-d8d0bc); border-radius: 10px; }
+.kb-gap > div { flex: 1; min-width: 0; }
+.kb-gap b { display: block; font-size: .88rem; color: var(--tc-fg-121d33); }
+.kb-gap div span { display: block; font-size: .78rem; color: var(--tc-fg-6b6656); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kb-gap em { font-style: normal; font-size: .74rem; color: var(--tc-fg-6b6656); white-space: nowrap; }
+.kb-gap-n { flex: none; width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--tc-bg-fff6dd, #FFF6DD); color: #8C6A2A; font-weight: 900; line-height: 1; }
+.kb-gap-n small { font-size: .6rem; font-weight: 500; }
+.kb-gap-hint { font-size: .8rem; color: var(--tc-fg-6b6656); margin: 10px 0 0; }
