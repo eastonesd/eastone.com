@@ -889,7 +889,7 @@ async function openDetail(clientId) {
       </div>
     </div>
     <div class="detail-row">
-      <div class="detail-cell detail-full dt-ck">
+      <div class="detail-cell dt-ck">
         <span>上次健診日</span>
         <div class="dt-ck-line">
           <input type="date" id="dt-checkup" value="${escHtml(c.last_checkup || "")}" max="${new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10)}">
@@ -897,9 +897,7 @@ async function openDetail(clientId) {
         </div>
         <em class="dt-none">${c.last_checkup ? `下次 ${escHtml(fmtDate(nextYear(c.last_checkup)))} 前` : "尚未登錄"}</em>
       </div>
-    </div>
-    <div class="detail-row">
-      <div class="detail-cell detail-full dt-cs">
+      <div class="detail-cell dt-cs">
         <span>個資同意書</span>
         <div class="dt-ck-line">
           ${consentLamp(csList.length > 0)}

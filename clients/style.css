@@ -478,3 +478,7 @@ html[data-theme="dark"] .cs-lamp.on { color: #b9e0c0; } html[data-theme="dark"] 
 .fl-tags .cs-lamp.sm { font-size: .74rem; }
 .dt-cs .dt-ck-line { gap: 8px; }
 .dt-cs .dt-ck-line + .dt-ck-line { margin-top: 6px; }
+/* 上次健診日（左）＋個資同意書（右）同一列 */
+.detail-row:has(> .dt-ck) { flex-wrap: wrap; align-items: flex-start; }
+.detail-row > .dt-ck { flex: 0 1 auto; min-width: 230px; }
+.detail-row > .dt-cs { flex: 1 1 280px; }
