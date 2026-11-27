@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../shared/theme-tokens.css?v=20261118-1">
+<script src="../shared/theme.js?v=20261123-1"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>傳承規劃｜東石家族辦公室</title>
+<link rel="icon" href="../favicon.ico?v=3" sizes="any">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=3">
+<link rel="stylesheet" href="../shared/site-header.css?v=20261126-4">
+<link rel="stylesheet" href="../shared/auth.css?v=20261118-1">
+<link rel="stylesheet" href="style.css?v=20261121-1">
+<link rel="stylesheet" href="picker.css?v=20261118-1">
+<link rel="stylesheet" href="tax.css?v=20261127-2">
+<link rel="stylesheet" href="legacy.css?v=20261127-1">
+</head>
+<body data-cm="fo" data-cm-root="../">
+
+<div class="ghdr-wrap">
+  <div class="ghdr-brand">
+    <img class="ghdr-mark" src="../icons/logo.png?v=3" alt="東石家族辦公室">
+    <div>
+      <div class="ghdr-title">東石家族辦公室</div>
+      <div class="ghdr-sub">EASTONE FAMILY OFFICE</div>
+    </div>
+  </div>
+  <nav class="ghdr-nav">
+    <button onclick="location.href='../index.html#claim'">文件下載</button>
+    <button onclick="location.href='../market/index.html'">財經日報</button>
+    <button class="active" onclick="location.href='../clients/index.html#filelist'">客戶管理</button>
+    <button onclick="location.href='../stock/index.html'">東石診股</button>
+  </nav>
+</div>
+
+<header class="topbar">
+  <h1>傳承規劃<small>LEGACY PLANNING</small></h1>
+  <div class="topbar-right">
+    <nav class="tabs life-tabs">
+      <a class="tab-btn tab-link" href="family.html">👪 家族</a>
+      <a class="tab-btn tab-link" href="finance.html">💼 資產負債</a>
+      <a class="tab-btn tab-link" href="tax.html">🧾 稅務規劃</a>
+      <a class="tab-btn tab-link active" href="legacy.html">🏛 傳承規劃</a>
+    </nav>
+  </div>
+</header>
+
+<main class="tax-main lg-main" id="tax-main" hidden>
+  <div class="card tax-card">
+    <h2>被繼承人<small class="tax-h-sub">以「今天身故」試算：資產負債、家族名單、保單一次帶入</small></h2>
+    <div class="tax-import">
+      <label>選擇客戶
+        <input type="text" id="lg-client" data-pick="lg-client" placeholder="點選客戶" autocomplete="off">
+      </label>
+      <button type="button" class="btn-primary" id="lg-load">帶入資料</button>
+    </div>
+    <div id="lg-note"></div>
+  </div>
+
+  <div id="lg-body" hidden>
+    <div class="card tax-card">
+      <h2>繼承人<small class="tax-h-sub">從家族名單帶入，可修改；遺囑分配留空＝依法定應繼分</small></h2>
+      <div id="lg-heirs"></div>
+      <div class="lg-heir-actions">
+        <button type="button" class="btn-secondary fin-sm" data-addrel="child">＋ 子女</button>
+        <button type="button" class="btn-secondary fin-sm" data-addrel="grandchild">＋ 孫子女</button>
+        <button type="button" class="btn-secondary fin-sm" data-addrel="spouse">＋ 配偶</button>
+        <button type="button" class="btn-secondary fin-sm" data-addrel="parent">＋ 父母</button>
+        <button type="button" class="btn-secondary fin-sm" data-addrel="sibling">＋ 兄弟姊妹</button>
+        <button type="button" class="btn-secondary fin-sm" data-addrel="grandparent">＋ 祖父母</button>
+      </div>
+    </div>
+    <div class="card tax-card tax-result" id="lg-result"></div>
+  </div>
+
+  <p class="tax-foot">遺產稅依民國 115 年公告金額；應繼分依民法第 1138、1140、1144 條，特留分依第 1223 條（未計入特種贈與、剩餘財產分配請求權等個案因素）。保險金以保單知識庫已建檔的「壽險身故」給付計算，意外身故另計。本頁為規劃參考，不構成法律或稅務意見；實際以法院、稽徵機關認定為準。</p>
+</main>
+<p id="tax-load" class="tax-loading" role="status">正在確認登入狀態…</p>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+<script src="../shared/supabase-client.js?v=20261120-2"></script>
+<script src="../shared/auth.js?v=20261126-2"></script>
+<script src="data.js?v=20261118-1"></script>
+<script src="db.js?v=20261121-1"></script>
+<script src="picker.js?v=20261118-1"></script>
+<script src="../shared/kb.js?v=20261127-1"></script>
+<script src="finance-calc.js?v=20261127-1"></script>
+<script src="tax-calc.js?v=20261127-2"></script>
+<script src="legacy-calc.js?v=20261127-1"></script>
+<script src="legacy.js?v=20261127-1"></script>
+<script src="../shared/cm-nav.js?v=20261126-2"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+/* 傳承規劃（沿用 tax.css 的卡片、表格） */
+.lg-main { max-width: 1000px; }
+.lg-heir-table { overflow-x: auto; }
+.lg-heir-table input:not([type=checkbox]), .lg-heir-table select { width: 100%; min-width: 0; height: 34px; padding: 0 8px; font: inherit; font-size: .88rem;
+  border: 1px solid var(--tc-bd-d8d0bc); border-radius: 8px; background: var(--tc-bg-ffffff); color: var(--tc-fg-2a2a26); }
+.lg-heir-table td { vertical-align: middle; }
+.lg-heir-table td:nth-child(1) { min-width: 110px; }
+.lg-heir-table td:nth-child(2) { min-width: 150px; }
+.lg-heir-table .lg-age { width: 64px; } .lg-heir-table .lg-plan { width: 80px; }
+.lg-heir-table input[type=checkbox] { width: 18px; height: 18px; }
+.lg-heir-table .lg-via { margin-top: 4px; }
+.lg-heir-table tr.dim td { opacity: .55; }
+.lg-heir-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.lg-heir-actions .fin-sm { padding: 6px 12px; font-size: .82rem; width: auto; height: auto; }
+.lg-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 8px 0 16px; }
+.lg-kpis div { border: 1px solid var(--tc-bd-d8d0bc); border-radius: 12px; padding: 10px 12px; }
+.lg-kpis div.em { border-color: var(--tc-bd-b8892b); background: var(--tc-bg-fff6dd); }
+.lg-kpis span { display: block; font-size: .78rem; color: var(--tc-fg-6b6656); }
+.lg-kpis b { font-size: 1.3rem; color: var(--tc-fg-121d33); }
+.lg-kpis em { display: block; font-style: normal; font-size: .74rem; color: var(--tc-fg-6b6656); }
+.lg-src { display: grid; gap: 8px; margin: 8px 0; }
+.lg-src-row { display: grid; grid-template-columns: 96px 1fr 90px; gap: 10px; align-items: center; font-size: .88rem; }
+.lg-src-row b { text-align: right; color: var(--tc-fg-121d33); }
+.lg-bar { height: 16px; border-radius: 8px; background: var(--tc-bg-f6f3ec); display: flex; overflow: hidden; }
+.lg-bar i { display: block; height: 100%; }
+.lg-bar i.t { background: #A2402D; } .lg-bar i.c { background: #1B2A4A; } .lg-bar i.s { background: #B8892B; }
+.lg-verdict { padding: 10px 14px; border-radius: 10px; margin: 10px 0; font-size: .9rem; line-height: 1.7; background: var(--tc-bg-f6f3ec); }
+.lg-verdict.ok, .lg-verdict.none { background: #E2F3E8; color: #1d5a37; }
+.lg-verdict.ins { background: var(--tc-bg-fff6dd); color: #6b4e12; }
+.lg-verdict.gap { background: #FBEFEC; color: #5A2418; }
+html[data-theme="dark"] .lg-verdict.ok, html[data-theme="dark"] .lg-verdict.none { background: #1f3a2b; color: #b9e0c0; }
+html[data-theme="dark"] .lg-verdict.gap { background: #3a2320; color: #f0c2b8; }
+.lg-scroll { overflow-x: auto; }
+.lg-dist td small, .tax-result td small { display: block; font-size: .74rem; color: var(--tc-fg-6b6656); }
+.tax-result tr.bad td { background: rgba(162, 64, 45, .06); }
+.tax-result .warn { color: var(--tc-fg-a2402d); font-weight: 700; }
+.tax-result .ok { color: #22774A; font-weight: 700; }
+.tax-result h3 small { font-size: .8rem; color: var(--tc-fg-6b6656); font-weight: 500; }
+@media (max-width: 720px) { .lg-kpis { grid-template-columns: 1fr 1fr; } .lg-src-row { grid-template-columns: 80px 1fr 70px; } }
+@media print { .lg-heir-actions, #lg-heirs, .tax-import { display: none !important; } }
