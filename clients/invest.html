@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../shared/theme-tokens.css?v=20261118-1">
+<script src="../shared/theme.js?v=20261123-1"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>投資監控｜東石家族辦公室</title>
+<link rel="icon" href="../favicon.ico?v=3" sizes="any">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=3">
+<link rel="stylesheet" href="../shared/site-header.css?v=20261127-1">
+<link rel="stylesheet" href="../shared/auth.css?v=20261128-1">
+<link rel="stylesheet" href="style.css?v=20261121-1">
+<link rel="stylesheet" href="picker.css?v=20261118-1">
+<link rel="stylesheet" href="tax.css?v=20261127-2">
+<link rel="stylesheet" href="legacy.css?v=20261127-1">
+<link rel="stylesheet" href="invest.css?v=20261128-1">
+</head>
+<body data-cm="fo" data-cm-root="../">
+
+<div class="ghdr-wrap">
+  <div class="ghdr-brand">
+    <img class="ghdr-mark" src="../icons/logo.png?v=3" alt="東石家族辦公室">
+    <div>
+      <div class="ghdr-title">東石家族辦公室</div>
+      <div class="ghdr-sub">EASTONE FAMILY OFFICE</div>
+    </div>
+  </div>
+  <nav class="ghdr-nav">
+    <button onclick="location.href='../index.html#claim'">文件下載</button>
+    <button onclick="location.href='../market/index.html'">財經日報</button>
+    <button class="active" onclick="location.href='../clients/index.html#filelist'">客戶管理</button>
+    <button onclick="location.href='../stock/index.html'">東石診股</button>
+  </nav>
+</div>
+
+<header class="topbar">
+  <h1>投資監控<small>PORTFOLIO MONITOR</small></h1>
+  <div class="topbar-right">
+    <nav class="tabs life-tabs">
+      <a class="tab-btn tab-link" href="family.html">👪 家族</a>
+      <a class="tab-btn tab-link" href="finance.html">💼 資產負債</a>
+      <a class="tab-btn tab-link" href="tax.html">🧾 稅務規劃</a>
+      <a class="tab-btn tab-link" href="legacy.html">🏛 傳承規劃</a>
+      <a class="tab-btn tab-link" href="retire.html">🌅 退休規劃</a>
+      <a class="tab-btn tab-link" href="pension.html">🛡 社會保險</a>
+      <a class="tab-btn tab-link active" href="invest.html">📈 投資監控</a>
+    </nav>
+  </div>
+</header>
+
+<main class="tax-main iv-main" id="tax-main" hidden>
+  <div class="card tax-card">
+    <h2>客戶<small class="tax-h-sub">讀取資產負債的基金、股票、存款與結構型商品；行情在「資產負債」頁自動向東石診股更新</small></h2>
+    <div class="tax-import">
+      <label>選擇客戶
+        <input type="text" id="iv-client" data-pick="iv-client" placeholder="點選客戶" autocomplete="off">
+      </label>
+      <button type="button" class="btn-primary" id="iv-load">讀取</button>
+      <a class="btn-secondary iv-fin" id="iv-fin" href="finance.html" hidden>更新報價 →</a>
+    </div>
+    <div id="iv-note"></div>
+  </div>
+  <div id="iv-body" hidden>
+    <div class="card tax-card"><div id="iv-kpi"></div><div id="iv-alerts"></div></div>
+    <div class="card tax-card"><h2>市值走勢<small class="tax-h-sub">基金、股票、結構型商品（不含存款），依每次報價更新的紀錄，台幣計價</small></h2><div id="iv-chart"></div></div>
+    <div class="card tax-card">
+      <h2>配置與目標<small class="tax-h-sub">依客戶風險屬性設定目標配置；偏離超過門檻就提醒再平衡</small></h2>
+      <div class="iv-target">
+        <label>風險屬性<select id="iv-profile"></select></label>
+        <div id="iv-tg"></div>
+        <label>偏離門檻（%）<input type="number" id="iv-band" min="1" max="30" step="1" inputmode="numeric"></label>
+        <button type="button" class="btn-primary" id="iv-save">儲存設定</button><span id="iv-saved" class="tax-note"></span>
+      </div>
+      <div id="iv-alloc"></div>
+    </div>
+    <div class="card tax-card"><h2>持倉明細<small class="tax-h-sub">同一標的多筆申購合併；損益＝台幣市值 − 台幣成本（成本以申購日數量×單位成本，依今日匯率換算）</small></h2><div id="iv-hold"></div></div>
+  </div>
+  <p class="tax-foot">報價與匯率以資產負債頁最後一次更新為準；本頁為投資檢視工具，不構成投資建議，申購前請確認商品說明書與客戶 KYC。</p>
+</main>
+<p id="tax-load" class="tax-loading" role="status">正在確認登入狀態…</p>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+<script src="../shared/supabase-client.js?v=20261120-2"></script>
+<script src="../shared/auth.js?v=20261128-1"></script>
+<script src="data.js?v=20261118-1"></script>
+<script src="db.js?v=20261127-1"></script>
+<script src="picker.js?v=20261118-1"></script>
+<script src="finance-calc.js?v=20261127-1"></script>
+<script src="invest-calc.js?v=20261128-1"></script>
+<script src="invest.js?v=20261128-1"></script>
+<script src="../shared/cm-nav.js?v=20261127-2"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+/* 投資監控（沿用 tax.css 卡片與 KPI） */
+.iv-main { max-width: 1080px; }
+.iv-fin { width: auto; padding: 10px 14px; text-decoration: none; }
+#iv-kpi .tax-eq small { display: block; font-size: .74rem; color: var(--tc-fg-6b6656); }
+#iv-kpi .tax-eq .em small { color: #C9D2E6; }
+.up { color: #B3412E !important; } .down { color: #24723B !important; } /* 台灣習慣：紅漲綠跌 */
+.iv-al { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; }
+.iv-al li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border-radius: 10px; font-size: .88rem; line-height: 1.55; background: var(--tc-bg-f6f3ec); }
+.iv-al li i { flex: none; width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; background: #9AA0AA; }
+.iv-al li.r { background: #FBF1EE; } .iv-al li.r i { background: #C8473A; }
+.iv-al li.y { background: #FDF8EC; } .iv-al li.y i { background: #E2A72E; }
+.iv-ok { margin: 14px 0 0; font-size: .9rem; color: #24723B; }
+.iv-chart { width: 100%; height: auto; }
+.iv-chart text { font-size: 11px; fill: var(--tc-fg-6b6656); }
+.iv-chart .g { stroke: var(--tc-bd-d8d0bc); stroke-dasharray: 3 3; }
+.iv-chart .area { fill: rgba(184, 137, 43, .12); }
+.iv-chart .ln { fill: none; stroke-width: 2.5; stroke: #1B2A4A; }
+.iv-chart .dot { fill: #B8892B; }
+.iv-chg { margin: 6px 0 0; font-size: .88rem; } .iv-chg small { margin-left: 8px; font-size: .74rem; color: var(--tc-fg-6b6656); }
+.iv-target { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; margin-bottom: 16px; }
+.iv-target > label, #iv-tg label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; font-weight: 600; color: var(--tc-fg-1b2a4a); }
+#iv-tg { display: contents; }
+.iv-target input, .iv-target select { height: 38px; padding: 0 8px; font: inherit; border: 1px solid var(--tc-bd-d8d0bc); border-radius: 8px; background: var(--tc-bg-ffffff); color: var(--tc-fg-2a2a26); width: 7.5em; }
+.iv-target select { width: auto; }
+.iv-target .btn-primary { width: auto; padding: 9px 16px; }
+.iv-bars { display: grid; gap: 10px; }
+.iv-bar { display: grid; grid-template-columns: 8.5em 1fr 6.5em 4.5em; gap: 12px; align-items: center; font-size: .88rem; }
+.iv-track { position: relative; height: 14px; border-radius: 7px; background: var(--tc-bg-f6f3ec); }
+.iv-track .act { display: block; height: 100%; border-radius: 7px; background: #1B2A4A; }
+.iv-track .tgt { position: absolute; top: -4px; width: 3px; height: 22px; margin-left: -1px; background: #B8892B; border-radius: 2px; }
+.iv-bar em { font-style: normal; font-weight: 700; color: var(--tc-fg-121d33); text-align: right; }
+.iv-bar em small { display: block; font-weight: 400; font-size: .72rem; color: var(--tc-fg-6b6656); }
+.iv-bar strong { text-align: right; font-size: .84rem; } .iv-bar strong.warn { color: #B3412E; } .iv-bar strong.ok { color: #24723B; }
+.iv-pills { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 14px; font-size: .82rem; }
+.iv-pills b { margin-right: 8px; color: var(--tc-fg-1b2a4a); }
+.iv-pills span { display: inline-block; margin: 2px 6px 2px 0; padding: 2px 10px; border-radius: 99px; background: var(--tc-bg-f6f3ec); }
+.iv-tw { overflow-x: auto; }
+.iv-table { width: 100%; border-collapse: collapse; font-size: .86rem; min-width: 720px; }
+.iv-table th { text-align: left; padding: 8px; border-bottom: 2px solid var(--tc-bd-d8d0bc); font-size: .78rem; color: var(--tc-fg-6b6656); white-space: nowrap; }
+.iv-table td { padding: 8px; border-bottom: 1px solid var(--tc-bd-d8d0bc); vertical-align: top; }
+.iv-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.iv-table .sub { font-size: .74rem; color: var(--tc-fg-6b6656); }
+.iv-table .warn { color: #B3412E; } .iv-table .muted { color: var(--tc-fg-6b6656); }
+.iv-table tr.total td { font-weight: 700; border-top: 2px solid var(--tc-bd-d8d0bc); }
+@media (max-width: 720px) {
+  .iv-bar { grid-template-columns: 1fr 5.5em 4em; } .iv-bar span { grid-column: 1 / -1; margin-bottom: -6px; }
+  .iv-target input { width: 6.5em; }
+}
+.iv-main .tax-import { flex-wrap: wrap; }
+.iv-main .tax-import label { min-width: 220px; }
+.iv-main .tax-import .btn-primary { width: auto; height: 42px; padding: 0 22px; }
+.iv-fin { display: inline-flex; align-items: center; height: 42px; }
+@media (max-width: 720px) { .iv-main .tax-import label { flex-basis: 100%; } .iv-main .tax-import .btn-primary, .iv-fin { flex: 1; justify-content: center; } }
