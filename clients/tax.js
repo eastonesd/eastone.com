@@ -283,9 +283,7 @@
 
     document.querySelectorAll('.tax-mode').forEach((b) => b.addEventListener('click', () => {
       document.querySelectorAll('.tax-mode').forEach((x) => x.classList.toggle('active', x === b));
-      $('mode-estate').hidden = b.dataset.mode !== 'estate';
-      $('mode-gift').hidden = b.dataset.mode !== 'gift';
-      $('mode-amt').hidden = b.dataset.mode !== 'amt';
+      document.querySelectorAll('#tax-main > section[id^="mode-"]').forEach((sec) => { sec.hidden = sec.id !== `mode-${b.dataset.mode}`; });
     }));
 
     document.querySelectorAll('#mode-estate .tax-chip[data-k]').forEach((c) => c.addEventListener('click', () => {

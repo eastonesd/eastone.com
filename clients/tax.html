@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../shared/auth.css?v=20261128-1">
 <link rel="stylesheet" href="style.css?v=20261121-1">
 <link rel="stylesheet" href="picker.css?v=20261118-1">
-<link rel="stylesheet" href="tax.css?v=20261127-2">
+<link rel="stylesheet" href="tax.css?v=20261128-1">
 </head>
 <body data-cm="fo" data-cm-root="../">
 
@@ -53,6 +53,8 @@
     <button type="button" class="tax-mode active" data-mode="estate">遺產稅</button>
     <button type="button" class="tax-mode" data-mode="gift">贈與稅</button>
     <button type="button" class="tax-mode" data-mode="amt">最低稅負</button>
+    <button type="button" class="tax-mode" data-mode="transfer">不動產移轉</button>
+    <button type="button" class="tax-mode" data-mode="second">二次遺產稅</button>
   </div>
 
   <!-- ===== 遺產稅 ===== -->
@@ -149,6 +151,26 @@
     <div class="card tax-card tax-result" id="am-result"></div>
   </section>
 
+
+  <!-- ===== 不動產移轉：贈與／買賣／繼承 ===== -->
+  <section id="mode-transfer" hidden>
+    <div class="card tax-card">
+      <h2>這筆不動產<small class="tax-h-sub">金額單位：萬元；公告現值、評定現值看地價稅單、房屋稅單或謄本（持分後的金額）</small></h2>
+      <div class="tp-grid" id="tp-prop"></div>
+      <h2>規劃假設</h2>
+      <div class="tp-grid" id="tp-plan"></div>
+    </div>
+    <div class="card tax-card tax-result" id="tp-result"></div>
+  </section>
+
+  <!-- ===== 二次遺產稅 ===== -->
+  <section id="mode-second" hidden>
+    <div class="card tax-card">
+      <h2>夫妻兩人的財產<small class="tax-h-sub">金額單位：萬元；先身故者通常是財產較多的一方，可對調試算</small></h2>
+      <div class="tp-grid" id="sd-form"></div>
+    </div>
+    <div class="card tax-card tax-result" id="sd-result"></div>
+  </section>
   <p class="tax-foot">依民國 115 年財政部公告金額試算（遺贈稅免稅額、扣除額、級距未調整；最低稅負扣除額 750 萬、身故保險金免計 3,740 萬沿用 113 年度金額）。實際應納稅額以稽徵機關核定為準。本頁不存檔，重新整理會清空，需要保留請列印／另存 PDF。</p>
 </main>
 <p id="tax-load" class="tax-loading" role="status">正在確認登入狀態…</p>
@@ -159,8 +181,10 @@
 <script src="db.js?v=20261127-1"></script>
 <script src="picker.js?v=20261118-1"></script>
 <script src="finance-calc.js?v=20261127-1"></script>
-<script src="tax-calc.js?v=20261127-3"></script>
-<script src="tax.js?v=20261127-3"></script>
+<script src="tax-calc.js?v=20261128-1"></script>
+<script src="tax.js?v=20261128-1"></script>
+<script src="transfer-calc.js?v=20261128-1"></script>
+<script src="tax-plan.js?v=20261128-1"></script>
 <script src="../shared/cm-nav.js?v=20261127-2"></script>
 </body>
 </html>

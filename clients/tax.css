@@ -159,3 +159,36 @@
 /* 帶入的子女姓名 */
 .tp-name { font-weight: 700; color: var(--tc-fg-121d33); display: inline-flex; flex-direction: column; line-height: 1.25; min-width: 64px; }
 .tp-name small { font-weight: 500; font-size: .72rem; color: var(--tc-fg-6b6656); }
+
+/* ---------- 不動產移轉、二次遺產稅 ---------- */
+.tp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 14px; margin-bottom: 14px; }
+.tp-grid label { display: flex; flex-direction: column; gap: 4px; font-size: .84rem; font-weight: 600; color: var(--tc-fg-1b2a4a); }
+.tp-grid input[type=number], .tp-grid select { height: 40px; padding: 0 10px; font: inherit; border: 1px solid var(--tc-bd-d8d0bc); border-radius: 8px; background: var(--tc-bg-ffffff); color: var(--tc-fg-2a2a26); min-width: 0; }
+.tp-grid small { font-size: .74rem; font-weight: 400; color: var(--tc-fg-6b6656); line-height: 1.45; }
+.tp-grid .tp-check { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; align-self: center; }
+.tp-grid .tp-check small { flex-basis: 100%; }
+.tp-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.tp-col { border: 1.5px solid var(--tc-bd-d8d0bc); border-radius: 14px; padding: 14px; background: var(--tc-bg-ffffff); }
+.tp-col.best { border-color: #B8892B; box-shadow: 0 0 0 3px rgba(184, 137, 43, .18); }
+.tp-col h3 { margin: 0 0 8px; font-size: 1.05rem; color: var(--tc-fg-121d33); display: flex; align-items: center; gap: 8px; }
+.tp-col h3 em, .tp-table em { font-style: normal; font-size: .72rem; padding: 2px 8px; border-radius: 99px; background: #B8892B; color: #fff; }
+.tp-col h4 { margin: 12px 0 4px; font-size: .8rem; color: var(--tc-fg-6b6656); }
+.tp-col ul { list-style: none; margin: 0; padding: 0; }
+.tp-col li { display: flex; justify-content: space-between; gap: 8px; font-size: .84rem; padding: 4px 0; border-bottom: 1px dashed var(--tc-bd-d8d0bc); }
+.tp-col li b { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tp-col li.sub { border-bottom: 0; font-weight: 700; }
+.tp-sum { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 12px; border-radius: 10px; background: var(--tc-bg-1b2a4a, #1b2a4a); color: #F3DFA8; }
+.tp-sum span { font-size: .8rem; color: #C9D2E6; } .tp-sum b { font-size: 1.3rem; }
+.tp-col .tp-notes, .tp-notes { list-style: disc; padding-left: 18px; margin: 10px 0 0; font-size: .76rem; color: var(--tc-fg-6b6656); line-height: 1.6; }
+.tp-col .tp-notes li { display: list-item; border: 0; padding: 0; }
+.tp-tw { overflow-x: auto; }
+.tp-table { width: 100%; border-collapse: collapse; font-size: .88rem; min-width: 620px; }
+.tp-table th { text-align: right; padding: 8px; font-size: .82rem; color: var(--tc-fg-1b2a4a); border-bottom: 2px solid var(--tc-bd-d8d0bc); }
+.tp-table th:first-child, .tp-table td:first-child { text-align: left; }
+.tp-table td { padding: 8px; border-bottom: 1px solid var(--tc-bd-d8d0bc); }
+.tp-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.tp-table .best { background: rgba(184, 137, 43, .1); }
+.tp-table tr.total td { border-top: 2px solid var(--tc-bd-d8d0bc); font-size: .95rem; }
+.tp-verdict { margin: 12px 0 0; padding: 10px 14px; border-radius: 10px; border-left: 5px solid #B8892B; background: var(--tc-bg-f6f3ec); font-size: .9rem; line-height: 1.6; }
+@media (max-width: 860px) { .tp-cols { grid-template-columns: 1fr; } .tp-grid { grid-template-columns: 1fr 1fr; } }
+.tp-grid .tp-check input[type=checkbox] { width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; flex: none; accent-color: #B8892B; }
