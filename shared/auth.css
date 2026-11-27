@@ -220,3 +220,6 @@ a.acct-item { text-decoration: none; }
 :root[data-theme="dark"] .mfa-code { background: #121d33; color: #f1f3f8; border-color: #3a4a6a; }
 :root[data-theme="dark"] .mfa-key code { background: #121d33; }
 .mfa-code::placeholder { letter-spacing: .08em; font: 500 17px 'Noto Sans TC', sans-serif; color: #a59c8a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mfa-go { background: #B8892B; color: #121D33; } :root:not([data-theme="light"]) .mfa-out { color: #C9D2E6; } }
+:root[data-theme="dark"] .mfa-go { background: #B8892B; color: #121D33; }
+:root[data-theme="dark"] .mfa-out { color: #C9D2E6; }

@@ -91,8 +91,8 @@ function mfaDialog(mode, o) {
         <ol><li>手機安裝 <b>Google Authenticator</b> 或 <b>Microsoft Authenticator</b>。</li>
         <li>打開 App，按「＋」→「掃描 QR 碼」，掃下面這張圖。</li>
         <li>輸入 App 顯示的 6 位數字。</li></ol>
-        <div class="mfa-qr"><img alt="雙重驗證 QR code" src="${o.qr}"></div>
-        <details class="mfa-key"><summary>無法掃描？改用金鑰手動輸入</summary><code>${String(o.secret || '').replace(/(.{4})/g, '$1 ').trim()}</code></details>
+        <div class="mfa-qr"><img alt="雙重驗證 QR code"></div>
+        <details class="mfa-key"><summary>無法掃描？改用金鑰手動輸入</summary><code>${String(o.secret || '').replace(/[^A-Z2-7]/gi, '').replace(/(.{4})/g, '$1 ').trim()}</code></details>
         ${codeBox}`,
       verify: `<h2>雙重驗證</h2><p>請打開手機的驗證 App，輸入「東石家辦」顯示的 6 位數字。</p>${codeBox}
         <p class="mfa-help">手機遺失或換手機，請主管在「團隊」頁幫您重設。</p>`,
@@ -101,6 +101,12 @@ function mfaDialog(mode, o) {
     }[mode];
     wrap.innerHTML = `<div class="mfa-box" role="dialog" aria-modal="true">${body}<button type="button" class="mfa-out">登出</button></div>`;
     document.body.appendChild(wrap);
+    // QR code：伺服器可能回傳原始 SVG 或未編碼的 data URI，一律重新編碼後用屬性設定（不能直接塞進 HTML）
+    const img = wrap.querySelector('.mfa-qr img');
+    if (img) {
+      const q = String(o.qr || ''), i = q.indexOf('<svg');
+      img.src = i >= 0 ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(q.slice(i))}` : q;
+    }
     const input = wrap.querySelector('.mfa-code'), go = wrap.querySelector('.mfa-go'), err = wrap.querySelector('.mfa-err');
     wrap.querySelector('.mfa-out').addEventListener('click', async () => { await sb.auth.signOut({ scope: 'local' }); location.replace(loginUrl()); });
     if (mode === 'error') { go.addEventListener('click', () => location.reload()); return; }
