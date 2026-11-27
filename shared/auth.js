@@ -96,12 +96,35 @@ function renderAvatar(user) {
     btn._user = null;
     return;
   }
-  const name = accountName(user.email);
-  btn.className = 'ghdr-avatar';
-  btn.textContent = (name.trim()[0] || '?').toUpperCase();
-  btn.title = name;
-  btn.setAttribute('aria-label', `帳號選單（${name}）`);
-  btn._user = user;
+  const paint = (staff) => {
+    const name = staff ? staff.name : accountName(user.email);
+    btn.className = 'ghdr-avatar';
+    btn.textContent = avatarChar(name);
+    btn.title = name;
+    btn.setAttribute('aria-label', `帳號選單（${name}）`);
+    btn._user = user;
+    btn._staff = staff || null;
+  };
+  paint(cachedStaff(user.id));
+  loadStaff(user).then((staff) => { if (btn._user && btn._user.id === user.id) paint(staff); });
+}
+
+// 業務員名字：team_members 有這個帳號就顯示名字（例 陳東逵），沒有（客戶專區帳號）才顯示帳號
+const STAFF_KEY = 'eastone.staff';
+function cachedStaff(uid) { try { const c = JSON.parse(sessionStorage.getItem(STAFF_KEY) || 'null'); return c && c.uid === uid ? c.staff : null; } catch { return null; } }
+async function loadStaff(user) {
+  try {
+    const { data } = await sb.from('team_members').select('name, role').eq('user_id', user.id).maybeSingle();
+    const staff = data && data.name ? { name: data.name, role: data.role } : null;
+    try { sessionStorage.setItem(STAFF_KEY, JSON.stringify({ uid: user.id, staff })); } catch { /* 無痕 */ }
+    return staff;
+  } catch { return cachedStaff(user.id); }
+}
+// 頭像字：中文三字名取名字第一個字（陳東逵 → 東，避免同姓都顯示「陳」）；其他取第一個字
+function avatarChar(name) {
+  const n = String(name || '').trim();
+  if (/^[\u4e00-\u9fff]{3}$/.test(n)) return n[1];
+  return (n[0] || '?').toUpperCase();
 }
 
 // 帳號顯示名稱：只顯示 Email「@」前面那一段（例 dkyp2377）
@@ -127,7 +150,7 @@ function toggleAccountMenu(btn) {
   menu.innerHTML = `
     <div class="acct-head">
       <div class="acct-badge"></div>
-      <div class="acct-who"><div class="acct-email"></div><div class="acct-sub">東石家族辦公室帳號</div></div>
+      <div class="acct-who"><div class="acct-email"></div><div class="acct-sub"></div></div>
     </div>
     <div class="acct-sep"></div>
     <button type="button" class="acct-item" data-act="line" role="menuitem">${ICONS.line}<span>LINE 提醒</span></button>
@@ -142,7 +165,9 @@ function toggleAccountMenu(btn) {
     <div class="acct-sep"></div>
     <button type="button" class="acct-item" data-act="logout" role="menuitem">${ICONS.out}<span>登出</span></button>`;
   menu.querySelector('.acct-badge').textContent = btn.textContent;
-  menu.querySelector('.acct-email').textContent = accountName(email);
+  const staff = btn._staff;
+  menu.querySelector('.acct-email').textContent = staff ? staff.name : accountName(email);
+  menu.querySelector('.acct-sub').textContent = staff ? `${staff.role === 'manager' ? '主管' : '業務員'}・帳號 ${accountName(email)}` : '東石家族辦公室帳號';
   // 放在 body 最上層，用頭像的位置定位，不會被頁面內容蓋住
   const r = btn.getBoundingClientRect();
   menu.style.top = `${Math.round(r.bottom + 8)}px`;
