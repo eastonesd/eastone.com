@@ -732,6 +732,7 @@ async function refreshFileList() {
   const keyword = document.getElementById("search-box").value.trim().toLowerCase();
 
   const pcCount = await pcCounts();
+  const consents = await consentMap();
   const filtered = clients.filter((c) => flMatch(c, keyword));
   const tbody = document.getElementById("file-list-body");
   tbody.innerHTML = "";
@@ -742,7 +743,7 @@ async function refreshFileList() {
   filtered.forEach((c) => {
     // 每個人都顯示壽險、產險；沒有的淡色
     const nLife = (c.policies || []).length, nPc = pcCount[c.id] || 0;
-    const tags = `<span class="fl-tag life${nLife ? "" : " off"}">壽險 ${nLife}</span><span class="fl-tag pc${nPc ? "" : " off"}">產險 ${nPc}</span>`;
+    const tags = `<span class="fl-tag life${nLife ? "" : " off"}">壽險 ${nLife}</span><span class="fl-tag pc${nPc ? "" : " off"}">產險 ${nPc}</span>${consentLamp(consents.has(c.id), true)}`;
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${escHtml(c.id)}</td><td>${escHtml(c.name)}</td><td>${escHtml(c.gender || "")}</td><td class="fl-tags">${tags}</td>
       <td><span class="icon-btn delete-client-btn" data-id="${escHtml(c.id)}">刪除</span></td>`;
@@ -863,6 +864,7 @@ async function openDetail(clientId) {
   const policies = c.policies || [];
   const expanded = catalogExpanded();
   const pcList = await pcPoliciesOf(c.id);
+  const csList = (await consentMap(true)).get(c.id) || [];
 
   document.getElementById("detail-content").innerHTML = `
     <div class="detail-row">
@@ -894,6 +896,21 @@ async function openDetail(clientId) {
           <button type="button" class="dt-mini-btn" id="dt-checkup-today">今天</button>
         </div>
         <em class="dt-none">${c.last_checkup ? `下次 ${escHtml(fmtDate(nextYear(c.last_checkup)))} 前` : "尚未登錄"}</em>
+      </div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-cell detail-full dt-cs">
+        <span>個資同意書</span>
+        <div class="dt-ck-line">
+          ${consentLamp(csList.length > 0)}
+          ${csList.length ? `<em class="dt-none">${csList.length} 個檔案・${escHtml(fmtDate(csList[0].created_at.slice(0, 10)))} 上傳</em>` : ""}
+        </div>
+        <div class="dt-ck-line">
+          <a class="dt-mini-btn" href="../forms/privacy-consent-v1.0.pdf" download="東石家族辦公室_個資同意書_v1.0.pdf">下載空白同意書</a>
+          <button type="button" class="dt-mini-btn" id="cs-upload">上傳已簽名的同意書</button>
+          ${csList.map((x, i) => `<button type="button" class="dt-mini-btn" data-csview="${x.id}">開啟${csList.length > 1 ? " " + (i + 1) : ""}</button>`).join("")}
+          ${csList.length ? `<button type="button" class="dt-mini-btn danger" id="cs-clear">刪除</button>` : ""}
+        </div>
       </div>
     </div>
     <div class="detail-section-title catalog-title">
@@ -966,6 +983,7 @@ async function openDetail(clientId) {
     startEditClient(c.id);
   });
   document.getElementById("btn-portal").addEventListener("click", () => portalInvite(c));
+  bindConsent(c, csList);
   // 保單健診報告：目前是試算版（以被保人為單位、跨客戶抓保單）
   document.getElementById("btn-checkup").addEventListener("click", () => {
     location.href = `checkup.html?id=${encodeURIComponent(c.id)}`;
@@ -1028,4 +1046,75 @@ async function pcCounts() {
 async function pcPoliciesOf(id) {
   const k = String(id || "").toUpperCase();
   return (await pcAll()).filter((p) => String(p.data.insured_id_number || "").toUpperCase() === k);
+}
+
+
+// ---------- 個資同意書：下載空白 PDF、上傳客戶簽好的（拍照或掃描），燈號顯示是否已上傳 ----------
+// 檔案放在私有 bucket「fin-docs」：<業務員 uid>/<客戶ID>/consent-…；紀錄在 client_consents
+let consentCache = null;
+async function consentMap(fresh) {
+  if (!consentCache || fresh) {
+    const { data, error } = await sb.from("client_consents").select("id,client_id,file_path,file_name,created_at").order("created_at", { ascending: false });
+    consentCache = new Map();
+    if (!error) (data || []).forEach((r) => { if (!consentCache.has(r.client_id)) consentCache.set(r.client_id, []); consentCache.get(r.client_id).push(r); });
+  }
+  return consentCache;
+}
+function consentLamp(ok, compact) {
+  return `<span class="cs-lamp ${ok ? "on" : "off"}${compact ? " sm" : ""}" title="個資同意書${ok ? "已上傳" : "未上傳"}"><i></i>${compact ? "同意書" : ok ? "已上傳" : "未上傳"}</span>`;
+}
+async function csShrink(file) {
+  if (!/^image\//.test(file.type) || file.type === "image/gif") return file;
+  const img = await createImageBitmap(file).catch(() => null);
+  if (!img) return file;
+  const k = Math.min(1, 2400 / Math.max(img.width, img.height));
+  if (k === 1 && file.size < 3.5e6) return file;
+  const cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+  cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+  const blob = await new Promise((r) => cv.toBlob(r, "image/jpeg", 0.85));
+  return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+}
+function bindConsent(c, list) {
+  document.getElementById("cs-upload").addEventListener("click", () => {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.accept = "image/*,application/pdf"; inp.multiple = true;
+    inp.onchange = async () => {
+      const files = [...(inp.files || [])];
+      if (!files.length) return;
+      try {
+        showToast("上傳中…");
+        const { data: { user } } = await sb.auth.getUser();
+        for (const raw of files) {
+          if (raw.size > 25 * 1024 * 1024) throw new Error(`「${raw.name}」超過 25MB`);
+          const f = await csShrink(raw);
+          const ext = f.type === "application/pdf" ? "pdf" : (f.type.split("/")[1] || "jpg");
+          const path = `${user.id}/${c.id}/consent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+          const up = await sb.storage.from("fin-docs").upload(path, f, { contentType: f.type });
+          if (up.error) throw new Error("上傳失敗：" + up.error.message);
+          const ins = await sb.from("client_consents").insert({ client_id: c.id, file_path: path, file_name: raw.name, mime: f.type });
+          if (ins.error) throw new Error("存檔失敗：" + ins.error.message);
+        }
+        showToast("同意書已上傳");
+        await consentMap(true);
+        openDetail(c.id);
+        if (typeof refreshFileList === "function" && document.getElementById("file-list-body")) refreshFileList();
+      } catch (e) { alert(e.message || e); }
+    };
+    inp.click();
+  });
+  document.querySelectorAll("[data-csview]").forEach((b) => b.addEventListener("click", async () => {
+    const x = list.find((r) => r.id === b.dataset.csview);
+    const { data, error } = await sb.storage.from("fin-docs").createSignedUrl(x.file_path, 300);
+    if (error) { alert("開啟失敗：" + error.message); return; }
+    window.open(data.signedUrl, "_blank", "noopener");
+  }));
+  const del = document.getElementById("cs-clear");
+  if (del) del.addEventListener("click", async () => {
+    if (!confirm(`刪除 ${c.name} 已上傳的個資同意書（${list.length} 個檔案）？燈號會變回紅燈。`)) return;
+    await sb.storage.from("fin-docs").remove(list.map((x) => x.file_path));
+    await sb.from("client_consents").delete().in("id", list.map((x) => x.id));
+    await consentMap(true);
+    openDetail(c.id);
+    refreshFileList();
+  });
 }
