@@ -82,7 +82,7 @@
       <div><span>投入成本</span><b>${wan(h.cost)}</b><small>${h.missingCost ? `${h.missingCost} 檔缺成本未計` : '有成本資料的部位'}</small></div>
       <div><span>未實現損益</span><b class="${sgn(h.pnl)}">${h.pnl >= 0 ? '+' : ''}${wan(h.pnl)}</b><small class="${sgn(h.pnl)}">${h.cost ? (h.pnl >= 0 ? '+' : '') + pct(h.pnl / h.cost) : ''}</small></div>
       <div><span>近 30 天變化（不含存款）</span><b class="${sgn(d30)}">${d30 == null ? '—' : (d30 >= 0 ? '+' : '') + wan(d30)}</b><small>${base30 ? `自 ${base30.date}` : ''}</small></div></div>`;
-    $('iv-alerts').innerHTML = al.length ? `<ul class="iv-al">${al.map((a) => `<li class="${a.lv}"><i></i>${esc(a.text)}</li>`).join('')}</ul>` : '<p class="iv-ok">✅ 配置在目標範圍內，沒有需要處理的提醒。</p>';
+    $('iv-alerts').innerHTML = al.length ? `<ul class="iv-al">${al.map((a) => `<li class="${a.lv}"><i></i><div>${a.items && a.items.length ? `<details><summary>${esc(a.text)}</summary><p>${a.items.map(esc).join('、')}</p></details>` : esc(a.text)}</div></li>`).join('')}</ul>` : '<p class="iv-ok">✅ 配置在目標範圍內，沒有需要處理的提醒。</p>';
     $('iv-chart').innerHTML = chart(series);
     const ccy = I.groupBy(h, (g) => g.currency || '—'), rr = I.groupBy(h, (g) => (g.rr ? `RR${g.rr}` : g.bucket === 'cash' ? '存款' : '未標示'));
     const band = (Number(prof.band) || 5) / 100;

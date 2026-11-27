@@ -42,8 +42,9 @@
         currency: a.currency, rr: rrOf(a), bucket: bucketOf(a), value: 0, cost: 0, costKnown: true, qty: 0, lots: 0, valueDate: r.valueDate, ids: [] };
       g.value += num(r.base); g.lots += 1; g.ids.push(a.id);
       if (a.quantity != null) g.qty += Number(a.quantity);
-      // 成本：有數量時 cost 是單位成本；沒有數量時 cost 是投入總額
-      const c = a.cost == null || a.cost === '' ? null : Number(a.cost) * (a.quantity != null ? Number(a.quantity) : 1);
+            // 基金、股票：cost 是單位成本（× 數量）；結構型、存款、保單：cost 是投入總額
+      const unit = (a.category === 'fund' || a.category === 'stock') && a.quantity != null;
+      const c = a.cost == null || a.cost === '' ? null : Number(a.cost) * (unit ? Number(a.quantity) : 1);
       if (g.bucket === 'cash') { /* 現金存款不算損益 */ } else if (c == null) g.costKnown = false;
       else { const t = C.toBase(C.D(String(c)), a.currency, input.fx, input.asOf); if (t.value == null) g.costKnown = false; else g.cost += num(t.value); }
       if (r.valueDate && (!g.valueDate || r.valueDate < g.valueDate)) g.valueDate = r.valueDate; // 取最舊的估值日（判斷過期）
@@ -90,15 +91,20 @@
   function alerts(h, alloc, { profile = 'balanced', band = 0.05, today, staleDays = 7, conc = 0.2, loss = -0.15 } = {}) {
     const out = [];
     const P = PROFILES[profile] || PROFILES.balanced;
-    alloc.filter((x) => Math.abs(x.drift) > band).forEach((x) => out.push({ lv: 'y', k: 'drift', text: `${x.label}占 ${Math.round(x.weight * 100)}%，目標 ${Math.round(x.target * 100)}%，${x.drift > 0 ? '超出' : '不足'} ${Math.abs(Math.round(x.drift * 100))}%，需再平衡` }));
+    const dr = alloc.filter((x) => Math.abs(x.drift) > band);
+    if (dr.length) out.push({ lv: 'y', k: 'drift', text: `配置偏離目標超過 ${Math.round(band * 100)}%，需再平衡`, items: dr.map((x) => `${x.label} ${Math.round(x.weight * 100)}%（目標 ${Math.round(x.target * 100)}%，${x.drift > 0 ? '多' : '少'} ${Math.abs(Math.round(x.drift * 100))}%）`) });
     h.list.filter((g) => g.weight > conc && g.bucket !== 'cash').forEach((g) => out.push({ lv: 'y', k: 'conc', text: `${g.name} 占投資部位 ${Math.round(g.weight * 100)}%，單一標的過度集中（建議 ${Math.round(conc * 100)}% 以下）` }));
-    h.list.filter((g) => g.rr != null && g.rr > P.maxRR).forEach((g) => out.push({ lv: 'r', k: 'rr', text: `${g.name} 風險等級 RR${g.rr}，超過${P.label}可承受的 RR${P.maxRR}（適合度）` }));
-    h.list.filter((g) => g.pnlPct != null && g.pnlPct <= loss).forEach((g) => out.push({ lv: 'r', k: 'loss', text: `${g.name} 未實現虧損 ${Math.round(g.pnlPct * 100)}%，請檢視是否停損或攤平` }));
+    const over = h.list.filter((g) => g.rr != null && g.rr > P.maxRR);
+    if (over.length === 1) out.push({ lv: 'r', k: 'rr', text: `${over[0].name} 風險等級 RR${over[0].rr}，超過${P.label}可承受的 RR${P.maxRR}（適合度）` });
+    else if (over.length) out.push({ lv: 'r', k: 'rr', text: `${over.length} 檔風險等級超過${P.label}可承受的 RR${P.maxRR}（適合度，占 ${Math.round(over.reduce((s, g) => s + g.weight, 0) * 100)}%）`, items: over.map((g) => `${g.name}（RR${g.rr}）`) });
+    const lossy = h.list.filter((g) => g.pnlPct != null && g.pnlPct <= loss).sort((a, b) => a.pnlPct - b.pnlPct);
+    if (lossy.length === 1) out.push({ lv: 'r', k: 'loss', text: `${lossy[0].name} 未實現虧損 ${Math.round(lossy[0].pnlPct * 100)}%，請檢視是否停損或攤平` });
+    else if (lossy.length) out.push({ lv: 'r', k: 'loss', text: `${lossy.length} 檔未實現虧損超過 ${Math.round(-loss * 100)}%，請檢視是否停損或攤平`, items: lossy.map((g) => `${g.name} ${Math.round(g.pnlPct * 100)}%`) });
     if (today) {
       const old = h.list.filter((g) => g.bucket !== 'cash' && g.valueDate && (Date.parse(today) - Date.parse(g.valueDate)) / 864e5 > staleDays);
-      if (old.length) out.push({ lv: 'y', k: 'stale', text: `${old.length} 檔報價超過 ${staleDays} 天沒更新：${old.slice(0, 3).map((g) => g.name).join('、')}${old.length > 3 ? '…' : ''}` });
+      if (old.length) out.push({ lv: 'y', k: 'stale', text: `${old.length} 檔報價超過 ${staleDays} 天沒更新`, items: old.map((g) => `${g.name}（${g.valueDate}）`) });
     }
-    if (h.missingCost) out.push({ lv: 'n', k: 'cost', text: `${h.missingCost} 檔沒有成本資料，損益無法計算` });
+    if (h.missingCost) out.push({ lv: 'n', k: 'cost', text: `${h.missingCost} 檔沒有成本資料，損益無法計算`, items: h.list.filter((g) => g.bucket !== 'cash' && !g.costKnown).map((g) => g.name) });
     const rank = { r: 0, y: 1, n: 2 };
     return out.sort((a, b) => rank[a.lv] - rank[b.lv]);
   }

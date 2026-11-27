@@ -3,12 +3,15 @@
 .iv-fin { width: auto; padding: 10px 14px; text-decoration: none; }
 #iv-kpi .tax-eq small { display: block; font-size: .74rem; color: var(--tc-fg-6b6656); }
 #iv-kpi .tax-eq .em small { color: #C9D2E6; }
-.up { color: #B3412E !important; } .down { color: #24723B !important; } /* 台灣習慣：紅漲綠跌 */
+.up { color: #C8473A !important; } .down { color: #2E9B4E !important; } /* 台灣習慣：紅漲綠跌 */
 .iv-al { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; }
-.iv-al li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border-radius: 10px; font-size: .88rem; line-height: 1.55; background: var(--tc-bg-f6f3ec); }
+.iv-al li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border-radius: 10px; font-size: .88rem; line-height: 1.55; background: rgba(127, 127, 127, .1); color: var(--tc-fg-2a2a26); border-left: 4px solid #9AA0AA; }
+.iv-al li > div { flex: 1; min-width: 0; }
+.iv-al details summary { cursor: pointer; font-weight: 600; }
+.iv-al details p { margin: 6px 0 2px; font-size: .82rem; opacity: .85; line-height: 1.7; }
 .iv-al li i { flex: none; width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; background: #9AA0AA; }
-.iv-al li.r { background: #FBF1EE; } .iv-al li.r i { background: #C8473A; }
-.iv-al li.y { background: #FDF8EC; } .iv-al li.y i { background: #E2A72E; }
+.iv-al li.r { background: rgba(200, 71, 58, .1); border-left-color: #C8473A; } .iv-al li.r i { background: #C8473A; }
+.iv-al li.y { background: rgba(226, 167, 46, .12); border-left-color: #E2A72E; } .iv-al li.y i { background: #E2A72E; }
 .iv-ok { margin: 14px 0 0; font-size: .9rem; color: #24723B; }
 .iv-chart { width: 100%; height: auto; }
 .iv-chart text { font-size: 11px; fill: var(--tc-fg-6b6656); }

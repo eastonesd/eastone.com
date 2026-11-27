@@ -39,7 +39,7 @@ test('配置與偏離、適合度、集中度', () => {
   assert.ok(!al2.some((x) => x.k === 'drift'));                          // 保守型：差距都在 5% 內
   assert.ok(!al2.some((x) => x.k === 'cost'));                           // 定存不算缺成本
   const al3 = I.alerts(h, I.allocation(h, I.PROFILES.aggressive.targets), { profile: 'aggressive', today: '2026-11-27' });
-  assert.ok(al3.some((x) => x.k === 'drift' && /股票/.test(x.text)));    // 積極型股票目標 70%，實際 6%
+  assert.ok(al3.some((x) => x.k === 'drift' && x.items.some((t) => /股票/.test(t))));    // 積極型股票目標 70%，實際 6%
   assert.ok(!al3.some((x) => x.k === 'rr'));
 });
 test('走勢：依日期還原總值', () => {
@@ -52,4 +52,11 @@ test('RR 與配置桶', () => {
   assert.equal(I.rrOf({ meta: { class: 'P4' } }), 4);
   assert.equal(I.bucketOf({ category: 'fund', meta: { class: 'P5' } }), 'equity');
   assert.equal(I.bucketOf({ category: 'fund', meta: { class: 'P2' } }), 'income');
+});
+test('結構型商品：cost 是投入總額，不乘數量', () => {
+  const inp = { assets: [{ id: 'm1', category: 'mcn', name: 'DSNT', currency: 'USD', quantity: 10, cost: 100000, include_in_total: true, status: 'active', meta: {} }],
+    assetValues: [{ asset_id: 'm1', as_of: '2026-11-19', value: 92890 }], liabilities: [], liabilityBalances: [], cashEvents: [], cashSchedules: [], collateralLinks: [], fundingLinks: [],
+    fx: [{ currency: 'USD', quote_date: '2026-11-01', rate: 30 }], asOf: '2026-11-27' };
+  const g = I.holdings(inp).list[0];
+  assert.equal(g.cost, 3000000); assert.ok(Math.abs(g.pnlPct - (-0.0711)) < 1e-3);
 });
