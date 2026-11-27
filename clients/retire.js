@@ -55,8 +55,21 @@
         ${saved.data ? `<li>已套用 ${new Date(saved.data.updated_at).toLocaleDateString('zh-TW')} 儲存的設定（帶入值僅供對照）。</li>` : ''}
       </ul></div>`;
       $('rt-body').hidden = false; $('rt-saved').textContent = '';
+      applyPension();
       renderLists(); render();
     } catch (e) { $('rt-note').innerHTML = `<p class="tax-err">讀取失敗：${esc(e.message || e)}</p>`; }
+  }
+
+  // 社會保險計算器「帶入退休規劃」：月領加到退休金、一次領加到退休時一次領
+  function applyPension() {
+    let h = null;
+    try { h = JSON.parse(sessionStorage.getItem('eastone.pension') || 'null'); } catch { /* 無痕 */ }
+    if (!h || Date.now() - (h.at || 0) > 3600e3) return;
+    try { sessionStorage.removeItem('eastone.pension'); } catch { /* 無痕 */ }
+    const add = (id, v) => { const el = $(id); el.value = r1((Number(el.value) || 0) + v); };
+    if (h.monthly) { add('rt-pension', h.monthly / W); if (h.age) $('rt-pensionAge').value = h.age; }
+    if (h.lump) add('rt-lumpSum', h.lump / W);
+    $('rt-note').insertAdjacentHTML('beforeend', `<p class="tax-note">已從社會保險計算器帶入「${esc(h.label)}」：${h.monthly ? `每月 ${wan(h.monthly)}、${h.age} 歲起` : ''}${h.lump ? `一次領 ${wan(h.lump)}` : ''}。有多種年金請回計算器再帶入一次，會自動相加。</p>`);
   }
 
   function params() {
@@ -157,6 +170,7 @@
     $('rt-save').addEventListener('click', save);
     const pre = new URLSearchParams(location.search).get('id');
     if (pre) { const c = CLIENTS.find((x) => x.id === pre.toUpperCase()); if (c) { $('rt-client').value = `${c.name}｜${c.id}`; load(); } }
+    else { try { const h = JSON.parse(sessionStorage.getItem('eastone.pension') || 'null'); if (h) $('rt-note').innerHTML = `<p class="tax-note">「${esc(h.label)}」已準備好，選擇客戶後會自動帶入退休金。</p>`; } catch { /* 無痕 */ } }
     $('tax-load').hidden = true;
     $('tax-main').hidden = false;
   }
