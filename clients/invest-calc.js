@@ -44,8 +44,11 @@
       if (a.quantity != null) g.qty += Number(a.quantity);
             // 基金、股票：cost 是單位成本（× 數量）；結構型、存款、保單：cost 是投入總額
       const unit = (a.category === 'fund' || a.category === 'stock') && a.quantity != null;
+      const costTwd = a.meta && a.meta.cost_twd != null && a.meta.cost_twd !== '' ? Number(a.meta.cost_twd) : null; // 台幣申購：原始投資台幣金額（含匯差）
       const c = a.cost == null || a.cost === '' ? null : Number(a.cost) * (unit ? Number(a.quantity) : 1);
-      if (g.bucket === 'cash') { /* 現金存款不算損益 */ } else if (c == null) g.costKnown = false;
+      if (g.bucket === 'cash') { /* 現金存款不算損益 */ }
+      else if (costTwd != null) g.cost += costTwd;
+      else if (c == null) g.costKnown = false;
       else { const t = C.toBase(C.D(String(c)), a.currency, input.fx, input.asOf); if (t.value == null) g.costKnown = false; else g.cost += num(t.value); }
       if (r.valueDate && (!g.valueDate || r.valueDate < g.valueDate)) g.valueDate = r.valueDate; // 取最舊的估值日（判斷過期）
       groups.set(key, g);
@@ -109,7 +112,32 @@
     return out.sort((a, b) => rank[a.lv] - rank[b.lv]);
   }
 
-  const api = Object.freeze({ INVEST, BUCKET, PROFILES, rrOf, bucketOf, holdings, history, allocation, groupBy, alerts });
+  // FCN（固定配息結構型商品）目前狀態
+  // fcn：meta.fcn；prices：{ 代號: 最新收盤價 }；回傳每個連結標的表現、最差者、下一次觀察、距離履約價
+  function fcnStatus(fcn, prices, today) {
+    const und = (fcn.underlyings || []).map((u) => {
+      const adj = Number(u.adj) || 1, init = Number(u.initial) / adj, px = prices[u.sym];
+      const perf = px != null ? px / init : null;
+      return { ...u, init, strikePx: Number(u.strike) / adj, px, perf };
+    });
+    const known = und.filter((u) => u.perf != null);
+    const worst = known.length === und.length && known.length ? known.reduce((a, b) => (a.perf <= b.perf ? a : b)) : null;
+    const sched = fcn.schedule || [];
+    const next = sched.find((o) => o.obs >= today) || null;
+    const passed = sched.filter((o) => o.pay <= today).length;
+    const monthly = Number(fcn.notional) * Number(fcn.coupon) / 12;
+    const strike = Number(fcn.strike_pct);
+    const matured = today > fcn.final;
+    let verdict = 'na';
+    if (worst) verdict = next && next.ko != null && worst.perf >= next.ko ? 'ko' : worst.perf < strike ? 'below' : worst.perf - strike < 0.1 ? 'near' : 'safe';
+    return { und, worst, next, passed, left: sched.length - passed, monthly, strike, matured, verdict,
+      cushion: worst ? worst.perf - strike : null,
+      // 若到期時最差標的低於履約價：以履約價承接最差標的股票（實物交割）
+      deliverShares: worst ? Math.floor(Number(fcn.notional) / worst.strikePx) : null,
+      deliverLoss: worst && worst.perf < strike ? Number(fcn.notional) * (1 - worst.perf / strike) : 0 };
+  }
+
+  const api = Object.freeze({ INVEST, BUCKET, PROFILES, rrOf, bucketOf, holdings, history, allocation, groupBy, alerts, fcnStatus });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.EastoneInvest = api;
 })(typeof window !== 'undefined' ? window : globalThis);

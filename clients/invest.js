@@ -37,7 +37,7 @@
       const n = assets.filter((a) => a.status !== 'archived' && I.INVEST.includes(a.category)).length;
       $('iv-note').innerHTML = n ? '' : `<p class="tax-note">${esc(c.name)} 在資產負債還沒有基金、股票或存款資料。</p>`;
       $('iv-body').hidden = !n;
-      if (n) { renderTarget(); render(); }
+      if (n) { renderTarget(); render(); renderFcn(); }
     } catch (e) { $('iv-note').innerHTML = `<p class="tax-err">讀取失敗：${esc(e.message || e)}</p>`; }
   }
 
@@ -97,6 +97,52 @@
         <td class="num ${sgn(g.pnl)}">${g.pnl == null ? '—' : `${g.pnl >= 0 ? '+' : ''}${wan(g.pnl)}<div class="sub ${sgn(g.pnl)}">${g.pnl >= 0 ? '+' : ''}${pct(g.pnlPct)}</div>`}</td>
         <td class="${(Date.parse(today) - Date.parse(g.valueDate)) / 864e5 > 7 && g.bucket !== 'cash' ? 'warn' : ''}">${esc(g.valueDate || '')}</td></tr>`).join('')}
       <tr class="total"><td colspan="3">合計</td><td class="num">${wan(h.total)}</td><td class="num">100%</td><td class="num">${wan(h.cost)}</td><td class="num ${sgn(h.pnl)}">${h.pnl >= 0 ? '+' : ''}${wan(h.pnl)}</td><td></td></tr></tbody></table></div>`;
+  }
+
+  // ---------- FCN ----------
+  const usdRate = () => { const q = (input.fx || []).filter((x) => x.currency === 'USD').sort((a, b) => (a.quote_date < b.quote_date ? 1 : -1))[0]; return q ? Number(q.rate) : 32; };
+  const pxCache = new Map();
+  async function usClose(sym) {
+    if (pxCache.has(sym)) return pxCache.get(sym);
+    const start = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
+    const q = new URLSearchParams({ dataset: 'USStockPrice', data_id: sym, start_date: start });
+    let token = ''; try { token = localStorage.getItem('eastone.finmindToken') || ''; } catch { /* 無痕 */ }
+    if (token) q.set('token', token);
+    const p = fetch(`https://api.finmindtrade.com/api/v4/data?${q}`).then((r) => r.json()).then((j) => { const d = (j && j.data) || []; const l = d[d.length - 1]; return l ? { px: Number(l.close ?? l.Close), date: l.date } : null; }).catch(() => null);
+    pxCache.set(sym, p); return p;
+  }
+  async function renderFcn() {
+    const list = input.assets.filter((a) => a.category === 'mcn' && a.status !== 'archived' && a.meta && a.meta.fcn);
+    $('iv-fcn-card').hidden = !list.length;
+    if (!list.length) return;
+    $('iv-fcn').innerHTML = '<p class="tax-note">讀取連結標的價格中…</p>';
+    const out = [];
+    for (const a of list) {
+      const f = a.meta.fcn, prices = {}, dates = {};
+      for (const u of f.underlyings || []) { const r = await usClose(u.sym); if (r) { prices[u.sym] = r.px; dates[u.sym] = r.date; } }
+      const s = I.fcnStatus(f, prices, today);
+      const p100 = (x) => (x == null ? '—' : `${(x * 100).toFixed(1)}%`);
+      const V = { ko: ['g', `下一次觀察（${s.next && s.next.obs}）如果維持現價，會提前出場：拿回本金＋當期利息`], safe: ['g', '目前離履約價還有距離，繼續每月領息'], near: ['y', `最差的標的（${s.worst && s.worst.sym}）離履約價只剩 ${p100(s.cushion)}，要留意`], below: ['r', `最差的標的（${s.worst && s.worst.sym}）已低於履約價：如果到期時還在這裡，會被轉成股票（約虧 ${wan(s.deliverLoss * usdRate())}）`], na: ['n', '暫時抓不到連結標的價格'] }[s.verdict];
+      out.push(`<div class="fcn">
+        <div class="fcn-h"><b>${esc(f.product || a.name)}</b><span>${esc(a.institution || '')}・${Number(f.notional).toLocaleString()} ${esc(f.currency)}・年息 ${(f.coupon * 100).toFixed(1)}%・到期 ${esc(f.final)}</span></div>
+        <p class="fcn-v ${V[0]}">${V[1]}</p>
+        <div class="iv-tw"><table class="iv-table fcn-t"><thead><tr><th>連結標的</th><th class="num">期初價</th><th class="num">最新價</th><th class="num">表現（現價÷期初）</th><th class="num">履約價</th><th class="num">下次提前出場價</th></tr></thead><tbody>
+        ${s.und.map((u) => `<tr class="${s.worst && u.sym === s.worst.sym ? 'worst' : ''}"><td><b>${esc(u.sym)}</b> ${esc(u.name || '')}${u.adj > 1 ? `<div class="sub">已依分割換算（÷${u.adj}）</div>` : ''}${s.worst && u.sym === s.worst.sym ? '<div class="sub warn">表現最差，以它為準</div>' : ''}</td>
+          <td class="num">${u.init.toFixed(2)}</td><td class="num">${u.px != null ? u.px.toFixed(2) : '—'}<div class="sub">${esc(dates[u.sym] || '')}</div></td><td class="num"><b>${p100(u.perf)}</b></td>
+          <td class="num">${u.strikePx.toFixed(2)}<div class="sub">${p100(s.strike)}</div></td><td class="num">${s.next && s.next.ko != null ? (u.init * s.next.ko).toFixed(2) : '—'}<div class="sub">${s.next && s.next.ko != null ? p100(s.next.ko) : ''}</div></td></tr>`).join('')}</tbody></table></div>
+        <div class="fcn-kpi"><div><span>每月利息</span><b>${Math.round(s.monthly).toLocaleString()} ${esc(f.currency)}</b><small>不論漲跌都會領</small></div>
+          <div><span>已領 / 剩餘</span><b>${s.passed} / ${s.left} 期</b><small>${s.next ? `下次觀察 ${s.next.obs}` : '已到期'}</small></div>
+          <div><span>最差標的距履約價</span><b class="${s.cushion != null && s.cushion < 0.1 ? 'warn' : ''}">${p100(s.cushion)}</b><small>跌破才會轉股票</small></div>
+          <div><span>若轉成股票</span><b>${s.worst ? `${s.deliverShares.toLocaleString()} 股 ${esc(s.worst.sym)}` : '—'}</b><small>以履約價 ${s.worst ? s.worst.strikePx.toFixed(2) : ''} 承接</small></div></div>
+        <details class="fcn-how"><summary>FCN 是什麼？（白話說明）</summary>
+          <p>FCN（固定配息結構型商品）像一張「附條件的高利定存」：本金 ${Number(f.notional).toLocaleString()} ${esc(f.currency)}，每月固定領年息 ${(f.coupon * 100).toFixed(0)}% 的利息。代價是：<b>到期時如果連結的股票跌太多，就不還現金，改給股票</b>。</p>
+          <ol><li><b>每月觀察一次（提前出場）</b>：所有連結標的都高於「提前出場價」，商品就提前結束，拿回本金＋利息。提前出場價從期初的 100% 開始，每月降 ${Math.round((f.step || 0.03) * 100)}%，最低到 70%。</li>
+          <li><b>到期那天（${esc(f.final)}）</b>：看表現最差的那一檔。只要它不低於期初的 ${p100(s.strike)}（履約價），就拿回全部本金；低於履約價，就用履約價「買進」那檔股票，股票現值低於本金，就是虧損。</li>
+          <li><b>無下限觀察（no KI）</b>：期間跌破履約價不會立刻出事，只看到期那天。</li></ol>
+          <p>${esc((f.underlyings || []).filter((u) => u.adj_note).map((u) => u.adj_note).join('；'))}</p></details>
+      </div>`);
+    }
+    $('iv-fcn').innerHTML = out.join('');
   }
 
   async function save() {

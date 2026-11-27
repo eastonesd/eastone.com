@@ -60,3 +60,22 @@ test('結構型商品：cost 是投入總額，不乘數量', () => {
   const g = I.holdings(inp).list[0];
   assert.equal(g.cost, 3000000); assert.ok(Math.abs(g.pnlPct - (-0.0711)) < 1e-3);
 });
+test('台幣申購成本（meta.cost_twd）優先', () => {
+  const inp = { assets: [{ id: 'f9', category: 'fund', name: 'X', identifier: 'F-X', currency: 'USD', quantity: 1000, cost: 9.34, include_in_total: true, status: 'active', meta: { cost_twd: 330000 } }],
+    assetValues: [{ asset_id: 'f9', as_of: '2026-11-20', value: 9000 }], liabilities: [], liabilityBalances: [], cashEvents: [], cashSchedules: [], collateralLinks: [], fundingLinks: [],
+    fx: [{ currency: 'USD', quote_date: '2026-11-01', rate: 32 }], asOf: '2026-11-27' };
+  const g = I.holdings(inp).list[0];
+  assert.equal(g.cost, 330000); assert.equal(g.value, 288000);
+});
+test('FCN 狀態：分割換算、最差標的、下一次觀察、距離履約價', () => {
+  const fcn = { notional: 100000, coupon: 0.1, strike_pct: 0.6824, final: '2027-09-03',
+    underlyings: [{ sym: 'AVGO', initial: 361.6, strike: 246.7558, adj: 1 }, { sym: 'SOXX', initial: 525.38, strike: 358.5193, adj: 3 }],
+    schedule: [{ n: 2, obs: '2026-11-03', pay: '2026-11-05', ko: 1 }, { n: 3, obs: '2026-12-03', pay: '2026-12-07', ko: 0.97 }] };
+  const r = I.fcnStatus(fcn, { AVGO: 300.86, SOXX: 127.98 }, '2026-11-28');
+  assert.equal(r.worst.sym, 'SOXX');
+  assert.ok(Math.abs(r.worst.perf - 0.7308) < 0.001);
+  assert.equal(r.next.n, 3); assert.equal(r.verdict, 'near');
+  assert.ok(Math.abs(r.monthly - 833.333) < 0.01);
+  assert.ok(Math.abs(r.worst.strikePx - 119.506) < 0.01);
+  assert.equal(I.fcnStatus(fcn, { AVGO: 300, SOXX: 100 }, '2026-11-28').verdict, 'below');
+});
