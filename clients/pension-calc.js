@@ -69,6 +69,37 @@
       lumpMonths: months, lumpOld, lumpSmall, breakEven, funeral: r0(w * R.funeralMonths), survivor, survivorAfterAnnuity: monthly ? r0(Math.max(R.survivorMin, monthly * 0.5)) : null, disability };
   }
 
+  // 勞保「一次請領老年給付」（舊制，98 年前有年資者才能選）的請領條件
+  // years：勞保年資；age：退職時年齡；female；sameUnitYears：同一投保單位年資；special：特殊性質工作年資
+  function laborOldEligible({ years, age, female = false, sameUnitYears = 0, special = 0 }) {
+    const y = n(years), a = n(age);
+    const ok = [
+      [y >= 1 && (a >= 60 || (female && a >= 55)), `年資滿 1 年、年滿 ${female ? 55 : 60} 歲`],
+      [y >= 15 && a >= 55, '年資滿 15 年、年滿 55 歲'],
+      [n(sameUnitYears) >= 25, '同一投保單位年資滿 25 年'],
+      [y >= 25 && a >= 50, '年資滿 25 年、年滿 50 歲'],
+      [n(special) >= 5 && a >= 55, '特殊性質工作滿 5 年、年滿 55 歲'],
+    ].find(([c]) => c);
+    return ok ? { ok: true, why: ok[1] } : { ok: false, why: '不符合任何舊制請領條件（例：年資滿 1 年且年滿 60 歲）' };
+  }
+
+  // ---------------- 勞基法舊制退休金（94 年 7 月前的年資，由雇主一次給付）----------------
+  // 年資零頭：未滿半年以半年計、滿半年以一年計（勞基法第 55 條）
+  function stdYears(y) { const v = Math.max(0, n(y)), f = v - Math.floor(v); return Math.floor(v) + (f <= 1e-9 ? 0 : f < 0.5 ? 0.5 : 1); }
+  function stdBases(y) { const v = stdYears(y); return Math.min(45, Math.min(15, v) * 2 + Math.max(0, v - 15)); }
+  // oldYears：保留的舊制年資；totalYears：同一雇主新舊制合計年資（判斷退休條件）；avgWage：退休前 6 個月平均工資
+  function laborStd({ oldYears, totalYears, avgWage, retireAge, settled = false }) {
+    const ty = Math.max(n(totalYears), n(oldYears)), a = n(retireAge);
+    const cond = [
+      [ty >= 15 && a >= 55, '工作 15 年以上、年滿 55 歲（自請退休）'],
+      [ty >= 25, '工作 25 年以上（自請退休）'],
+      [ty >= 10 && a >= 60, '工作 10 年以上、年滿 60 歲（自請退休）'],
+      [a >= 65, '年滿 65 歲（雇主可強制退休）'],
+    ].find(([c]) => c);
+    const bases = stdBases(oldYears);
+    return { counted: stdYears(oldYears), bases, amount: settled ? 0 : r0(bases * n(avgWage)), eligible: !!cond, why: cond ? cond[1] : '還不符合退休條件（15 年＋55 歲、25 年、或 10 年＋60 歲）', settled };
+  }
+
   // ---------------- 勞退新制（個人專戶）----------------
   function laborPension({ age, wage, selfRate = 0, balance = 0, ret = 0.03, growth = 0.01, claimAge, lifeYears = 24, annuityRate = 0.015 }) {
     const R = RULES.laborPension;
@@ -165,7 +196,7 @@
       allowanceFull: fy >= 15, funeral: F.funeral, insured: F.insured };
   }
 
-  const api = Object.freeze({ RULES, annuityMonthly, accumulate, laborClaimAge, labor, laborPension, national, civilRate, civil, govIns, militaryBases, military, farmer });
+  const api = Object.freeze({ RULES, annuityMonthly, accumulate, laborClaimAge, labor, laborOldEligible, stdYears, stdBases, laborStd, laborPension, national, civilRate, civil, govIns, militaryBases, military, farmer });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.EastonePension = api;
 })(typeof window !== 'undefined' ? window : globalThis);

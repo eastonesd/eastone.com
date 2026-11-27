@@ -22,3 +22,12 @@
   .ps-table td:last-child { text-align: left; }
   .ps-table tr { display: grid; } .ps-table td { border: 0; padding: 2px 4px; } .ps-table tr { border-bottom: 1px solid var(--tc-bd-d8d0bc); padding: 6px 0; }
 }
+.ps-form .ps-group { grid-column: 1 / -1; margin: 6px 0 -2px; padding-top: 10px; border-top: 1px dashed var(--tc-bd-d8d0bc); font-size: .88rem; color: var(--tc-fg-b8892b); letter-spacing: .04em; }
+.ps-form .ps-group:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+.ps-cmp { overflow-x: auto; margin: 14px 0 4px; }
+.ps-cmp table { width: 100%; border-collapse: collapse; font-size: .86rem; min-width: 560px; }
+.ps-cmp th { text-align: left; padding: 7px 8px; background: var(--tc-bg-1b2a4a, #1b2a4a); color: #F3DFA8; font-weight: 700; }
+.ps-cmp td { padding: 8px; border-bottom: 1px solid var(--tc-bd-d8d0bc); vertical-align: top; }
+.ps-cmp tr.no td { color: var(--tc-fg-6b6656); }
+.ps-cmp tr.ok td:first-child, .ps-cmp tr.ok td:nth-child(3) { font-weight: 700; color: var(--tc-fg-121d33); }
+.ps-cmp td:nth-child(2) { white-space: nowrap; }

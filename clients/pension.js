@@ -16,64 +16,104 @@
 
   const SCHEMES = {
     labor: {
-      name: '勞保', icon: '👷', sub: '勞工保險老年年金、一次請領、遺屬與失能年金',
+      name: '勞保', icon: '👷', sub: '勞工保險：老年年金（98 年起）、老年一次金、一次請領老年給付（舊制）；併計國保年資',
       fields: [
+        { group: '基本資料' },
         { k: 'birthYear', label: '出生年（西元）', def: 1975 },
-        { k: 'avgWage', label: '平均月投保薪資（元）', def: R.labor.wageMax, hint: `最高 60 個月平均；上限 ${R.labor.wageMax.toLocaleString()}` },
-        { k: 'years', label: '投保年資（年）', def: 30, step: 0.1 },
-        { k: 'claimAge', label: '幾歲開始領', def: '', hint: '留空＝法定年齡；最多提前或延後 5 年' },
-        { k: 'oldYears', label: '民國 97 年前的年資（年）', def: 0, hint: '有的話才能選一次請領老年給付' },
-        { k: 'yearsAfter60', label: '其中 60 歲以後的年資', def: 0 },
+        { k: 'female', label: '性別', type: 'select', opts: { 0: '男', 1: '女' }, def: 0 },
+        { k: 'avgWage', label: '平均月投保薪資（元）', def: R.labor.wageMax, hint: `年金：最高 60 個月平均；舊制一次請領：退保前 3 年平均。上限 ${R.labor.wageMax.toLocaleString()}` },
+        { k: 'claimAge', label: '幾歲退休請領', def: '', hint: '留空＝法定年齡；年金最多提前或延後 5 年' },
         { k: 'dependents', label: '遺屬／眷屬人數', def: 1 },
+        { group: '年資' },
+        { k: 'years', label: '勞保年資合計（年）', def: 30, step: 0.1 },
+        { k: 'oldYears', label: '其中民國 97 年底前的年資', def: 0, step: 0.1, hint: '有這段年資才能選「一次請領老年給付」（舊制）' },
+        { k: 'yearsAfter60', label: '其中 60 歲以後的年資', def: 0, step: 0.1 },
+        { k: 'sameUnitYears', label: '同一投保單位最長年資', def: 0, step: 0.1, hint: '滿 25 年不限年齡可一次請領' },
+        { k: 'natYears', label: '國民年金年資（年）', def: 0, step: 0.1, hint: '勞保未滿 15 年時，可併計國保年資湊滿 15 年' },
       ],
       calc(v) {
         const r = P.labor(v);
-        const tiles = r.eligibleAnnuity
-          ? [{ l: `${r.claimAge} 歲起每月領`, v: yuan(r.monthly), em: true }, { l: '一年', v: wan(r.monthly * 12) }, r.lumpOld != null ? { l: '或一次請領', v: wan(r.lumpOld), s: `${r.lumpMonths} 個月` } : { l: '一次請領', v: '不適用', s: '沒有 97 年前年資' }]
-          : [{ l: '年資未滿 15 年：老年一次金', v: wan(r.lumpSmall), em: true }, { l: '補足 15 年可改月領', v: `還差 ${Math.ceil((15 - r.years) * 10) / 10} 年` }];
+        const y = r.years, nat = Number(v.natYears) || 0, female = Number(v.female) === 1;
+        const merged = y < 15 && y + nat >= 15;
+        const annAge = merged ? Math.max(65, r.claimAge) : r.claimAge;
+        const annuity = r.eligibleAnnuity ? r.monthly : merged ? Math.max(r.A, r.B) : 0;
+        const old = Number(v.oldYears) > 0 ? P.laborOldEligible({ years: y, age: r.claimAge, female, sameUnitYears: v.sameUnitYears }) : null;
+        const opts = [
+          { name: '老年年金（新制）', ok: !!annuity, amt: annuity ? `${yuan(annuity)}／月，${annAge} 歲起` : '—', why: r.eligibleAnnuity ? '勞保年資滿 15 年' : merged ? `勞保 ${y} 年＋國保 ${nat} 年合計滿 15 年，65 歲起領（只算勞保年資）` : '勞保年資未滿 15 年' },
+          { name: '老年一次金（新制）', ok: y < 15 && y > 0 && r.claimAge >= r.legalAge, amt: y < 15 ? `${wan(r.lumpSmall)}（${y} 個月）` : '—', why: y >= 15 ? '年資已滿 15 年，只能選年金或舊制一次請領' : r.claimAge >= r.legalAge ? `年資未滿 15 年、年滿 ${r.legalAge} 歲` : `要年滿 ${r.legalAge} 歲才能請領（目前設定 ${r.claimAge} 歲）` },
+          { name: '一次請領老年給付（舊制）', ok: !!(old && old.ok), amt: old ? `${wan(r.lumpOld)}（${r.lumpMonths} 個月）` : '—', why: !old ? '沒有民國 97 年底前的年資' : old.why },
+        ];
+        const best = opts.filter((o) => o.ok);
+        const tiles = [];
+        if (annuity) tiles.push({ l: `${annAge} 歲起每月領`, v: yuan(annuity), em: true, s: merged ? '併計國保年資' : `${r.formula} 式` });
+        if (opts[2].ok) tiles.push({ l: '或舊制一次請領', v: wan(r.lumpOld), em: !annuity, s: `${r.lumpMonths} 個月` });
+        if (opts[1].ok && !merged) tiles.push({ l: '老年一次金', v: wan(r.lumpSmall), em: !annuity, s: `${y} 個月` });
+        if (annuity && opts[2].ok && r.breakEven) tiles.push({ l: '月領較划算的年齡', v: `${Math.ceil(annAge + r.lumpOld / annuity / 12)} 歲以後`, s: `領滿約 ${Math.ceil(r.lumpOld / annuity / 12 * 10) / 10} 年` });
+        if (!tiles.length) tiles.push({ l: '目前沒有可請領的老年給付', v: '—', em: true });
         return {
           tiles,
+          table: { head: ['請領方式', '可以選嗎', '金額', '說明'], rows: opts.map((o) => [o.name, o.ok ? '✅ 可以' : '✕ 不行', o.amt, o.why]) },
           rows: [
-            ['法定請領年齡', `${r.legalAge} 歲`],
+            ['法定請領年齡（依出生年）', `${r.legalAge} 歲`],
             ['A 式：薪資 × 年資 × 0.775% ＋ 3,000', yuan(r.A)],
             ['B 式：薪資 × 年資 × 1.55%', yuan(r.B)],
-            ['採用', `${r.formula} 式（取較高者）${r.adjust ? `，${r.adjust > 0 ? '延後增額' : '提前減額'} ${pct(Math.abs(r.adjust))}` : ''}`],
-            ...(r.breakEven ? [['月領 vs 一次領 損益兩平', `領滿約 ${r.breakEven} 年（${Math.ceil(r.claimAge + r.breakEven)} 歲）後月領較划算`]] : []),
+            ...(r.adjust && !merged ? [['提前／延後', `${r.adjust > 0 ? '延後增額' : '提前減額'} ${pct(Math.abs(r.adjust))}`]] : []),
             ['在保死亡：喪葬津貼', yuan(r.funeral)],
             ['在保死亡：遺屬年金（每月）', yuan(r.survivor)],
-            ...(r.survivorAfterAnnuity ? [['領年金期間死亡：遺屬年金', `${yuan(r.survivorAfterAnnuity)}（原領的一半）`]] : []),
+            ...(annuity ? [['領年金期間死亡：遺屬年金', `${yuan(Math.max(R.labor.survivorMin, annuity * 0.5))}（原領的一半）`]] : []),
             ['失能年金（完全不能工作，每月）', yuan(r.disability)],
           ],
-          notes: ['年金每年依物價指數累計成長 5% 時調整。', '同時有國保年資者，勞保＋國保合計滿 15 年，65 歲可領勞保年金。', '一次請領後就沒有遺屬年金；長壽、有遺屬的人通常月領較有利。'],
-          handoff: r.eligibleAnnuity ? { monthly: r.monthly, age: r.claimAge, lump: 0, label: '勞保老年年金' } : { monthly: 0, age: r.legalAge, lump: r.lumpSmall, label: '勞保老年一次金' },
+          notes: ['三種方式只能擇一，核付後不能變更。選舊制一次請領要先離職退保；選年金或一次領後，往後的遺屬年金也跟著不同。', '舊制一次請領：60 歲前年資前 15 年每年 1 個月、之後每年 2 個月，最高 45 個月；60 歲後年資最多再計 5 年（合計 50 個月）。', '年金每年依物價指數累計成長 5% 時調整。'],
+          handoff: annuity ? { monthly: annuity, age: annAge, lump: 0, label: '勞保老年年金' } : opts[2].ok ? { monthly: 0, age: r.claimAge, lump: r.lumpOld, label: '勞保一次請領老年給付' } : opts[1].ok ? { monthly: 0, age: r.legalAge, lump: r.lumpSmall, label: '勞保老年一次金' } : null,
         };
       },
     },
     lp: {
-      name: '勞退', icon: '💼', sub: '勞工退休金新制個人專戶（雇主 6%＋自提最多 6%）',
+      name: '勞退（新舊制）', icon: '💼', sub: '94 年 7 月 1 日前的年資適用勞基法舊制（雇主一次給付），之後進個人專戶（新制）；兩段可以同時有',
       fields: [
-        { k: 'age', label: '目前年齡', def: 40 },
+        { group: '新制：個人專戶（94 年 7 月起）' },
+        { k: 'age', label: '目前年齡', def: 50 },
         { k: 'wage', label: '月提繳工資（元）', def: 60000, hint: `上限 ${R.laborPension.wageMax.toLocaleString()}` },
         { k: 'selfPct', label: '自提比例（%）', def: 0, hint: '0～6，自提部分不計入當年所得' },
-        { k: 'balanceWan', label: '目前專戶累積（萬）', def: 0, step: 0.1, hint: '勞保局 e 化服務系統可查' },
+        { k: 'balanceWan', label: '目前專戶累積（萬）', def: 120, step: 0.1, hint: '勞保局 e 化服務系統可查' },
         { k: 'retPct', label: '預估年報酬率（%）', def: 3, step: 0.1, hint: '保證收益為 2 年期定存利率' },
         { k: 'growthPct', label: '薪資年成長（%）', def: 1, step: 0.1 },
-        { k: 'claimAge', label: '幾歲開始領', def: 60 },
+        { k: 'claimAge', label: '幾歲開始領專戶', def: 60 },
         { k: 'lifeYears', label: '預估領取年數', def: 24, hint: '勞保局依年金生命表平均餘命計算' },
+        { group: '舊制：勞基法退休金（94 年 7 月前、同一雇主的保留年資）' },
+        { k: 'oldYears', label: '保留的舊制年資（年）', def: 0, step: 0.1, hint: '沒換過雇主、選新制時保留的年資；換過雇主或已結清就填 0' },
+        { k: 'totalYears', label: '同一雇主新舊制合計年資', def: '', step: 0.1, hint: '判斷能否退休用；留空＝舊制年資＋到退休的年數' },
+        { k: 'retireAge', label: '退休時年齡', def: 60 },
+        { k: 'stdWage', label: '退休前 6 個月平均工資（元）', def: '', hint: '留空＝月提繳工資' },
+        { k: 'settled', label: '舊制年資是否已結清', type: 'select', opts: { 0: '還沒結清', 1: '已結清（雇主已給付）' }, def: 0 },
       ],
       calc(v) {
         const r = P.laborPension({ ...v, selfRate: (v.selfPct || 0) / 100, balance: (v.balanceWan || 0) * W, ret: (v.retPct || 0) / 100, growth: (v.growthPct || 0) / 100, annuityRate: 0.015 });
+        const oy = Number(v.oldYears) || 0;
+        const ty = v.totalYears != null ? v.totalYears : oy + Math.max(0, (Number(v.retireAge) || 60) - (Number(v.age) || 0));
+        const std = oy ? P.laborStd({ oldYears: oy, totalYears: ty, avgWage: v.stdWage || v.wage, retireAge: v.retireAge, settled: Number(v.settled) === 1 }) : null;
+        const tiles = [{ l: `新制：${r.claimAge} 歲起月領約`, v: yuan(r.monthly), em: true, s: `專戶累積 ${wan(r.balance)}` }];
+        if (std) tiles.push({ l: '舊制：雇主一次給付', v: std.settled ? '已結清' : wan(std.amount), em: !std.settled && std.eligible, s: std.settled ? '' : `${std.bases} 個基數${std.eligible ? '' : '・尚未符合退休條件'}` });
+        if (std && !std.settled && std.eligible) tiles.push({ l: '新舊制合計（一次＋專戶）', v: wan(std.amount + r.balance) });
         return {
-          tiles: [{ l: `${r.claimAge} 歲專戶累積`, v: wan(r.balance), em: true }, { l: '月領約', v: yuan(r.monthly), s: `領 ${v.lifeYears || 24} 年` }, { l: '每月提繳', v: yuan(r.wage * r.rate), s: `${pct(r.rate)}` }],
+          tiles,
           rows: [
-            ['提繳年數', `${r.years} 年`],
-            ['雇主提繳 6%（每月）', yuan(r.wage * R.laborPension.empRate)],
-            ['自提（每月）', yuan(r.wage * (r.rate - R.laborPension.empRate))],
+            ['新制提繳年數（到請領）', `${r.years} 年`],
+            ['新制每月提繳', `${yuan(r.wage * r.rate)}（雇主 6%${r.rate > R.laborPension.empRate ? `＋自提 ${pct(r.rate - R.laborPension.empRate)}` : ''}）`],
             ...(r.selfYearly ? [['自提免稅額度（每年）', `${yuan(r.selfYearly)}，以 20% 稅率約省 ${yuan(r.selfYearly * 0.2)}`]] : []),
-            ['月領估算方式', '累積金額在預估年數內平均領完（年利率 1.5%）'],
+            ...(std ? [
+              ['舊制年資（零頭：未滿半年算半年、滿半年算一年）', `${oy} 年 → 計 ${std.counted} 年`],
+              ['舊制基數：前 15 年每年 2 個、之後每年 1 個（最高 45）', `${std.bases} 個基數`],
+              ['退休前 6 個月平均工資', yuan(v.stdWage || v.wage)],
+              ['舊制退休條件（新舊制年資合計 ' + ty + ' 年）', std.eligible ? `✅ ${std.why}` : `✕ ${std.why}`],
+            ] : []),
           ],
-          notes: ['勞退基金開辦以來平均收益率約 7.6%（2005～2025），過去不代表未來，試算以保守報酬為準。', '年資滿 15 年可選月領或一次領，選定後不得更改（2026 年 8 月起）；未滿 15 年只能一次領。', '身故時專戶餘額由遺屬或指定請領人領回，不列入遺產但要注意受領順位。'],
-          handoff: { monthly: r.monthly, age: r.claimAge, lump: 0, label: '勞退月退休金' },
+          notes: [
+            '舊制退休金由雇主一次給付，必須「在同一雇主」符合退休條件；中途離職（非資遣）舊制年資就領不到，資遣則依舊制年資計資遣費。',
+            '判斷能否退休時，同一雇主的新舊制年資合併計算，但退休金只就舊制年資計算。',
+            '新制專戶：年資滿 15 年可選月領或一次領，2026 年 8 月起選定後不得更改；未滿 15 年只能一次領。身故時餘額由遺屬領回。',
+          ],
+          handoff: { monthly: r.monthly, age: r.claimAge, lump: std && !std.settled && std.eligible ? std.amount : 0, label: std && std.amount ? '勞退新制月領＋舊制退休金' : '勞退月退休金' },
         };
       },
     },
@@ -201,14 +241,14 @@
 
   let cur = 'labor';
   const vals = {};
-  const field = (f, v) => f.type === 'select'
+  const field = (f, v) => f.group ? `<h3 class="ps-group">${f.group}</h3>` : f.type === 'select'
     ? `<label>${f.label}<select data-f="${f.k}">${Object.entries(f.opts).map(([k, t]) => `<option value="${k}"${String(v) === String(k) ? ' selected' : ''}>${t}</option>`).join('')}</select>${f.hint ? `<small>${f.hint}</small>` : ''}</label>`
     : `<label>${f.label}<input type="number" data-f="${f.k}" value="${esc(v)}" step="${f.step || 1}" inputmode="decimal">${f.hint ? `<small>${f.hint}</small>` : ''}</label>`;
 
   function show() {
     const S = SCHEMES[cur];
     $('ps-tabs').innerHTML = Object.entries(SCHEMES).map(([k, s]) => `<button type="button" data-k="${k}" class="${k === cur ? 'on' : ''}">${s.icon} ${s.name}</button>`).join('');
-    vals[cur] = vals[cur] || Object.fromEntries(S.fields.map((f) => [f.k, f.def]));
+    vals[cur] = vals[cur] || Object.fromEntries(S.fields.filter((f) => f.k).map((f) => [f.k, f.def]));
     $('ps-title').innerHTML = `${S.icon} ${S.name}<small class="tax-h-sub">${S.sub}</small>`;
     $('ps-form').innerHTML = S.fields.map((f) => field(f, vals[cur][f.k])).join('');
     calc();
@@ -216,14 +256,15 @@
   function calc() {
     const S = SCHEMES[cur];
     const v = {};
-    S.fields.forEach((f) => { const x = vals[cur][f.k]; v[f.k] = f.type === 'select' ? x : x === '' || x == null ? undefined : Number(x); });
+    S.fields.filter((f) => f.k).forEach((f) => { const x = vals[cur][f.k]; v[f.k] = f.type === 'select' ? x : x === '' || x == null ? undefined : Number(x); });
     let out;
     try { out = S.calc(v); } catch (e) { $('ps-result').innerHTML = `<p class="tax-err">${esc(e.message)}</p>`; return; }
     $('ps-result').innerHTML = `
       <div class="tax-eq">${out.tiles.map((t) => `<div class="${t.em ? 'em' : ''}"><span>${t.l}</span><b>${t.v}</b>${t.s ? `<small>${t.s}</small>` : ''}</div>`).join('')}</div>
+      ${out.table ? `<div class="ps-cmp"><table><thead><tr>${out.table.head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${out.table.rows.map((r) => `<tr class="${r[1].startsWith('✅') ? 'ok' : 'no'}">${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}
       ${out.rows.length ? `<table class="ps-table"><tbody>${out.rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</tbody></table>` : ''}
       <ul class="ps-notes">${out.notes.map((n) => `<li>${n}</li>`).join('')}</ul>
-      ${out.handoff ? `<div class="ps-actions"><button type="button" class="btn-primary" id="ps-send">帶入退休規劃 →</button><small>會填入退休規劃的「退休金每月」${out.handoff.lump ? '與「退休時一次領」' : ''}</small></div>` : ''}`;
+      ${out.handoff ? `<div class="ps-actions"><button type="button" class="btn-primary" id="ps-send">帶入退休規劃 →</button><small>會填入退休規劃的${out.handoff.monthly ? '「退休金每月」' : ''}${out.handoff.monthly && out.handoff.lump ? '與' : ''}${out.handoff.lump ? '「退休時一次領」' : ''}</small></div>` : ''}`;
     const b = $('ps-send');
     if (b) b.onclick = () => {
       const h = out.handoff;

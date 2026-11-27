@@ -61,3 +61,19 @@ test('農民：老農津貼 15 年全額、未滿半額；退儲金政府 6 成'
   assert.equal(f.allowance, 8110); assert.equal(f.total, 2950); assert.equal(f.gov, 1770); assert.equal(f.self, 1180);
   assert.equal(P.farmer({ age: 65, farmYears: 10 }).allowance, 4055);
 });
+
+test('勞保舊制一次請領條件', () => {
+  assert.equal(P.laborOldEligible({ years: 10, age: 58 }).ok, false);
+  assert.equal(P.laborOldEligible({ years: 10, age: 56, female: true }).ok, true);
+  assert.equal(P.laborOldEligible({ years: 16, age: 55 }).ok, true);
+  assert.equal(P.laborOldEligible({ years: 26, age: 50 }).ok, true);
+  assert.equal(P.laborOldEligible({ years: 26, age: 45, sameUnitYears: 25 }).ok, true);
+});
+test('勞基法舊制：年資零頭、基數、上限 45、退休條件新舊合計', () => {
+  assert.deepStrictEqual([0.3, 0.5, 10.2, 10.6, 15, 20, 40].map(P.stdYears), [0.5, 1, 10.5, 11, 15, 20, 40]);
+  assert.deepStrictEqual([10, 15, 20, 30, 40].map(P.stdBases), [20, 30, 35, 45, 45]);
+  const r = P.laborStd({ oldYears: 8, totalYears: 26, avgWage: 50000, retireAge: 50 });
+  assert.equal(r.eligible, true); assert.equal(r.amount, 800000);
+  assert.equal(P.laborStd({ oldYears: 8, totalYears: 20, avgWage: 50000, retireAge: 50 }).eligible, false);
+  assert.equal(P.laborStd({ oldYears: 8, totalYears: 26, avgWage: 50000, retireAge: 60, settled: true }).amount, 0);
+});
