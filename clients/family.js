@@ -118,6 +118,7 @@
     $('fo-members').querySelectorAll('[data-jump]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); select(a.dataset.jump); }));
     $('fo-rels').querySelectorAll('[data-rel]').forEach((b) => b.addEventListener('click', () => removeRel(b.dataset.rel)));
     drawGraph();
+    if (window.FoPlan) FoPlan.show(f.id, ms.map((m) => person(m.person_id)).filter(Boolean), rels);
   }
 
   function relText(r) {

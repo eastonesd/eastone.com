@@ -69,7 +69,9 @@
   //          parents:[{disabled}], dependents:[{age}], funeral, debts }
   function estate(input) {
     const R = RULES.estate;
-    const gross = int(input.gross, '遺產總額');
+    // 死亡前 2 年內贈與配偶、繼承人的財產視為遺產（遺贈稅法第 15 條）
+    const addBack = input.addBack ? int(input.addBack, '2 年內贈與') : 0;
+    const gross = int(input.gross, '遺產總額') + addBack;
     const items = [];
     const add = (label, amount, kind) => { if (amount > 0) items.push({ label, amount, kind }); };
     if (input.exemption) add('免稅額', R.exemption, 'exemption');
@@ -95,12 +97,14 @@
       add(`受扶養兄弟姊妹／祖父母 ${i + 1}${a !== null ? `（${a} 歲）` : ''}`, R.dependent * (1 + minorYears(a)), 'deduction');
     });
     if (input.funeral) add('喪葬費', R.funeral, 'deduction');
+    // 配偶主張剩餘財產差額分配請求權（遺贈稅法第 17 條之 1）
+    if (input.claim) add('配偶剩餘財產差額分配請求權', int(input.claim, '剩餘財產差額'), 'deduction');
     const debts = int(input.debts, '其他扣除額');
     add('其他扣除額（未償債務等）', debts, 'deduction');
     const totalOff = items.reduce((s, x) => s + x.amount, 0);
     const net = Math.max(0, gross - totalOff);
     const { bands, tax } = progressive(net, R.brackets);
-    return { gross, items, totalOff, net, bands, tax, effectiveRate: gross ? tax / gross : 0 };
+    return { gross, addBack, items, totalOff, net, bands, tax, effectiveRate: gross ? tax / gross : 0 };
   }
 
   // ---------- 贈與稅（同一位贈與人、同一年度）----------

@@ -1,0 +1,79 @@
+/* 家辦整合報告：在 report.css（A4 版面）上加的元件 */
+.fr-toc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.fr-toc div { background: var(--navy); color: #fff; border-radius: 10px; padding: 9px 12px; font-weight: 700; font-size: 11pt; }
+.fr-toc b { color: #E4C77E; margin-right: 8px; }
+.cv-agent small { display: block; font-size: 9pt; color: var(--soft); }
+
+.fr-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.fr-kpis div, .rp-sum div { border-radius: 10px; }
+.fr-kpis div { background: var(--mist); padding: 8px 12px; border-top: 4px solid var(--navy); }
+.fr-kpis span, .rp-sum span { display: block; font-size: 8.5pt; color: var(--soft); }
+.fr-kpis b { display: block; font-size: 16pt; color: var(--navy-deep); line-height: 1.3; }
+.fr-kpis em, .rp-sum em { display: block; font-style: normal; font-size: 8pt; color: var(--soft); margin: 0; font-weight: 400; }
+.fr-kpis .bad, .rp-sum .em { border-top-color: #A2402D; }
+.rp-sum .em b { color: #A2402D; }
+
+.fr-lights { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.fr-light { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--line); border-radius: 10px; padding: 7px 12px; }
+.fr-light b { display: block; font-size: 11pt; color: var(--navy-deep); }
+.fr-light span { font-size: 9pt; color: var(--soft); }
+.fr-light em { margin-left: auto; font-style: normal; font-size: 8.5pt; font-weight: 700; white-space: nowrap; }
+.fr-light.g em { color: #24723B; } .fr-light.y em { color: #9A6B12; } .fr-light.r em { color: #A2402D; } .fr-light.n em { color: var(--soft); }
+.fr-light.r { border-color: #E3B4A8; background: #FBF1EE; } .fr-light.y { border-color: #E9D6A5; background: #FDF8EC; }
+.fr-dot { flex: none; display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(0,0,0,.12); }
+.fr-dot.g { background: #2E9B4E; } .fr-dot.y { background: #E2A72E; } .fr-dot.r { background: #C8473A; } .fr-dot.n { background: #C9CCD3; }
+
+.fr-top { margin: 0; padding: 0; list-style: none; counter-reset: top; display: grid; gap: 6px; }
+.fr-top li { counter-increment: top; position: relative; padding: 8px 12px 8px 44px; border-radius: 10px; background: var(--mist); font-size: 10.5pt; line-height: 1.55; }
+.fr-top li::before { content: counter(top); position: absolute; left: 10px; top: 7px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font: 900 11pt "Noto Serif TC", serif; color: #fff; background: var(--navy); }
+.fr-top li.r::before { background: #C8473A; } .fr-top li.y::before { background: #C98F1A; } .fr-top li.g::before { background: #2E9B4E; }
+.fr-top b, .fr-acts b, .fr-verdict b { color: var(--navy-deep); }
+.fr-goals { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.fr-goals div { border-left: 4px solid var(--gold); background: var(--mist); padding: 5px 10px; border-radius: 0 8px 8px 0; font-size: 9.5pt; }
+.fr-goals b { color: var(--navy-deep); margin-right: 6px; }
+.fr-goals em { display: block; font-style: normal; color: var(--soft); font-size: 8.5pt; }
+
+.rp-sum { flex-wrap: wrap; margin: 0 0 6px; }
+.rp-sum b { display: block; font-size: 13.5pt; }
+.rp-table td.c, .rp-table th.c { text-align: center; }
+.rp-table .warn, .rp-note.warn { color: #A2402D; font-weight: 700; }
+.rp-table .ok { color: #24723B; }
+.fr-matrix { font-size: 8.8pt; }
+.fr-matrix td { vertical-align: middle; }
+.fr-matrix small { font-size: 7.5pt; color: var(--soft); }
+.fr-yes { font-weight: 700; color: var(--navy-deep); }
+.fr-no { color: #C8473A; font-weight: 900; }
+.fr-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 8.5pt; color: var(--ink); }
+.fr-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.fr-callout { margin: 8px 0 0; padding: 7px 12px; border-left: 4px solid #C98F1A; background: #FDF8EC; font-size: 9.5pt; border-radius: 0 8px 8px 0; }
+.fr-quote { margin: 0; padding: 8px 14px; background: var(--mist); border-radius: 8px; font-size: 10pt; white-space: pre-wrap; }
+.fr-line { margin: 0; font-size: 10pt; }
+.fr-est td:first-child { width: 70%; }
+
+.fr-src { display: grid; gap: 6px; margin-bottom: 8px; }
+.fr-src > div { display: grid; grid-template-columns: 7em 1fr 6em; gap: 10px; align-items: center; font-size: 9.5pt; }
+.fr-src b { text-align: right; color: var(--navy-deep); }
+.fr-bar { height: 14px; background: var(--mist); border-radius: 7px; overflow: hidden; }
+.fr-bar i { display: block; height: 100%; border-radius: 7px; }
+.fr-bar .t { background: #C8473A; } .fr-bar .c { background: #4F7A5A; } .fr-bar .s { background: var(--gold); }
+.fr-verdict { margin: 6px 0; padding: 8px 12px; border-radius: 10px; font-size: 10pt; line-height: 1.6; }
+.fr-verdict.ok, .fr-verdict.none { background: #EAF5EC; border-left: 5px solid #2E9B4E; }
+.fr-verdict.ins { background: #FDF8EC; border-left: 5px solid #C98F1A; }
+.fr-verdict.gap { background: #FBF1EE; border-left: 5px solid #C8473A; }
+
+.fr-chart { width: 100%; height: auto; margin: 6px 0; }
+.fr-chart text { font-size: 10px; fill: var(--soft); }
+.fr-chart .g { stroke: var(--line); stroke-dasharray: 3 3; } .fr-chart .z { stroke: #C8473A; } .fr-chart .r { stroke: var(--gold); stroke-dasharray: 4 3; }
+.fr-chart .ln { fill: none; stroke: var(--navy); stroke-width: 2.5; }
+
+.fr-acts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.fr-acts li { display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 10px; font-size: 10pt; line-height: 1.55; break-inside: avoid; }
+.fr-acts li .fr-dot { margin-top: 3px; }
+.fr-acts li div { flex: 1; }
+.fr-check { white-space: nowrap; font-size: 9pt; color: var(--soft); }
+.notes-lines { display: grid; gap: 0; }
+.notes-lines i { display: block; height: 9mm; border-bottom: 1px solid var(--line); }
+.fr-sign { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; margin-top: 10mm; }
+.fr-sign div { border-bottom: 2px solid var(--navy); min-height: 18mm; padding: 2px 4px; display: flex; flex-direction: column; justify-content: space-between; }
+.fr-sign span { font-size: 9pt; color: var(--soft); }
+.fr-sign b { font: 700 13pt "Noto Serif TC", serif; color: var(--navy-deep); }
