@@ -25,6 +25,9 @@ function loginUrl() {
 
 let AUTH_REQUIRED = false; // 這頁是否需要登入（requireLogin 呼叫過）
 
+// 助理帳號：登入後在資料庫裡「代表」主要業務員（staff_assistants）；APP_UID 就是資料的擁有者
+let APP_UID = null;
+
 async function requireLogin(rootPrefix, opts = {}) {
   AUTH_REQUIRED = true;
   const { data } = await sb.auth.getSession();
@@ -33,17 +36,87 @@ async function requireLogin(rootPrefix, opts = {}) {
     location.replace(loginUrl());
     return new Promise(() => {}); // 停在這裡，不要繼續執行頁面初始化
   }
+  const staff = await loadStaff(session.user);
   // 客戶帳號（綁定在客戶專區）不能進業務員頁面，導去「我的保單」；文件下載、診股這類共用頁面不擋（opts.allowPortal）
-  if (!opts.allowPortal) try {
+  if (!staff && !opts.allowPortal) try {
     const { data: me } = await sb.from('portal_links').select('user_id').eq('user_id', session.user.id).maybeSingle();
     if (me) { location.replace(`${AUTH_ROOT}my/index.html`); return new Promise(() => {}); }
   } catch { /* 查不到就照常 */ }
+  // 團隊成員（含助理）一定要通過雙重驗證才繼續
+  if (staff) await ensureMfa(session.user);
   renderAvatar(session.user);
   // 在其他分頁登出、或登入過期時，這頁也跟著回到登入頁
   sb.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') location.replace(loginUrl());
   });
-  return session.user;
+  APP_UID = (staff && staff.principal) || session.user.id;
+  // 回傳的 id 是「資料擁有者」：助理拿到的是主要業務員的 id（建立的資料都歸在主要業務員名下）
+  return APP_UID === session.user.id ? session.user : { ...session.user, id: APP_UID, realId: session.user.id };
+}
+
+// ============================================================
+// 雙重驗證（驗證 App 動態碼，TOTP）
+// 還沒綁定 → 顯示 QR code 綁定；已綁定但這次登入還沒驗證 → 輸入 6 位數
+// 資料庫也有把關（mfa_ok）：已綁定的帳號沒驗證就讀不到客戶資料
+// ============================================================
+async function ensureMfa(user) {
+  try {
+    const { data: aal, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error) throw error;
+    if (aal.currentLevel === 'aal2') return;
+    const { data: f, error: e2 } = await sb.auth.mfa.listFactors();
+    if (e2) throw e2;
+    const verified = (f.totp || []).filter((x) => x.status === 'verified');
+    if (verified.length) return mfaDialog('verify', { factorId: verified[0].id });
+    // 清掉上次沒完成的綁定，再重新產生 QR code
+    for (const x of (f.all || []).filter((x) => x.status !== 'verified')) { try { await sb.auth.mfa.unenroll({ factorId: x.id }); } catch { /* 略過 */ } }
+    const { data: en, error: e3 } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: `東石家辦 ${new Date().toISOString().slice(0, 10)}` });
+    if (e3) throw e3;
+    return mfaDialog('enroll', { factorId: en.id, qr: en.totp.qr_code, secret: en.totp.secret, email: user.email });
+  } catch (e) {
+    console.error('[mfa]', e);
+    return mfaDialog('error', { msg: (e && e.message) || String(e) });
+  }
+}
+
+function mfaDialog(mode, o) {
+  return new Promise((resolve) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'mfa-overlay';
+    const codeBox = `<input class="mfa-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" placeholder="6 位數驗證碼">
+      <button type="button" class="mfa-go">確認</button><div class="mfa-err" role="alert"></div>`;
+    const body = {
+      enroll: `<h2>設定雙重驗證</h2>
+        <p>為了保護客戶資料，團隊帳號需要綁定手機驗證 App（只要設定一次）。</p>
+        <ol><li>手機安裝 <b>Google Authenticator</b> 或 <b>Microsoft Authenticator</b>。</li>
+        <li>打開 App，按「＋」→「掃描 QR 碼」，掃下面這張圖。</li>
+        <li>輸入 App 顯示的 6 位數字。</li></ol>
+        <div class="mfa-qr"><img alt="雙重驗證 QR code" src="${o.qr}"></div>
+        <details class="mfa-key"><summary>無法掃描？改用金鑰手動輸入</summary><code>${String(o.secret || '').replace(/(.{4})/g, '$1 ').trim()}</code></details>
+        ${codeBox}`,
+      verify: `<h2>雙重驗證</h2><p>請打開手機的驗證 App，輸入「東石家辦」顯示的 6 位數字。</p>${codeBox}
+        <p class="mfa-help">手機遺失或換手機，請主管在「團隊」頁幫您重設。</p>`,
+      error: `<h2>雙重驗證暫時無法使用</h2><p class="mfa-err">${String(o.msg || '').replace(/[<>&]/g, '')}</p>
+        <p>請重新整理再試一次；一直失敗請聯絡主管。</p><button type="button" class="mfa-go" data-reload>重新整理</button>`,
+    }[mode];
+    wrap.innerHTML = `<div class="mfa-box" role="dialog" aria-modal="true">${body}<button type="button" class="mfa-out">登出</button></div>`;
+    document.body.appendChild(wrap);
+    const input = wrap.querySelector('.mfa-code'), go = wrap.querySelector('.mfa-go'), err = wrap.querySelector('.mfa-err');
+    wrap.querySelector('.mfa-out').addEventListener('click', async () => { await sb.auth.signOut({ scope: 'local' }); location.replace(loginUrl()); });
+    if (mode === 'error') { go.addEventListener('click', () => location.reload()); return; }
+    input.focus();
+    const submit = async () => {
+      const code = input.value.replace(/\D/g, '');
+      if (code.length !== 6) { err.textContent = '請輸入 6 位數字'; return; }
+      go.disabled = true; err.textContent = '驗證中…';
+      const { error } = await sb.auth.mfa.challengeAndVerify({ factorId: o.factorId, code });
+      if (error) { go.disabled = false; err.textContent = '驗證碼不正確或已過期，請輸入 App 上最新的數字'; input.select(); return; }
+      wrap.remove(); resolve();
+    };
+    go.addEventListener('click', submit);
+    input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 6); if (input.value.length === 6) submit(); });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  });
 }
 
 const CONTACT_EMAIL = 'eastone.sd@gmail.com'; // 「聯絡我們」收信信箱
@@ -115,7 +188,12 @@ function cachedStaff(uid) { try { const c = JSON.parse(sessionStorage.getItem(ST
 async function loadStaff(user) {
   try {
     const { data } = await sb.from('team_members').select('name, role').eq('user_id', user.id).maybeSingle();
-    const staff = data && data.name ? { name: data.name, role: data.role } : null;
+    let staff = data && data.name ? { name: data.name, role: data.role } : null;
+    if (!staff) {
+      // 助理：代表主要業務員
+      const { data: a } = await sb.from('staff_assistants').select('principal, name').eq('assistant', user.id).maybeSingle();
+      if (a) staff = { name: a.name || '助理', role: 'assistant', principal: a.principal };
+    }
     try { sessionStorage.setItem(STAFF_KEY, JSON.stringify({ uid: user.id, staff })); } catch { /* 無痕 */ }
     return staff;
   } catch { return cachedStaff(user.id); }
@@ -167,7 +245,7 @@ function toggleAccountMenu(btn) {
   menu.querySelector('.acct-badge').textContent = btn.textContent;
   const staff = btn._staff;
   menu.querySelector('.acct-email').textContent = staff ? staff.name : accountName(email);
-  menu.querySelector('.acct-sub').textContent = staff ? `${staff.role === 'manager' ? '主管' : '業務員'}・帳號 ${accountName(email)}` : '東石家族辦公室帳號';
+  menu.querySelector('.acct-sub').textContent = staff ? `${{ manager: '主管', assistant: '助理' }[staff.role] || '業務員'}・帳號 ${accountName(email)}` : '東石家族辦公室帳號';
   // 放在 body 最上層，用頭像的位置定位，不會被頁面內容蓋住
   const r = btn.getBoundingClientRect();
   menu.style.top = `${Math.round(r.bottom + 8)}px`;

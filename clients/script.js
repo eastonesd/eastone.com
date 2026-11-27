@@ -1086,7 +1086,7 @@ function bindConsent(c, list) {
           if (raw.size > 25 * 1024 * 1024) throw new Error(`「${raw.name}」超過 25MB`);
           const f = await csShrink(raw);
           const ext = f.type === "application/pdf" ? "pdf" : (f.type.split("/")[1] || "jpg");
-          const path = `${user.id}/${c.id}/consent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+          const path = `${APP_UID || user.id}/${c.id}/consent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
           const up = await sb.storage.from("fin-docs").upload(path, f, { contentType: f.type });
           if (up.error) throw new Error("上傳失敗：" + up.error.message);
           const ins = await sb.from("client_consents").insert({ client_id: c.id, file_path: path, file_name: raw.name, mime: f.type });

@@ -133,8 +133,7 @@
     if (!ME) return;
     const raw = {}; FIELDS.forEach((k) => { raw[k] = $('rt-' + k).value === '' ? null : Number($('rt-' + k).value); });
     raw.otherIncome = other; raw.bigs = bigs;
-    const { data: { user } } = await sb.auth.getUser();
-    const { error } = await sb.from('retire_plans').upsert({ owner: user.id, client_id: ME.id, params: raw, updated_at: new Date().toISOString() });
+    const { error } = await sb.from('retire_plans').upsert({ owner: APP_UID, client_id: ME.id, params: raw, updated_at: new Date().toISOString() });
     $('rt-saved').textContent = error ? `儲存失敗：${error.message}` : `已儲存（${new Date().toLocaleTimeString('zh-TW')}）`;
   }
 

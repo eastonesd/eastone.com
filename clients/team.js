@@ -23,9 +23,28 @@
     $('tm-members').hidden = false; $('tm-load').hidden = true;
     $('tm-members').addEventListener('click', (e) => { const b = e.target.closest('button[data-u]'); if (b) open(b.dataset.u); });
     $('tm-search').addEventListener('input', draw);
+    loadMfa();
     const want = new URLSearchParams(location.search).get('member');
     open(members.some((m) => m.user_id === want) ? want : members[0].user_id);
   }
+
+  // 雙重驗證：誰綁定了、主管可重設
+  async function loadMfa() {
+    const { data, error } = await sb.rpc('team_mfa_status');
+    if (error) return;
+    const KIND = { manager: '主管', member: '業務員', assistant: '助理' };
+    $('tm-mfa').innerHTML = `<ul class="tm-mfa">${(data || []).map((r) => `<li><b>${esc(r.name)}</b><span>${KIND[r.kind] || ''}</span>
+      <i class="${r.bound ? 'ok' : 'no'}">${r.bound ? '已綁定' : '尚未綁定'}</i>
+      ${r.bound ? `<button type="button" class="link-btn" data-reset="${r.user_id}" data-name="${esc(r.name)}">重設</button>` : ''}</li>`).join('')}</ul>`;
+    $('tm-mfa-card').hidden = false;
+  }
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-reset]'); if (!b) return;
+    if (!confirm(`重設 ${b.dataset.name} 的驗證 App？對方下次登入要重新掃描綁定。`)) return;
+    const { error } = await sb.rpc('team_mfa_reset', { p_user: b.dataset.reset });
+    if (error) { alert(`重設失敗：${error.message}`); return; }
+    loadMfa();
+  });
 
   async function open(uid) {
     cur = members.find((m) => m.user_id === uid);

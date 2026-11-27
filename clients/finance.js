@@ -986,7 +986,7 @@ async function uploadDoc(file, assetId) {
   const f = await shrinkImage(file);
   const { data: { user } } = await sb.auth.getUser();
   const ext = f.type === 'application/pdf' ? 'pdf' : (f.type.split('/')[1] || 'jpg');
-  const path = `${user.id}/${client.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const path = `${APP_UID || user.id}/${client.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error } = await sb.storage.from('fin-docs').upload(path, f, { contentType: f.type });
   if (error) throw new Error('上傳失敗：' + error.message);
   const { data: row, error: e2 } = await sb.from('fin_documents').insert({ client_id: client.id, asset_id: assetId || null, file_path: path, file_name: file.name, mime: f.type, size: f.size }).select().single();

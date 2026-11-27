@@ -42,8 +42,8 @@
       if (typeof sb === 'undefined') return;
       const { data: s } = await sb.auth.getSession();
       if (!s || !s.session) return;
-      const { data } = await sb.from('team_members').select('role').eq('user_id', s.session.user.id).maybeSingle();
-      if (!data || data.role !== 'manager') return;
+      const { data: mgr } = await sb.rpc('fo_is_manager'); // 主管（含主管的助理）
+      if (mgr !== true) return;
       const a = document.createElement('a');
       a.className = 'cm-tab' + (document.body.dataset.cm === 'team' ? ' active' : '');
       a.dataset.m = 'team'; a.href = `${root}clients/team.html`; a.textContent = '團隊';

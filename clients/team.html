@@ -10,9 +10,9 @@
 <link rel="icon" href="../favicon.ico?v=3" sizes="any">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=3">
 <link rel="stylesheet" href="../shared/site-header.css?v=20261127-1">
-<link rel="stylesheet" href="../shared/auth.css?v=20261118-1">
+<link rel="stylesheet" href="../shared/auth.css?v=20261127-1">
 <link rel="stylesheet" href="style.css?v=20261121-1">
-<link rel="stylesheet" href="team.css?v=20261127-1">
+<link rel="stylesheet" href="team.css?v=20261127-2">
 </head>
 <body data-cm="team" data-cm-root="../">
 
@@ -48,11 +48,16 @@
   <section class="card tm-card" id="tm-log-card" hidden>
     <details><summary>檢視紀錄</summary><div id="tm-log"></div></details>
   </section>
+  <section class="card tm-card" id="tm-mfa-card" hidden>
+    <h3 class="tm-h3">雙重驗證</h3>
+    <p class="tm-note">每個人第一次登入時用手機驗證 App 綁定。手機遺失或換手機，按「重設」，對方下次登入會重新綁定。</p>
+    <div id="tm-mfa"></div>
+  </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script src="../shared/supabase-client.js?v=20261120-2"></script>
-<script src="../shared/auth.js?v=20261127-1"></script>
-<script src="team.js?v=20261127-1"></script>
-<script src="../shared/cm-nav.js?v=20261127-1"></script>
+<script src="../shared/auth.js?v=20261127-2"></script>
+<script src="team.js?v=20261127-2"></script>
+<script src="../shared/cm-nav.js?v=20261127-2"></script>
 </body>
 </html>

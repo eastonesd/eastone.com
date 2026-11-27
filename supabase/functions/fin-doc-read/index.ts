@@ -89,6 +89,9 @@ Deno.serve(async (req) => {
     const { data: u } = await db.auth.getUser(auth.replace(/^Bearer\s+/i, ""));
     if (!u?.user) return json({ error: "請先登入" }, 401);
     uid = u.user.id;
+    // 助理：代表主要業務員（staff_assistants）
+    const { data: sa } = await db.from("staff_assistants").select("principal").eq("assistant", uid).maybeSingle();
+    if (sa?.principal) uid = sa.principal;
   }
   if (!Deno.env.get("ANTHROPIC_API_KEY")) return json({ error: "伺服器尚未設定 ANTHROPIC_API_KEY" }, 503);
   const body = await req.json().catch(() => ({}));
