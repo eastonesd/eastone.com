@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../shared/theme-tokens.css?v=20261118-1">
+<script src="../shared/theme.js?v=20261123-1"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>團隊｜東石家族辦公室</title>
+<link rel="icon" href="../favicon.ico?v=3" sizes="any">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=3">
+<link rel="stylesheet" href="../shared/site-header.css?v=20261127-1">
+<link rel="stylesheet" href="../shared/auth.css?v=20261118-1">
+<link rel="stylesheet" href="style.css?v=20261121-1">
+<link rel="stylesheet" href="team.css?v=20261127-1">
+</head>
+<body data-cm="team" data-cm-root="../">
+
+<div class="ghdr-wrap">
+  <div class="ghdr-brand">
+    <img class="ghdr-mark" src="../icons/logo.png?v=3" alt="東石家族辦公室">
+    <div>
+      <div class="ghdr-title">東石家族辦公室</div>
+      <div class="ghdr-sub">EASTONE FAMILY OFFICE</div>
+    </div>
+  </div>
+  <nav class="ghdr-nav">
+    <button onclick="location.href='../index.html#claim'">文件下載</button>
+    <button onclick="location.href='../market/index.html'">財經日報</button>
+    <button class="active" onclick="location.href='../clients/index.html#filelist'">客戶管理</button>
+    <button onclick="location.href='../stock/index.html'">東石診股</button>
+  </nav>
+</div>
+
+<main class="tm-main">
+  <div class="tm-head">
+    <div><h1>團隊<small>TEAM VIEW</small></h1><p class="tm-sub">主管唯讀檢視成員的客戶；每次查看都會留下紀錄，成員看得到。</p></div>
+  </div>
+  <p class="tm-load" id="tm-load">讀取中…</p>
+  <nav class="tm-members" id="tm-members" hidden></nav>
+  <section class="card tm-card" id="tm-body" hidden>
+    <div class="tm-toolbar">
+      <div class="tm-stats" id="tm-stats"></div>
+      <input type="search" id="tm-search" placeholder="搜尋姓名、ID">
+    </div>
+    <div class="tm-table-wrap"><table class="tm-table" id="tm-table"></table></div>
+  </section>
+  <section class="card tm-card" id="tm-log-card" hidden>
+    <details><summary>檢視紀錄</summary><div id="tm-log"></div></details>
+  </section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+<script src="../shared/supabase-client.js?v=20261120-2"></script>
+<script src="../shared/auth.js?v=20261127-1"></script>
+<script src="team.js?v=20261127-1"></script>
+<script src="../shared/cm-nav.js?v=20261127-1"></script>
+</body>
+</html>

@@ -171,6 +171,7 @@ html[data-theme="dark"] .cm-bar { background: #141E33; }
 .cm-era { flex: none; margin-left: 12px; }
 @media (max-width: 600px) {
   .cm-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .cm-bar.has-team { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .cm-title { grid-column: 1 / -1; }
   .cm-tab { padding: 7px 2px; }
   .cm-era { grid-column: 1 / -1; justify-self: center; margin: 4px 0 0; }

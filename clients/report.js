@@ -37,7 +37,8 @@ let RES = null, INSURED = null;
 document.addEventListener("DOMContentLoaded", async () => {
   await requireLogin("../");
   const id = (new URLSearchParams(location.search).get("id") || "").toUpperCase();
-  $("rp-back").href = `checkup.html?id=${encodeURIComponent(id)}`;
+  $("rp-back").href = VIEW_OWNER ? `team.html?member=${encodeURIComponent(VIEW_OWNER)}` : `checkup.html?id=${encodeURIComponent(id)}`;
+  if (VIEW_OWNER) sb.rpc("team_log", { p_owner: VIEW_OWNER, p_client: id, p_action: "report" }).then(() => {}, () => {});
   let agent = {};
   try { agent = JSON.parse(localStorage.getItem(AGENT_KEY) || "{}"); } catch { /* 沒存過 */ }
   try {

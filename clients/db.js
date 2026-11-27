@@ -155,7 +155,14 @@ async function codeDelete(code, company = DEFAULT_CODE_COMPANY) {
 // ---------- 客戶（clients，含內嵌的 policies 陣列） ----------
 // 資料表結構：owner（建立者，自動帶入）、id（客戶ID）、data（整筆客戶資料 JSON）
 
+// 團隊主管檢視：網址帶 ?owner=<成員 uid> 時，改讀該成員的客戶（RPC 會確認呼叫者是主管，並留下檢視紀錄）
+const VIEW_OWNER = (() => { try { return new URLSearchParams(location.search).get('owner') || ''; } catch { return ''; } })();
 async function clientList() {
+  if (VIEW_OWNER) {
+    const { data, error } = await sb.rpc('team_clients', { p_owner: VIEW_OWNER });
+    sbThrow(error, '讀取成員的客戶');
+    return (data || []).filter(Boolean);
+  }
   const rows = await fetchAllRows('clients', 'data', '讀取客戶列表');
   return rows
     .map((r) => r.data)

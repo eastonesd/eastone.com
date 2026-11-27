@@ -55,7 +55,13 @@
     if (!ME) { $('lg-note').innerHTML = '<p class="tax-err">找不到這位客戶。</p>'; return; }
     $('lg-note').innerHTML = '<p class="tax-note">讀取中…</p>';
     try {
-      const pick = async (t) => { const { data, error } = await sb.from(t).select('*').eq('client_id', id); if (error) throw error; return data || []; };
+      // 團隊主管檢視成員的客戶：資產負債改用 team_fin（唯讀、留紀錄）
+      let team = null;
+      if (VIEW_OWNER) { const { data, error } = await sb.rpc('team_fin', { p_owner: VIEW_OWNER, p_client: id }); if (error) throw error; team = data || {}; }
+      const pick = async (t) => {
+        if (team) return team[{ fin_assets: 'assets', fin_asset_values: 'assetValues', fin_liabilities: 'liabilities', fin_liability_balances: 'liabilityBalances' }[t]] || [];
+        const { data, error } = await sb.from(t).select('*').eq('client_id', id); if (error) throw error; return data || [];
+      };
       const [fam, assets, assetValues, liabilities, liabilityBalances, fxRes, fx] = await Promise.all([
         loadHeirs(id).catch((e) => ({ heirs: [], note: `家族名單讀取失敗：${e.message || e}` })),
         pick('fin_assets'), pick('fin_asset_values'), pick('fin_liabilities'), pick('fin_liability_balances'),
