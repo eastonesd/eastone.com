@@ -74,6 +74,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   buildStaticOptions();
   bindForm();
   renderClient();
+  // 客戶文件區：上傳保單截圖自動建檔，建完重新讀客戶資料
+  ClientDocs.mount(document.getElementById("pf-docs"), { clientId: client.id, onPolicies: async () => { client = await clientGet(client.id); renderClient(); } });
 
   const i = params.get("i");
   if (i !== null && client.policies && client.policies[+i]) loadPolicy(+i);

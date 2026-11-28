@@ -1,0 +1,43 @@
+/* 客戶文件區＋上傳保單截圖自動建檔（policy.html、team.html） */
+.cd-card { margin-bottom: 18px; }
+.cd-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.cd-bar > b { font-size: 16px; color: var(--tc-fg-1b2a4a); }
+.cd-bar > span { font-size: 13px; color: var(--tc-fg-6b6656); margin-right: auto; }
+.cd-bar button { min-height: 40px; width: auto; flex: none; padding: 0 16px; }
+.cd-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
+.cd-list li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--tc-bd-d8d0bc); border-radius: 10px; flex-wrap: wrap; }
+.cd-list a { color: var(--tc-fg-1b2a4a); font-weight: 600; word-break: break-all; }
+.cd-list small { color: var(--tc-fg-6b6656); font-size: 12px; }
+.cd-kind { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--tc-bg-f6f3ec); color: var(--tc-fg-6b6656); white-space: nowrap; }
+.cd-del { margin-left: auto; background: none; border: 1px solid var(--tc-bd-d8d0bc); border-radius: 8px; padding: 4px 10px; color: var(--tc-fg-6b6656); cursor: pointer; font: inherit; font-size: 13px; }
+.cd-empty { margin: 10px 0 0; font-size: 14px; color: var(--tc-fg-6b6656); }
+
+.cd-modal { position: fixed; inset: 0; z-index: 1000; background: rgba(10, 14, 24, .55); display: flex; align-items: flex-start; justify-content: center; padding: 4vh 12px; overflow-y: auto; }
+.cd-box { width: min(860px, 100%); background: var(--tc-bg-ffffff); color: inherit; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.3); }
+.cd-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--tc-bd-d8d0bc); }
+.cd-head b { font-size: 17px; color: var(--tc-fg-1b2a4a); }
+.cd-x { width: 40px; height: 40px; border: none; background: none; font-size: 18px; cursor: pointer; color: var(--tc-fg-6b6656); }
+.cd-body { padding: 16px 18px 20px; }
+.cd-hint { font-size: 13px; color: var(--tc-fg-6b6656); margin: 0 0 10px; line-height: 1.6; }
+.cd-drop { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 22px; border: 2px dashed var(--tc-bd-b8892b); border-radius: 12px; cursor: pointer; background: var(--tc-bg-fbfaf6); }
+.cd-drop span { font-weight: 700; color: var(--tc-fg-1b2a4a); }
+.cd-drop small { color: var(--tc-fg-6b6656); }
+.cd-files { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.cd-files span { font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--tc-bg-f6f3ec); }
+.cd-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+.cd-actions button { min-height: 44px; padding: 0 20px; }
+.cd-wait { font-weight: 700; color: var(--tc-fg-1b2a4a); }
+.cd-warn { color: #c0563f; font-weight: 700; }
+.cd-ok { color: var(--tc-fg-1b2a4a); }
+.cd-warns { margin: 0 0 10px; padding: 8px 12px 8px 28px; border-radius: 10px; background: rgba(201, 143, 26, .12); font-size: 13px; line-height: 1.6; }
+.cd-pol { border: 1px solid var(--tc-bd-d8d0bc); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+.cd-pick { display: block; cursor: pointer; }
+.cd-pick input { width: 18px; height: 18px; vertical-align: -3px; }
+.cd-pick small { display: block; margin: 2px 0 0 24px; font-size: 12px; color: var(--tc-fg-6b6656); }
+.cd-dup { font-style: normal; font-size: 12px; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: rgba(192, 86, 63, .14); color: #c0563f; }
+.cd-new, .cd-miss { font-style: normal; font-size: 11px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: rgba(201, 143, 26, .16); color: #b07d14; }
+.cd-t { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.cd-t th { text-align: left; font-weight: 600; color: var(--tc-fg-6b6656); border-bottom: 1px solid var(--tc-bd-d8d0bc); padding: 4px 6px; }
+.cd-t td { padding: 4px 6px; border-bottom: 1px solid var(--tc-bd-ede8dc); vertical-align: top; }
+.cd-t .num { text-align: right; white-space: nowrap; }
+@media (max-width: 640px) { .cd-t th:nth-child(4), .cd-t td:nth-child(4) { display: none; } .cd-bar button { flex: 1 1 100%; } }

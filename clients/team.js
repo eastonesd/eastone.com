@@ -82,14 +82,20 @@
         <td class="c">${r.age}</td><td class="c">${r.life || '—'}</td><td class="c">${r.pc || '—'}</td>
         <td>${r.c.last_checkup ? `${roc(r.c.last_checkup)}${days(r.nextCheck) <= 30 ? '<em class="warn">該做健診</em>' : ''}` : '<em class="warn">未登錄</em>'}</td>
         <td class="c"><span class="tm-lamp ${r.signed ? 'on' : 'off'}" title="${r.signed ? '已上傳' : '未上傳'}"></span></td>
-        <td class="tm-act">${r.life ? `<a href="report.html?id=${encodeURIComponent(r.c.id)}&owner=${cur.user_id}">健診報告</a>` : ''}<a href="legacy.html?id=${encodeURIComponent(r.c.id)}&owner=${cur.user_id}">傳承規劃</a></td>
+        <td class="tm-act">${r.life ? `<a href="report.html?id=${encodeURIComponent(r.c.id)}&owner=${cur.user_id}">健診報告</a>` : ''}<a href="legacy.html?id=${encodeURIComponent(r.c.id)}&owner=${cur.user_id}">傳承規劃</a><a href="#" data-imp="${esc(r.c.id)}">📎 代為建檔</a></td>
       </tr>`).join('') || '<tr><td colspan="7">沒有符合的客戶</td></tr>'}</tbody>`;
+    // 主管代成員建檔：上傳保單截圖 → AI 判讀 → 寫進成員的客戶（留紀錄）
+    document.querySelectorAll('#tm-table [data-imp]').forEach((a) => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const uid = cur.user_id;
+      ClientDocs.importPolicies({ clientId: a.dataset.imp, owner: uid, onDone: () => { if (cur && cur.user_id === uid) open(uid); } });
+    }));
   }
 
   async function loadLog(uid) {
     const { data } = await sb.from('team_access_log').select('client_id, action, at').eq('member', uid).order('at', { ascending: false }).limit(30);
     const name = new Map(rows.map((r) => [r.c.id, r.c.name]));
-    const A = { list: '查看客戶清單', report: '開啟健診報告', fin: '開啟傳承規劃（資產負債）' };
+    const A = { list: '查看客戶清單', report: '開啟健診報告', fin: '開啟傳承規劃（資產負債）', policy_import: '代為建立保單' };
     $('tm-log-card').hidden = false;
     $('tm-log').innerHTML = (data || []).length ? `<ul>${data.map((l) => `<li>${new Date(l.at).toLocaleString('zh-TW', { hour12: false })}　${A[l.action] || esc(l.action)}${l.client_id ? `：${esc(name.get(l.client_id) || l.client_id)}` : ''}</li>`).join('')}</ul>` : '<p>還沒有紀錄。</p>';
   }
