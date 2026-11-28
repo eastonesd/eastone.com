@@ -79,7 +79,23 @@ async function remove(table, id) {
 
 // ---------- 計算 ----------
 function inputFor(asOf, from, to) {
-  return { ...data, fx, asOf, periodFrom: from, periodTo: to };
+  return { ...data, fx, asOf, periodFrom: from, periodTo: to, divRates };
+}
+// 每單位配息（東石診股 data/funds/div）：只抓收支排程「依單位數試算」用到的基金
+let divRates = {};
+async function loadDivRates() {
+  const ids = new Set();
+  (data.cashSchedules || []).forEach((s) => { const m = s.meta || {}; if (m.calc === 'units_div') (m.assets || []).forEach((id) => { const a = data.assets.find((x) => x.id === id); if (a && a.identifier) ids.add(a.identifier); }); });
+  const need = [...ids].filter((id) => !divRates[id]);
+  if (!need.length) return false;
+  await Promise.all(need.map(async (id) => {
+    try {
+      const res = await fetch(`${STOCK_SITE}data/funds/div/${encodeURIComponent(id)}.csv`, { cache: 'no-cache' });
+      if (!res.ok) return;
+      divRates[id] = (await res.text()).trim().split('\n').slice(1).map((l) => { const [date, amount] = l.split(','); return { date, amount: Number(amount) }; }).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x.date) && x.amount > 0);
+    } catch { /* 讀不到就用排程上的金額 */ }
+  }));
+  return true;
 }
 function recompute() {
   const asOf = $('fin-asof').value || todayIso();
@@ -139,6 +155,7 @@ async function openClient(id) {
   $('fin-empty').hidden = true; $('fin-body').hidden = false;
   showFxStatus();
   recompute();
+  loadDivRates().then((got) => { if (got) recompute(); });
   // 打開客戶就自動向東石診股更新一次行情；台股交易時段每 5 分鐘再更新
   refreshQuotes(true);
   clearInterval(quoteTimer);
@@ -147,7 +164,7 @@ async function openClient(id) {
     if (d >= 1 && d <= 5 && hm >= 900 && hm <= 1335 && !document.hidden) refreshQuotes(true);
   }, 5 * 60e3);
 }
-async function reload() { showFxStatus(); if (!client) return; data = await loadClientData(client.id); recompute(); }
+async function reload() { showFxStatus(); if (!client) return; data = await loadClientData(client.id); await loadDivRates(); recompute(); }
 
 function showFxStatus() {
   const usd = fx.filter((q) => q.currency === 'USD' && !q.owner)[0];
@@ -513,6 +530,9 @@ function renderSnaps() {
   }));
 }
 
+async function agentInfo() {
+  try { const { data: t } = await sb.from('team_members').select('name, life_license').eq('user_id', APP_UID).maybeSingle(); return t ? { name: t.name, license: t.life_license || '' } : null; } catch { return null; }
+}
 async function saveSnapshot() {
   if (!data) { toast('請先選擇客戶'); return; }
   const title = prompt('報表名稱', `${client.name} 資產負債報表 ${$('fin-asof').value}`);
@@ -524,7 +544,7 @@ async function saveSnapshot() {
   const { error } = await sb.from('fin_snapshots').insert({
     client_id: client.id, as_of: input.asOf, period_from: res.period.from, period_to: res.period.to, title,
     rules_version: C.RULES_VERSION,
-    payload: C.serialize({ ...raw, client: { id: client.id, name: client.name }, generatedAt: new Date().toISOString() }),
+    payload: C.serialize({ ...raw, client: { id: client.id, name: client.name }, agent: await agentInfo(), generatedAt: new Date().toISOString() }),
     result: { ...C.serialize(res), summary },
   });
   if (error) { toast('存檔失敗：' + error.message); return; }
@@ -620,6 +640,7 @@ function assetForm(a, preset) {
     { k: 'identifier', label: '代號', ph: '股票代號（例 2330、AAPL）', upper: true, when: 'category=stock|mcn|other' },
     { k: 'fund_pick', label: '基金（從東石診股清單選，含完整級別與幣別）', when: 'category=fund', pick: 'fin-fund', hint: '可輸入名稱、ISIN 或代碼搜尋；選定後會自動填幣別，淨值每天自動更新' },
     { k: 'meta_class', label: '基金級別', ph: '例：A 累積 美元', when: 'category=fund' },
+    { k: 'meta_buy_date', label: '申購日期', type: 'date', when: 'category=fund|stock|mcn|investment_policy|savings_policy' },
     { k: 'share_pct', label: '持分（%）', type: 'number', def: 100, when: 'category=house|land|equity', hint: '估值填整體市值時，系統只換算一次持分' },
     { k: 'meta_region', label: '地區描述', when: 'category=house|land' },
     { k: 'meta_plate', label: '車牌', when: 'category=vehicle' },

@@ -199,3 +199,36 @@ test('投資型保單連結基金：一律改算基金、保單不重複', () =>
   assert.equal(ip.status, 'funds_sum');
   assert.equal(N(ip.fundsTotal), 116 * W);
 });
+
+test('未付利息試算：周年繳息從餘額日加計；每月繳息從上次繳息日起算', () => {
+  const r = C.compute({ asOf: '2026-11-28', fx: [],
+    liabilities: [
+      liab('Y', { rate: 2.5, frequency: '每年（周年日）', pay_day: '借款周年日繳息', rate_from: '2026-05-11' }),
+      liab('M', { rate: 3, frequency: '每月', pay_day: '20', rate_from: '2026-08-01' }),
+      liab('P', { rate: 5.8, frequency: '每年', pay_day: '每年8月8日', rate_from: '2026-08-08', currency: 'USD' }),
+    ],
+    liabilityBalances: [
+      bal('Y', 12830000, { as_of: '2026-11-19', accrued_interest: 320750 }),
+      bal('M', 7677100, { as_of: '2026-11-19', accrued_interest: 0 }),
+      bal('P', 123400, { as_of: '2026-11-19', accrued_interest: 5972 }),
+    ] });
+  const row = (id) => r.bs.liabRows.find((x) => x.id === id);
+  // 12,830,000 × 2.5% × 9/365 = 7,908.9 → 320,750 + 7,909
+  assert.equal(N(row('Y').interest), 328659);
+  assert.equal(row('Y').interestFrom, '2026-11-19');
+  // 11/20 已繳息 → 從 11/20 起算 8 天：7,677,100 × 3% × 8/365 = 5,047.96
+  assert.equal(row('M').interestFrom, '2026-11-20');
+  assert.equal(N(row('M').interest), 5048);
+  // 美元到分：5,972 + 123,400 × 5.8% × 9/365 = 5,972 + 176.48
+  assert.equal(N(row('P').interest), 6148.48);
+});
+
+test('配息依單位數 × 每單位配息試算（取基準日以前最近一次）', () => {
+  const r = C.compute({ asOf: '2026-11-28', upcomingTo: '2027-01-31', fx: [],
+    assets: [asset('F1', { identifier: 'F-A', quantity: 1000 }), asset('F2', { identifier: 'F-B', quantity: 500 })],
+    divRates: { 'F-A': [{ date: '2026-10-15', amount: 0.08 }, { date: '2026-11-16', amount: 0.082 }, { date: '2026-12-15', amount: 0.5 }], 'F-B': [{ date: '2026-10-30', amount: 0.1 }] },
+    cashSchedules: [{ id: 's', kind: 'fund_dist', direction: 'in', amount: 1, currency: 'USD', start_date: '2026-12-20', frequency: 'monthly', status: 'active', meta: { calc: 'units_div', assets: ['F1', 'F2'] } }] });
+  assert.equal(r.upcoming.length, 2);
+  assert.equal(N(r.upcoming[0].amount), 132);
+  assert.equal(r.upcoming[0].calc.parts.length, 2);
+});

@@ -7,53 +7,22 @@
 <title>資產負債報表｜東石家族辦公室</title>
 <link rel="icon" href="../favicon.ico?v=3" sizes="any">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&display=swap">
-<style>
-  :root { --navy: #1B2A4A; --gold: #B8892B; --ink: #23262E; --soft: #6B6656; --line: #D8D0BC; }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: #E9E6DE; color: var(--ink); font-family: 'Noto Sans TC', sans-serif; font-size: 10.5pt; }
-  .bar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: center; gap: 10px; padding: 10px; background: var(--navy); }
-  .bar button { font: inherit; padding: 8px 18px; border-radius: 999px; border: 1px solid #E4C77E; background: transparent; color: #F6F3EC; cursor: pointer; }
-  .bar button.primary { background: var(--gold); border-color: var(--gold); color: #fff; font-weight: 700; }
-  .doc { width: 210mm; margin: 16px auto; background: #fff; padding: 16mm 15mm; box-shadow: 0 4px 18px rgba(0,0,0,.12); }
-  h1 { font-family: 'Noto Serif TC', serif; font-size: 20pt; margin: 0; color: var(--navy); }
-  h2 { font-size: 12pt; color: var(--navy); border-bottom: 2px solid var(--gold); padding-bottom: 4px; margin: 18px 0 8px; break-after: avoid; }
-  .meta { color: var(--soft); font-size: 9pt; margin-top: 4px; line-height: 1.7; }
-  .flag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-weight: 700; font-size: 9pt; }
-  .flag.ok { background: #E3F1E6; color: #1E6B34; } .flag.bad { background: #F8E5E0; color: #A2402D; }
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0; }
-  .stat { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
-  .stat span { display: block; font-size: 8.5pt; color: var(--soft); }
-  .stat b { font-size: 13pt; font-variant-numeric: tabular-nums; }
-  .stat.em { background: var(--navy); border-color: var(--navy); } .stat.em span { color: #C9D2E6; } .stat.em b { color: #F3DFA8; }
-  table { width: 100%; border-collapse: collapse; font-size: 9pt; }
-  th { text-align: left; color: var(--soft); font-weight: 600; border-bottom: 1px solid var(--line); padding: 5px 6px; }
-  td { border-bottom: 1px solid #EDE8DC; padding: 5px 6px; vertical-align: top; }
-  tr { break-inside: avoid; }
-  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .note { font-size: 8.5pt; color: var(--soft); line-height: 1.7; }
-  .warn { color: #A2402D; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .foot { margin-top: 18px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 8pt; color: var(--soft); line-height: 1.7; }
-  .asof-banner { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; background: #FFF6DF; color: #7A5A1E; font-weight: 700; font-size: 10pt; }
-  #loading { text-align: center; padding: 60px; color: var(--soft); }
-  @page { size: A4; margin: 12mm; }
-  @media print {
-    body { background: #fff; } .bar { display: none; }
-    .doc { width: auto; margin: 0; padding: 0; box-shadow: none; }
-    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
-  @media (max-width: 800px) { .doc { width: auto; margin: 8px; padding: 18px 14px; } .stats { grid-template-columns: 1fr 1fr; } .grid2 { grid-template-columns: 1fr; } }
-</style>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../clients/report.css?v=20261127-3">
+<link rel="stylesheet" href="../clients/finance-report.css?v=20261128-1">
 </head>
 <body>
-<div class="bar"><button type="button" onclick="location.href='index.html'">← 返回</button><button type="button" class="primary" id="print">列印／另存 PDF</button></div>
-<div class="doc" id="doc"><div id="loading">讀取報表中…</div></div>
-
+<div class="rp-toolbar">
+  <a class="rp-back" href="index.html">← 返回</a>
+  <button type="button" class="rp-print" id="rp-print" disabled>下載 PDF／列印</button>
+  <p class="rp-hint">按下後在列印視窗選「另存為 PDF」即可下載。本報表為業務員存檔當下的資料，之後的行情與資產變動不會反映在這份報表上。</p>
+</div>
+<main class="rp-pages" id="rp-pages"><p class="rp-loading">讀取報表中…</p></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script src="../shared/supabase-client.js?v=20261120-2"></script>
 <script>window.FIN_REPORT_PORTAL = true;</script>
-<script src="../clients/finance-calc.js?v=20261127-1"></script>
-<script src="../clients/finance-report.js?v=20261126-1"></script>
+<script src="../clients/finance-calc.js?v=20261128-1"></script>
+<script src="../clients/finance-report.js?v=20261128-1"></script>
 </body>
 </html>

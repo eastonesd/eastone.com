@@ -72,6 +72,48 @@
     return list[0] || null;
   }
 
+  // ---------- 未付利息試算 ----------
+  const dayDiff = (a, b) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 864e5);
+  const iso = (y, m, d) => { const last = new Date(Date.UTC(y, m, 0)).getUTCDate(); return `${y}-${String(m).padStart(2, '0')}-${String(Math.min(d, last)).padStart(2, '0')}`; };
+  // 上次應繳息日（基準日當天或之前）：每月＋付款日數字；每年＝付款日寫的「M月D日」或起息日的周年日
+  function lastDue(l, asOf) {
+    const f = String(l.frequency || ''), pd = String(l.pay_day || '');
+    const [y, m, d] = asOf.split('-').map(Number);
+    if (/月/.test(f) && !/年/.test(f)) {
+      const day = Number((pd.match(/\d+/) || [])[0]);
+      if (!(day >= 1 && day <= 31)) return null;
+      let t = iso(y, m, day);
+      if (t > asOf) t = m === 1 ? iso(y - 1, 12, day) : iso(y, m - 1, day);
+      return t;
+    }
+    if (/年/.test(f)) {
+      const md = pd.match(/(\d{1,2})\s*月\s*(\d{1,2})/);
+      const from = l.rate_from && /^\d{4}-\d{2}-\d{2}$/.test(l.rate_from) ? l.rate_from : null;
+      const mm = md ? Number(md[1]) : from ? Number(from.slice(5, 7)) : null;
+      const dd = md ? Number(md[2]) : from ? Number(from.slice(8, 10)) : null;
+      if (!mm || !dd) return null;
+      let t = iso(y, mm, dd);
+      if (t > asOf) t = iso(y - 1, mm, dd);
+      if (from && t < from) t = from;
+      return t;
+    }
+    return null;
+  }
+  function accrue(l, b, principal, asOf) {
+    const rate = D(l.rate);
+    if (rate === null || rate <= 0n || principal === null || !asOf || !b.as_of || b.as_of > asOf) return null;
+    const due = lastDue(l, asOf);
+    const fresh = due && due > b.as_of;
+    const from = fresh ? due : b.as_of;
+    const days = dayDiff(from, asOf);
+    if (days < 0) return null;
+    const base = fresh ? 0n : (D(b.accrued_interest) || 0n);
+    const extra = mul(mul(principal, rate / 100n), D(days)) / 365n;
+    const unit = ['TWD', 'JPY'].includes(l.currency) ? SCALE : SCALE / 100n;
+    const v = base + extra;
+    return { interest: ((v + unit / 2n) / unit) * unit, from };
+  }
+
   // ---------- 資產負債 ----------
   function balanceSheet(input) {
     const asOf = input.asOf;
@@ -150,8 +192,11 @@
       const b = pickBalance(input.liabilityBalances, l.id, asOf);
       if (!b || D(b.principal) === null) { row.status = 'no_balance'; row.flags.push('未填剩餘本金'); return row; }
       const principal = D(b.principal);
-      const interest = b.interest_capitalized ? D(0) : (D(b.accrued_interest) === null ? D(0) : D(b.accrued_interest));
-      if (!b.interest_capitalized && D(b.accrued_interest) === null) row.flags.push('未付利息未填，暫以 0 計');
+      let interest = b.interest_capitalized ? D(0) : (D(b.accrued_interest) === null ? D(0) : D(b.accrued_interest));
+      // 有利率時自動試算到基準日的未付利息：上次繳息日在餘額日之後 → 從上次繳息日起算；否則以餘額日的未付利息再加計
+      const acc = b.interest_capitalized ? null : accrue(l, b, principal, asOf);
+      if (acc) { interest = acc.interest; row.interestEstimated = true; row.interestFrom = acc.from; }
+      else if (!b.interest_capitalized && D(b.accrued_interest) === null) row.flags.push('未付利息未填，暫以 0 計');
       row.principal = principal; row.interest = interest; row.balanceDate = b.as_of;
       row.original = add(principal, interest);
       const t = toBase(row.original, l.currency, fx, asOf);
@@ -327,10 +372,29 @@
     const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate();
     return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}-${String(Math.min(d, last)).padStart(2, '0')}`;
   }
+  // 依單位數 × 每單位配息試算（排程 meta.calc = 'units_div'，meta.assets = 基金資產 id）
+  // divRates：{ 基金代碼: [{ date, amount }] }，取基準日當天或之前最近一次的每單位配息
+  function unitsDiv(input, s) {
+    const m = s.meta || {};
+    if (m.calc !== 'units_div' || !Array.isArray(m.assets) || !input.divRates) return null;
+    const byId = new Map((input.assets || []).map((a) => [a.id, a]));
+    let total = 0n; const parts = [];
+    for (const id of m.assets) {
+      const a = byId.get(id);
+      if (!a || a.status === 'archived') continue;
+      const list = (input.divRates[a.identifier] || []).filter((x) => lte(x.date, input.asOf)).sort((x, y) => (x.date < y.date ? 1 : -1));
+      const q = D(a.quantity);
+      if (!list.length || q === null) return null;
+      const v = mul(q, D(list[0].amount));
+      total += v; parts.push({ asset_id: id, units: q, perUnit: D(list[0].amount), exDate: list[0].date, amount: v });
+    }
+    return parts.length ? { total, parts } : null;
+  }
   function upcoming(input, from, to) {
     const out = [];
     const matched = (input.cashEvents || []).filter((e) => e.schedule_id);
     for (const s of (input.cashSchedules || []).filter((x) => x.status !== 'archived')) {
+      const calc = unitsDiv(input, s);
       let date = s.start_date; let n = 0;
       while (lte(date, to) && (!s.end_date || lte(date, s.end_date)) && n < 600) {
         if (lte(from, date)) {
@@ -340,7 +404,8 @@
             ? Math.abs((Date.parse(e.event_date) - Date.parse(date)) / 864e5) <= 3
             : e.event_date.slice(0, 7) === month));
           if (!done) out.push({ schedule_id: s.id, date, kind: s.kind, label: (KINDS[s.kind] || {}).label || s.kind, direction: s.direction,
-            amount: D(s.amount), currency: s.currency, basis: s.basis, note: s.note });
+            amount: calc ? calc.total : D(s.amount), currency: s.currency, basis: s.basis, note: s.note,
+            asset_id: s.asset_id || null, liability_id: s.liability_id || null, calc: calc ? { parts: calc.parts } : null });
         }
         if (s.frequency === 'once') break;
         n++; date = WEEKS[s.frequency] ? addDays(s.start_date, 7 * WEEKS[s.frequency] * n) : addMonths(s.start_date, STEP[s.frequency] * n);
@@ -394,5 +459,5 @@
   function serialize(obj) { return JSON.parse(JSON.stringify(obj, (k, v) => (typeof v === 'bigint' ? { $d: v.toString() } : v))); }
   function revive(obj) { return JSON.parse(JSON.stringify(obj), (k, v) => (v && typeof v === 'object' && '$d' in v ? BigInt(v.$d) : v)); }
 
-  return { RULES_VERSION, D, add, sub, mul, toNum, fxRate, toBase, pickValue, pickBalance, balanceSheet, available, cashFlow, upcoming, trace, compute, serialize, revive, KINDS, addMonths, reTaxValue };
+  return { RULES_VERSION, D, add, sub, mul, toNum, fxRate, toBase, pickValue, pickBalance, balanceSheet, available, cashFlow, upcoming, unitsDiv, lastDue, accrue, trace, compute, serialize, revive, KINDS, addMonths, reTaxValue };
 });
