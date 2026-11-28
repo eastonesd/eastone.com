@@ -436,7 +436,7 @@ function renderLiabs() {
           <small>${esc([LIAB_CATS[r.category], l.institution, l.rate !== null && l.rate !== undefined ? `年利率 ${Number(l.rate)}%` : '', l.maturity ? '到期 ' + l.maturity : ''].filter(Boolean).join('・'))}</small>
           <span class="fin-chips"><i>${coll ? `擔保品 ${coll} 項` : '無擔保連結'}</i>${l.confirm_status === 'confirmed' ? '' : '<i class="soft">待確認</i>'}${STATUS_TEXT[r.status] ? `<span class="fin-tag ${r.status}">${STATUS_TEXT[r.status]}</span>` : ''}${r.flags.map((f) => `<i class="soft">${esc(f)}</i>`).join('')}</span></div>
         <div class="fin-item-val"><b>${r.original !== null ? fmt(r.original, r.currency) + ' ' + r.currency : '—'}</b>
-          <small>${r.balanceDate ? '餘額日 ' + r.balanceDate : ''}${l.maintenance_ratio ? `・維持率 ${Number(l.maintenance_ratio)}%（${l.maintenance_date || '日期未填'}）` : ''}</small></div>
+          <small>${r.balanceDate ? '餘額日 ' + r.balanceDate : ''}${l.maintenance_ratio ? `・維持率 ${Number(l.maintenance_ratio)}%（${l.maintenance_date || '日期未填'}）` : ''}${l.est_ratio != null ? `・<b class="${Number(l.est_ratio) < Number(l.margin_call || 130) ? 'warn' : ''}">東石每日估算 ${Number(l.est_ratio)}%</b>（${l.est_at}${l.margin_call ? `，追繳線 ${Number(l.margin_call)}%` : ''}）` : ''}</small></div>
       </button>`;
     }).join('')}</div>` : '<p class="fin-empty-row">尚無負債。</p>'}`;
   $('fl-add').addEventListener('click', () => liabForm());
@@ -780,13 +780,15 @@ function liabForm(l) {
     { k: 'maturity', label: '到期日', type: 'date' },
     { type: 'section', label: '銀行提供的維持率（只顯示，不推算）' },
     { k: 'maintenance_ratio', label: '維持率（%）', type: 'number' },
+    { k: 'margin_call', label: '追繳線（%）', type: 'number', ph: '例：130', when: 'category=securities_loan', hint: '每天自動估算維持率，低於追繳線或差 5 個百分點內，亞瑟會發 Discord 提醒' },
+    { k: 'margin_restore', label: '須補足到（%）', type: 'number', ph: '例：140', when: 'category=securities_loan' },
     { k: 'maintenance_date', label: '維持率日期', type: 'date' },
     { k: 'maintenance_note', label: '門檻與公式口徑', wide: true },
     { k: 'doc_ref', label: '依據文件', wide: true },
     { k: 'confirm_status', label: '確認狀態', type: 'select', opts: [['pending', '待確認'], ['confirmed', '已確認']] },
     { k: 'note', label: '備註', type: 'textarea', wide: true },
   ], l || {}, async (row) => {
-    validNumbers(row, ['credit_limit', 'rate', 'maintenance_ratio']);
+    validNumbers(row, ['credit_limit', 'rate', 'maintenance_ratio', 'margin_call', 'margin_restore']);
     if (!/^[A-Z]{3}$/.test(row.currency || '')) throw new Error('幣別請填三碼代號');
     if (row.rate !== null && (Number(row.rate) < 0 || Number(row.rate) > 30)) throw new Error('年利率看起來不合理（0～30%）');
     await save('fin_liabilities', row, l && l.id);
