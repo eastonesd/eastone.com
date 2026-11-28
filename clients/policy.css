@@ -174,3 +174,4 @@
 .pf-occhint.muted { background:var(--tc-bg-ede8dc); color:var(--tc-fg-6b6656); }
 .pf-occhint .link-btn { margin-left: 6px; font-weight: 700; }
 html[data-theme="dark"] .pf-savebar { background: rgba(22, 27, 38, .96); box-shadow: 0 -4px 14px rgba(0, 0, 0, .35); }
+.pf-team-bar { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; border-left: 5px solid var(--tc-bd-b8892b); background: var(--tc-bg-f6f3ec); color: var(--tc-fg-1b2a4a); font-weight: 700; }

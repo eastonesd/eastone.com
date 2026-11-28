@@ -32,7 +32,7 @@ const PREMIUM_GROUPS = [
   { key: "other", name: "複合／未拆分", color: "#B7B2A6", cats: [] },
 ];
 
-let RES = null, INSURED = null;
+let RES = null, INSURED = null, AGENT2 = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
   await requireLogin("../");
@@ -51,6 +51,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       const withAgent = RES.contracts.filter((c) => !c.pending).map((c) => all.find((x) => x.id === c.holderId).policies[c.policyIndex].life.agent).find((a) => a && a.name);
       if (withAgent) agent = withAgent;
     }
+    // 次要服務人員：這位被保人各張保單上設定的（去重）
+    AGENT2 = [...new Set(RES.contracts.filter((c) => !c.pending).map((c) => { const L = all.find((x) => x.id === c.holderId).policies[c.policyIndex].life || {}; return L.agent2 && L.agent2.name; }).filter((n) => n && n !== agent.name))].join("、");
     $("rp-agent-name").value = agent.name || "";
     $("rp-agent-contact").value = agent.contact || DEFAULT_CONTACT;
     render();
@@ -293,7 +295,7 @@ function render() {
       <div class="cv-contents">
         <div><b>01</b> 保單與保費</div><div><b>02</b> 保障與權益</div><div><b>03</b> 結論與行動</div>
       </div>
-      <div class="cv-agent"><div><span>服務業務員</span><b class="rp-agent-name">${esc($("rp-agent-name").value || "—")}</b></div>
+      <div class="cv-agent"><div><span>服務業務員</span><b class="rp-agent-name">${esc($("rp-agent-name").value || "—")}</b>${AGENT2 ? `<small class="cv-agent2">次要服務人員 ${esc(AGENT2)}</small>` : ""}</div>
         <div><span>聯絡方式</span><b class="rp-agent-contact">${esc($("rp-agent-contact").value || "—")}</b></div></div>
       <p class="cv-note">本報告依客戶提供之保單資料整理，數字僅供說明參考，非理賠承諾。${esc(fxLine)}</p>
     </div>
@@ -460,7 +462,7 @@ function render() {
     <div class="agent-sign">
       <p>本人已親自詳閱本報告所列各保單之保險條款，並對本保單健診報告書之內容負責。</p>
       <div class="sign"><div>業務員簽名<span></span></div><div class="sm">日期<span></span></div></div>
-      <div class="agent-line">服務業務員　<b class="rp-agent-name">${esc($("rp-agent-name").value || "—")}</b>　聯絡方式　<b class="rp-agent-contact">${esc($("rp-agent-contact").value || "—")}</b></div>
+      <div class="agent-line">服務業務員　<b class="rp-agent-name">${esc($("rp-agent-name").value || "—")}</b>　聯絡方式　<b class="rp-agent-contact">${esc($("rp-agent-contact").value || "—")}</b>${AGENT2 ? `　次要服務人員　<b>${esc(AGENT2)}</b>` : ""}</div>
     </div>`, { flow: 0 });
 
   // 結論與下一步（填滿整頁）

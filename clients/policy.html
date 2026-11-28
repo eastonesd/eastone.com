@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="../shared/auth.css?v=20261128-1">
 <link rel="stylesheet" href="style.css?v=20261121-1">
 <link rel="stylesheet" href="picker.css?v=20261116-1">
-<link rel="stylesheet" href="policy.css?v=20261119-2">
+<link rel="stylesheet" href="policy.css?v=20261128-1">
 <link rel="stylesheet" href="client-docs.css?v=20261128-1">
 </head>
 <body data-cm="life" data-cm-root="../">
@@ -239,6 +239,10 @@
         <label>登錄證字號<input type="text" id="pf-agent-license"></label>
         <label>聯繫方式<input type="text" id="pf-agent-contact" placeholder="電話或 LINE"></label>
       </div>
+      <div class="pf-grid3">
+        <label>次要服務人員<select id="pf-agent2"><option value="">（無）</option></select></label>
+      </div>
+      <p class="pf-note">次要服務人員會一起列在保單健診報告上；客戶仍只在主要業務員名下。</p>
     </section>
 
     <!-- 合計與儲存 -->
@@ -262,11 +266,11 @@
 <script src="../shared/supabase-client.js?v=20261120-2"></script>
 <script src="../shared/auth.js?v=20261128-1"></script>
 <script src="data.js?v=20261116-1"></script>
-<script src="db.js?v=20261127-1"></script>
+<script src="db.js?v=20261128-1"></script>
 <script src="../shared/kb.js?v=20261127-1"></script>
 <script src="picker.js?v=20261116-1"></script>
 <script src="client-docs.js?v=20261128-1"></script>
-<script src="policy.js?v=20261128-1"></script>
+<script src="policy.js?v=20261128-2"></script>
 <script src="../shared/cm-nav.js?v=20261127-2"></script>
 </body>
 </html>

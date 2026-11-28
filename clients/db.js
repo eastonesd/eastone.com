@@ -170,6 +170,10 @@ async function clientList() {
 }
 
 async function clientGet(id) {
+  if (VIEW_OWNER) {
+    const list = await clientList();
+    return list.find((c) => String(c.id).toUpperCase() === (id || '').toUpperCase()) || null;
+  }
   const { data, error } = await sb.from('clients')
     .select('data')
     .eq('id', (id || '').toUpperCase())
@@ -247,6 +251,12 @@ async function clientUpdate(id, payload) {
 // 只更新某位客戶的保單清單（新增／修改保單頁使用）
 async function clientSavePolicies(id, policies) {
   const key = (id || '').trim().toUpperCase();
+  // 主管代成員修改：走 RPC（確認主管身分、留下紀錄）
+  if (VIEW_OWNER) {
+    const { data, error } = await sb.rpc('team_client_set_policies', { p_owner: VIEW_OWNER, p_client: key, p_policies: policies });
+    sbThrow(error, '儲存保單');
+    return data;
+  }
   const existing = await clientGet(key);
   if (!existing) throw new Error('查無此客戶');
   const record = { ...existing, policies, updated_at: nowStamp() };

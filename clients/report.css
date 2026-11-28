@@ -248,3 +248,4 @@ body { background: #E9E6DF; color: var(--ink); font-family: "Noto Sans TC", "Pin
 /* 醫療「中」：定額｜實支 同一行、手術｜意外住院 同一行，癌症醫療第三行 */
 .mg-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
 .mg-row2 .vc-grid { grid-template-columns: 1fr 1fr; }
+.cv-agent2 { display: block; font-size: 10pt; color: var(--soft); margin-top: 2px; }

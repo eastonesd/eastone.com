@@ -58,9 +58,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!id) { location.href = "index.html"; return; }
 
   [client, allClients, allCodeRows] = await Promise.all([clientGet(id), clientList(), codeRows()]);
-  if (!client) { alert("查無此客戶"); location.href = "index.html"; return; }
-  // 返回時直接打開這位客戶的資料卡
-  document.querySelectorAll(".pf-back").forEach((a) => { a.href = `index.html#client=${encodeURIComponent(client.id)}`; a.textContent = "← 返回客戶資料卡"; });
+  if (!client) { alert("查無此客戶"); location.href = VIEW_OWNER ? "team.html" : "index.html"; return; }
+  await loadTeam();
+  // 返回時直接打開這位客戶的資料卡；主管代成員修改時回到團隊頁
+  document.querySelectorAll(".pf-back").forEach((a) => {
+    if (VIEW_OWNER) { a.href = `team.html?member=${encodeURIComponent(VIEW_OWNER)}`; a.textContent = "← 返回團隊"; }
+    else { a.href = `index.html#client=${encodeURIComponent(client.id)}`; a.textContent = "← 返回客戶資料卡"; }
+  });
+  if (VIEW_OWNER) {
+    const owner = TEAM.find((t) => t.user_id === VIEW_OWNER);
+    const bar = document.createElement("p");
+    bar.className = "pf-team-bar";
+    bar.textContent = `主管代為建檔：這位客戶屬於 ${owner ? owner.name : "團隊成員"}，儲存後會寫進他的資料，並留下紀錄。`;
+    document.querySelector(".pf-main").prepend(bar);
+  }
   // 保單知識庫：讀不到（例如還沒建好）也不影響填表，只是不能自動帶入與試算
   try {
     await KB.load();
@@ -75,7 +86,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindForm();
   renderClient();
   // 客戶文件區：上傳保單截圖自動建檔，建完重新讀客戶資料
-  ClientDocs.mount(document.getElementById("pf-docs"), { clientId: client.id, onPolicies: async () => { client = await clientGet(client.id); renderClient(); } });
+  ClientDocs.mount(document.getElementById("pf-docs"), { clientId: client.id, owner: VIEW_OWNER || undefined, onPolicies: async () => { client = await clientGet(client.id); renderClient(); } });
 
   const i = params.get("i");
   if (i !== null && client.policies && client.policies[+i]) loadPolicy(+i);
@@ -768,7 +779,15 @@ function today() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// 團隊成員（次要服務人員下拉、主管代建檔時的主要業務員）
+let TEAM = [];
+async function loadTeam() {
+  try { const { data } = await sb.from("team_members").select("user_id, name, life_license"); TEAM = data || []; } catch { TEAM = []; }
+  $("pf-agent2").innerHTML = `<option value="">（無）</option>` + TEAM.map((t) => `<option value="${esc(t.user_id)}">${esc(t.name)}${t.life_license ? `（${esc(t.life_license)}）` : ""}</option>`).join("");
+}
 function loadAgentDefault() {
+  // 主管代成員建檔：主要業務員預設是該成員
+  if (VIEW_OWNER) { const t = TEAM.find((x) => x.user_id === VIEW_OWNER); if (t) return { name: t.name, license_no: t.life_license || "", contact: "" }; }
   try { return JSON.parse(localStorage.getItem(AGENT_KEY) || "{}"); } catch { return {}; }
 }
 
@@ -841,6 +860,10 @@ function fillForm(p) {
   $("pf-agent-name").value = ag.name || "";
   $("pf-agent-license").value = ag.license_no || "";
   $("pf-agent-contact").value = ag.contact || "";
+  // 次要服務人員：新保單在代成員建檔時，預設是主管自己
+  const a2 = L.agent2 || (!p.policy_no && VIEW_OWNER && typeof APP_UID !== "undefined" ? { user_id: APP_UID } : null);
+  const opt = a2 && (TEAM.find((t) => t.user_id === a2.user_id) || TEAM.find((t) => t.name === a2.name));
+  $("pf-agent2").value = opt ? opt.user_id : "";
 
   updateTotal();
 }
@@ -895,6 +918,7 @@ function collectPolicy() {
         : { type: ch },
     beneficiaries: collectBenes(),
     agent: { name: $("pf-agent-name").value.trim(), license_no: $("pf-agent-license").value.trim(), contact: $("pf-agent-contact").value.trim() },
+    agent2: (() => { const t = TEAM.find((x) => x.user_id === $("pf-agent2").value); return t ? { user_id: t.user_id, name: t.name, license_no: t.life_license || "" } : null; })(),
     discount_pct_applied: pct,
     updated_at: new Date().toISOString(),
   };
@@ -936,7 +960,7 @@ async function savePolicy() {
     if (editIndex === null) list.push(p);
     else list[editIndex] = { ...list[editIndex], ...p };
     client = await clientSavePolicies(client.id, list);
-    try { localStorage.setItem(AGENT_KEY, JSON.stringify(p.life.agent)); } catch { /* 無痕模式存不了也沒關係 */ }
+    if (!VIEW_OWNER) try { localStorage.setItem(AGENT_KEY, JSON.stringify(p.life.agent)); } catch { /* 無痕模式存不了也沒關係 */ }
     const idx = editIndex === null ? client.policies.length - 1 : editIndex;
     let made = [];
     try { const m = await autoCreateMainCode(p); made = [...(m ? [m] : []), ...(await autoCreateRiderCodes(newRiders))]; syncMainNew(); }
@@ -968,7 +992,7 @@ async function savePolicyToInsured(p, targetId) {
     catch (err) { alert("保單已儲存，但附約代號自動建檔失敗：" + (err && err.message ? err.message : err)); }
     const idx = at >= 0 ? at : tlist.length - 1;
     alert(`被保險人是 ${target.name}，這張保單已存到 ${target.name} 的資料卡。`);
-    location.href = `policy.html?id=${encodeURIComponent(targetId)}&i=${idx}`;
+    location.href = `policy.html?id=${encodeURIComponent(targetId)}&i=${idx}${VIEW_OWNER ? `&owner=${encodeURIComponent(VIEW_OWNER)}` : ""}`;
   } catch (err) {
     alert("儲存失敗：" + (err && err.message ? err.message : err));
     btn.disabled = false;
